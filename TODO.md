@@ -40,16 +40,21 @@ Status: complete for issue-level and initial file-level audit. Runtime import re
 
 ## Pass 3: Android mail spine proof plan
 
-- [ ] Complete Thunderbird Android license and build audit.
-- [ ] Define fork strategy.
-- [ ] Define package/app rename plan.
-- [ ] Define provider configuration plan.
-- [ ] Define smallest local build proof.
-- [ ] Decide full fork vs sidecar-first experiment.
+Status: architecture audit complete on branch `pass3/android-mail-spine-audit`; local build proof still pending.
+
+- [x] Complete Thunderbird Android license and architecture audit.
+- [x] Define preliminary fork strategy.
+- [x] Define preliminary package/app rename implications.
+- [x] Define preliminary provider configuration implications.
+- [x] Define smallest local build proof.
+- [x] Decide preliminary full fork vs sidecar-first experiment.
+- [ ] Complete local upstream build proof.
+- [ ] Complete detailed license/NOTICE/dependency review before distribution.
+- [ ] Create package rename and provider configuration implementation issue.
 
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 2 and Pass 3 are complete.
+Blocked until Pass 3 local build proof is complete.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -59,8 +64,8 @@ Blocked until Pass 2 and Pass 3 are complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: 2 remaining passes after Pass 2B.
+Current estimated work to reach repo-ready MVP planning state: 1 to 2 remaining passes after Pass 3 audit branch.
 
-Current estimated work to reach buildable Android proof: 7 to 9 total passes, depending on mail spine complexity and upstream build requirements.
+Current estimated work to reach buildable Android proof: 6 to 8 total passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 10 to 14 total passes.
+Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 9 to 13 total passes.
