@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xi-io.local/schemas/inbox-event.schema.json",
+  "title": "InboxEvent",
+  "type": "object",
+  "required": ["id", "event_type", "provider", "provider_type", "received_at", "source_ref"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "email.received",
+        "email.sent",
+        "email.draft.created",
+        "message.received",
+        "attachment.detected",
+        "contact.detected",
+        "calendar.detected",
+        "automation.received"
+      ]
+    },
+    "provider_type": {
+      "type": "string",
+      "enum": ["email", "chat", "sms", "cloud_file", "calendar", "contacts", "automation"]
+    },
+    "provider": { "type": "string", "minLength": 1 },
+    "account_id": { "type": ["string", "null"] },
+    "conversation_id": { "type": ["string", "null"] },
+    "message_id": { "type": ["string", "null"] },
+    "thread_id": { "type": ["string", "null"] },
+    "received_at": { "type": "string", "format": "date-time" },
+    "source_ref": { "type": "string", "minLength": 1 },
+    "subject": { "type": ["string", "null"] },
+    "sender_ref": { "type": ["string", "null"] },
+    "recipient_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "attachment_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["unknown", "low", "medium", "high", "critical"],
+      "default": "unknown"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "receipt_id": { "type": ["string", "null"] }
+  }
+}
