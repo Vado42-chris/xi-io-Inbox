@@ -18,8 +18,8 @@ Status: in progress.
 - [x] Add portable inbox archive draft.
 - [x] Add automation bridge plan.
 - [x] Add initial schema stubs.
-- [ ] Add provider manifest schema.
-- [ ] Add AI provider manifest schema.
+- [x] Add provider manifest schema.
+- [x] Add AI provider manifest schema.
 - [ ] Add initial roadmap.
 - [ ] Add framework freshness issue back to `xi-io.net`.
 
