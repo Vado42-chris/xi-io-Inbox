@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xi-io.local/schemas/egress-permission.schema.json",
+  "title": "EgressPermission",
+  "type": "object",
+  "required": ["ai_assisted_send", "draft_allowed", "user_confirmation_required", "blocked_actions"],
+  "additionalProperties": false,
+  "properties": {
+    "ai_assisted_send": { "type": "boolean", "default": false },
+    "draft_allowed": { "type": "boolean", "default": true },
+    "user_confirmation_required": { "type": "boolean", "default": true },
+    "account_scope": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "channel_scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["email", "chat", "sms", "cloud_file", "calendar", "contacts", "automation"]
+      },
+      "default": []
+    },
+    "blocked_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["send", "delete", "forward", "publish", "share_external", "grant_permission", "upload_attachment"]
+      },
+      "default": ["send", "delete", "forward", "publish", "share_external", "grant_permission", "upload_attachment"]
+    },
+    "warning_acknowledged_at": { "type": ["string", "null"], "format": "date-time" },
+    "updated_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}
