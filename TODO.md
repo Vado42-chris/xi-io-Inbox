@@ -36,7 +36,7 @@ Status: complete for issue-level and initial file-level audit. Runtime import re
 - [x] Identify initial reusable docs/schemas to update in `xi-io.net`.
 - [x] Perform initial file-level audit for repos where issue search found limited evidence.
 - [x] Update source candidate matrix after file-level audit.
-- [ ] Add framework-side pass 2 note to `xi-io.net#232`.
+- [x] Add framework-side pass 2 note to `xi-io.net#233`.
 
 ## Pass 3: Android mail spine proof plan
 
