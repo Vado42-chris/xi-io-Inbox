@@ -40,16 +40,27 @@ Status: complete for issue-level and initial file-level audit. Runtime import re
 
 ## Pass 3: Android mail spine proof plan
 
-- [ ] Complete Thunderbird Android license and build audit.
-- [ ] Define fork strategy.
-- [ ] Define package/app rename plan.
-- [ ] Define provider configuration plan.
-- [ ] Define smallest local build proof.
-- [ ] Decide full fork vs sidecar-first experiment.
+Status: architecture audit, operator packets, Cursor execution prompt, and docs-only merge decision complete. Local build proof still pending.
+
+- [x] Complete Thunderbird Android license and architecture audit.
+- [x] Define preliminary fork strategy.
+- [x] Define preliminary package/app rename implications.
+- [x] Define preliminary provider configuration implications.
+- [x] Define smallest local build proof.
+- [x] Decide preliminary full fork vs sidecar-first experiment.
+- [x] Add upstream build-proof packet for `ARCH-002`.
+- [x] Add fork identity/provider configuration packet for `ARCH-003`.
+- [x] Add Pass 3B status note.
+- [x] Add Cursor execution prompt for `ARCH-002`.
+- [x] Add Pass 3E docs-only merge decision.
+- [ ] Execute local upstream build proof.
+- [ ] Record build evidence or classified failure on `xi-io-Inbox#6`.
+- [ ] Complete detailed license/NOTICE/dependency review before distribution.
+- [ ] Finalize package/application ID, redirect URI, and provider configuration plan.
 
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 2 and Pass 3 are complete.
+Blocked until Pass 3 local build proof is complete.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -59,8 +70,8 @@ Blocked until Pass 2 and Pass 3 are complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: 2 remaining passes after Pass 2B.
+Current estimated work to reach repo-ready MVP planning state: complete after PR #8 docs merge.
 
-Current estimated work to reach buildable Android proof: 7 to 9 total passes, depending on mail spine complexity and upstream build requirements.
+Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 10 to 14 total passes.
+Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 8 to 12 remaining passes.
