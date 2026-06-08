@@ -25,20 +25,24 @@ Status: complete.
 
 ## Pass 2: source mining and framework freshness
 
-- [ ] Mine `xi-io.net` docs/issues for provider registry, event schema, receipts, verifier gate, calendar, Ibal, and workbench contracts.
-- [ ] Mine `realitypools.tv` for calendar/event/component candidates.
-- [ ] Mine `google_planner` for approval-gated workflow patterns.
-- [ ] Mine `xi-io_docuforge` for export/review packet patterns.
-- [ ] Mine `xi-io_AuDHD-field-guide` for consent/capture patterns.
-- [ ] Create source candidate matrix.
-- [ ] Identify reusable docs to update in `xi-io.net`.
+Status: partial complete, file-level audit still pending.
+
+- [x] Mine `xi-io.net` issues for provider registry, event schema, receipts, verifier gate, calendar, Ibal, and workbench contracts.
+- [x] Mine `realitypools.tv` issues for calendar/event/component candidates.
+- [x] Mine `google_planner` issues for approval-gated workflow patterns.
+- [x] Search `xi-io_docuforge` issues for export/review packet patterns, no issue evidence found in this pass.
+- [x] Search `xi-io_AuDHD-field-guide` issues for consent/capture patterns, no issue evidence found in this pass.
+- [x] Create source candidate matrix.
+- [x] Identify initial reusable docs/schemas to update in `xi-io.net`.
+- [ ] Perform file-level audit for repos where issue search found limited evidence.
+- [ ] Add framework-side pass 2 note to `xi-io.net#232`.
 
 ## Pass 3: Android mail spine proof plan
 
 - [ ] Complete Thunderbird Android license and build audit.
 - [ ] Define fork strategy.
 - [ ] Define package/app rename plan.
-- [ ] Define provider sign-in configuration plan.
+- [ ] Define provider configuration plan.
 - [ ] Define smallest local build proof.
 - [ ] Decide full fork vs sidecar-first experiment.
 
@@ -54,7 +58,7 @@ Blocked until Pass 2 and Pass 3 are complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: 3 remaining passes after Pass 1.
+Current estimated work to reach repo-ready MVP planning state: 2 to 3 remaining passes after Pass 2, depending on file-level audit findings.
 
 Current estimated work to reach buildable Android proof: 7 to 9 total passes, depending on mail spine complexity and upstream build requirements.
 
