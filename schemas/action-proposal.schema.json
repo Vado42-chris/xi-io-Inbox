@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xi-io.local/schemas/action-proposal.schema.json",
+  "title": "ActionProposal",
+  "type": "object",
+  "required": ["id", "proposal_type", "source_event_ids", "title", "requires_user_confirmation", "egress_risk"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "proposal_type": {
+      "type": "string",
+      "enum": [
+        "draft_reply",
+        "task",
+        "bug",
+        "calendar_event",
+        "reminder",
+        "export_packet",
+        "contact_update",
+        "tag_update",
+        "automation"
+      ]
+    },
+    "source_event_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": ["string", "null"] },
+    "requires_user_confirmation": { "type": "boolean", "const": true },
+    "missing_user_inputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "egress_risk": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high", "critical"]
+    },
+    "allowed_default": { "type": "boolean", "default": false },
+    "model_receipt_id": { "type": ["string", "null"] },
+    "created_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}
