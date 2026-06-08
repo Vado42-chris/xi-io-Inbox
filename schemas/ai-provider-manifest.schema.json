@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xi-io.local/schemas/ai-provider-manifest.schema.json",
+  "title": "AIProviderManifest",
+  "type": "object",
+  "required": ["id", "name", "provider_class", "status", "allowed_data_levels", "egress_allowed"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "provider_class": {
+      "type": "string",
+      "enum": ["local_endpoint", "cloud_api", "hosted_proxy", "openai_compatible", "custom"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["candidate", "planned", "experimental", "supported", "blocked", "deprecated"]
+    },
+    "auth_mode": {
+      "type": "string",
+      "enum": ["none", "api_key", "oauth", "local_endpoint", "proxy_token", "custom"]
+    },
+    "allowed_data_levels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["metadata-only", "snippet-only", "full-message", "message-plus-attachments", "redacted-content", "local-only", "ask-every-time"]
+      },
+      "minItems": 1
+    },
+    "egress_allowed": { "type": "boolean", "const": false },
+    "sensitive_bins_require_confirmation": { "type": "boolean", "default": true },
+    "cost_mode": {
+      "type": "string",
+      "enum": ["free_local_compute", "user_pays_provider", "xiio_hosted_paid", "unknown"],
+      "default": "unknown"
+    },
+    "retention_notes": { "type": ["string", "null"] },
+    "source_docs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "updated_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}
