@@ -40,7 +40,7 @@ Status: complete for issue-level and initial file-level audit. Runtime import re
 
 ## Pass 3: Android mail spine proof plan
 
-Status: architecture audit and operator packets complete on branch `pass3/android-mail-spine-audit`; local build proof still pending.
+Status: architecture audit, operator packets, and Cursor execution prompt complete on branch `pass3/android-mail-spine-audit`; local build proof still pending.
 
 - [x] Complete Thunderbird Android license and architecture audit.
 - [x] Define preliminary fork strategy.
@@ -51,7 +51,9 @@ Status: architecture audit and operator packets complete on branch `pass3/androi
 - [x] Add upstream build-proof packet for `ARCH-002`.
 - [x] Add fork identity/provider configuration packet for `ARCH-003`.
 - [x] Add Pass 3B status note.
-- [ ] Complete local upstream build proof.
+- [x] Add Cursor execution prompt for `ARCH-002`.
+- [ ] Execute local upstream build proof.
+- [ ] Record build evidence or classified failure on `xi-io-Inbox#6`.
 - [ ] Complete detailed license/NOTICE/dependency review before distribution.
 - [ ] Finalize package/application ID, redirect URI, and provider configuration plan.
 
@@ -67,7 +69,7 @@ Blocked until Pass 3 local build proof is complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: 1 remaining pass after Pass 3C review.
+Current estimated work to reach repo-ready MVP planning state: 1 remaining pass after ARCH-002 prompt handoff.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
