@@ -67,10 +67,10 @@ Status: blocker added after point-of-order review. No Inbox runtime UI should be
 - [x] Add framework UI adoption rule doc.
 - [x] Add Inbox framework component map.
 - [x] Add Cursor prompt for UI framework adoption.
+- [x] Add framework-side freshness issue for reusable UI consumer contract.
 - [ ] Decide direct reuse vs adapted copy vs promoted framework package.
 - [ ] Create first static Inbox UI preview using framework-derived components.
 - [ ] Record accessibility and draft-only egress checks.
-- [ ] Add framework-side freshness issue for reusable UI consumer contract.
 
 ## Pass 4: runtime skeleton
 
