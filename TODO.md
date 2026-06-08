@@ -25,16 +25,17 @@ Status: complete.
 
 ## Pass 2: source mining and framework freshness
 
-Status: partial complete, file-level audit still pending.
+Status: complete for issue-level and initial file-level audit. Runtime import remains blocked.
 
 - [x] Mine `xi-io.net` issues for provider registry, event schema, receipts, verifier gate, calendar, Ibal, and workbench contracts.
 - [x] Mine `realitypools.tv` issues for calendar/event/component candidates.
 - [x] Mine `google_planner` issues for approval-gated workflow patterns.
-- [x] Search `xi-io_docuforge` issues for export/review packet patterns, no issue evidence found in this pass.
-- [x] Search `xi-io_AuDHD-field-guide` issues for consent/capture patterns, no issue evidence found in this pass.
+- [x] Search `xi-io_docuforge` issues for export/review packet patterns, limited issue evidence found.
+- [x] Search `xi-io_AuDHD-field-guide` issues for consent/capture patterns, additional meaning UI evidence found.
 - [x] Create source candidate matrix.
 - [x] Identify initial reusable docs/schemas to update in `xi-io.net`.
-- [ ] Perform file-level audit for repos where issue search found limited evidence.
+- [x] Perform initial file-level audit for repos where issue search found limited evidence.
+- [x] Update source candidate matrix after file-level audit.
 - [ ] Add framework-side pass 2 note to `xi-io.net#232`.
 
 ## Pass 3: Android mail spine proof plan
@@ -58,7 +59,7 @@ Blocked until Pass 2 and Pass 3 are complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: 2 to 3 remaining passes after Pass 2, depending on file-level audit findings.
+Current estimated work to reach repo-ready MVP planning state: 2 remaining passes after Pass 2B.
 
 Current estimated work to reach buildable Android proof: 7 to 9 total passes, depending on mail spine complexity and upstream build requirements.
 
