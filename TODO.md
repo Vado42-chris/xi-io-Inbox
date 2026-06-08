@@ -2,7 +2,7 @@
 
 ## Pass 1: bootstrap governance
 
-Status: in progress.
+Status: complete.
 
 - [x] Create bootstrap issue.
 - [x] Create source audit issue.
@@ -20,8 +20,8 @@ Status: in progress.
 - [x] Add initial schema stubs.
 - [x] Add provider manifest schema.
 - [x] Add AI provider manifest schema.
-- [ ] Add initial roadmap.
-- [ ] Add framework freshness issue back to `xi-io.net`.
+- [x] Add initial roadmap.
+- [x] Add framework freshness issue back to `xi-io.net`.
 
 ## Pass 2: source mining and framework freshness
 
@@ -54,8 +54,8 @@ Blocked until Pass 2 and Pass 3 are complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: 4 passes.
+Current estimated work to reach repo-ready MVP planning state: 3 remaining passes after Pass 1.
 
-Current estimated work to reach buildable Android proof: 7 to 9 passes, depending on mail spine complexity and upstream build requirements.
+Current estimated work to reach buildable Android proof: 7 to 9 total passes, depending on mail spine complexity and upstream build requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 10 to 14 passes.
+Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 10 to 14 total passes.
