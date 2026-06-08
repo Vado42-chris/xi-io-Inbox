@@ -58,9 +58,23 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 - [ ] Complete detailed license/NOTICE/dependency review before distribution.
 - [ ] Finalize package/application ID, redirect URI, and provider configuration plan.
 
+## UI-001: framework UI adoption
+
+Status: blocker added after point-of-order review. No Inbox runtime UI should be created before this is satisfied.
+
+- [x] Identify concrete `xi-io.net` framework UI component sources.
+- [x] Create `UI-001` issue.
+- [x] Add framework UI adoption rule doc.
+- [x] Add Inbox framework component map.
+- [x] Add Cursor prompt for UI framework adoption.
+- [ ] Decide direct reuse vs adapted copy vs promoted framework package.
+- [ ] Create first static Inbox UI preview using framework-derived components.
+- [ ] Record accessibility and draft-only egress checks.
+- [ ] Add framework-side freshness issue for reusable UI consumer contract.
+
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 3 local build proof is complete.
+Blocked until Pass 3 local build proof and UI-001 framework UI adoption decision are complete.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -70,8 +84,8 @@ Blocked until Pass 3 local build proof is complete.
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete after PR #8 docs merge.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker now explicit.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, and two-way framework freshness for initial MVP: 8 to 12 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 9 to 13 remaining passes.
