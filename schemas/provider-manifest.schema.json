@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xi-io.local/schemas/provider-manifest.schema.json",
+  "title": "ProviderManifest",
+  "type": "object",
+  "required": ["id", "provider_type", "name", "status", "supports_ingress", "supports_egress"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "provider_type": {
+      "type": "string",
+      "enum": ["email", "chat", "sms", "cloud_file", "calendar", "contacts", "automation"]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["candidate", "planned", "experimental", "supported", "blocked", "deprecated"]
+    },
+    "auth_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["none", "oauth", "api_key", "app_password", "local_endpoint", "system_permission", "manual_import"]
+      },
+      "default": []
+    },
+    "supports_ingress": { "type": "boolean" },
+    "supports_egress": { "type": "boolean" },
+    "egress_requires_confirmation": { "type": "boolean", "default": true },
+    "risk_notes": { "type": ["string", "null"] },
+    "source_docs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "updated_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}
