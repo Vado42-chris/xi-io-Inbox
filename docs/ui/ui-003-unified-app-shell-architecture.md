@@ -11,7 +11,7 @@ UI-002 technical render smoke proof: passed
 UI-002 owner/framework UX review: failed on 2026-06-09
 UI-003 tracker: xi-io-Inbox#14
 Direct framework export blocker: xi-io.net#239
-Implementation status: not started
+Implementation status: UI-003A shell skeleton implemented
 ```
 
 ## Decision
@@ -295,13 +295,54 @@ The redesigned proof must answer yes to:
 
 1. Keep PR #12 draft.
 2. Update PR #12 body so it cannot look green.
-3. Replace the current preview shell with a unified app shell.
+3. Replace the current preview shell with a unified app shell. Status: UI-003A complete.
 4. Reuse existing validation scripts and no-provider safety checks.
-5. Add lane-oriented preview fixture data.
+5. Add lane-oriented preview fixture data. Status: UI-003A skeleton fixtures complete.
 6. Run static validation.
 7. Run browser/visual proof.
 8. Record owner/framework UX review result.
 9. Report any reusable UI findings back to `xi-io.net#239`.
+
+## UI-003A Implementation Note
+
+UI-003A replaces the failed single-page preview shell with a static unified app shell skeleton only.
+
+Implemented surfaces:
+
+- top bar with product identity, workspace/account, provider status, privacy mode, Ibal status, and disabled search/command placeholder,
+- left lane navigation for Home, Inbox, Calendar, Tasks, Automations, Extensions, Receipts, Ibal, and Settings / Provider Gates,
+- hash routes from `#/home` through `#/settings`,
+- route-aware main lane placeholder,
+- persistent right inspector for context, evidence, draft/egress state, Ibal proposal, receipts, and blocked egress actions,
+- safety banner for preview-only data, no provider connection, no dangerous egress, undecided platform/runtime, and `xi-io.net#239`.
+
+Validation recorded during UI-003A:
+
+```text
+npm run check: pass
+hash route smoke: pass
+default route: #/home
+lanes visible: 9
+right inspector visible: yes
+disabled egress controls: 8
+external requests during route smoke: 0
+```
+
+Not implemented in UI-003A:
+
+- final lane detail UI,
+- provider connection,
+- local cloud/home server behavior,
+- provider credentials,
+- automation execution,
+- Pass 4 runtime skeleton,
+- redesigned owner/framework visual proof.
+
+Next slice:
+
+```text
+UI-003B: lane detail fixtures and first-pass lane content density.
+```
 
 ## Decision value
 

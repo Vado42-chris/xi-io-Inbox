@@ -108,7 +108,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Inspect real `xi-io.net` framework sources before redesign.
 - [x] Propose revised UI architecture before implementation.
 - [x] Add `docs/ui/ui-003-unified-app-shell-architecture.md`.
-- [ ] Replace current preview with framework-compliant unified app shell.
+- [x] Implement UI-003A unified app shell skeleton with lane navigation, hash routes, right inspector, and safety banner.
+- [ ] Add UI-003B lane detail fixtures and first-pass lane content density.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
@@ -127,4 +128,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 5 to 8 remaining passes after UI-003 architecture, because implementation and proof remain.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 7 remaining passes after UI-003A, because lane detail, visual proof, and framework freshness remain.

@@ -61,17 +61,19 @@ xi-io.net#239
 
 ## Product IA / framework UX checks
 
-- [ ] Unified xi-io app shell is present.
-- [ ] Inbox lane is clear and email-client-like.
-- [ ] Calendar lane is clear and schedulable.
-- [ ] Tasks lane is clear and trackable.
-- [ ] Extensions lane is clear for providers/tools/add-ons.
-- [ ] Ibal orchestration surface is explicit.
-- [ ] Receipts/audit surface is explicit.
-- [ ] Provider gates are explicit before real data/actions.
-- [ ] Automations creation path is clear.
-- [ ] Navigation creates clear lanes and workpaths.
-- [ ] Framework visual language feels like xi-io, not a generic dashboard.
+- [x] Unified xi-io app shell skeleton is present.
+- [x] Inbox lane placeholder is visible.
+- [x] Calendar lane placeholder is visible.
+- [x] Tasks lane placeholder is visible.
+- [x] Extensions lane placeholder is visible.
+- [x] Ibal orchestration lane placeholder is explicit.
+- [x] Receipts/audit lane placeholder is explicit.
+- [x] Provider gates placeholder is explicit before real data/actions.
+- [x] Automations proposal/dry-run placeholder is visible.
+- [x] Navigation creates clear lanes and workpaths.
+- [ ] Framework visual language/product quality owner review for the redesigned shell is not complete.
+
+UI-003A establishes shell structure only. It does not complete final lane IA, product density, or owner/framework UX proof.
 
 ## Egress checks
 
@@ -94,10 +96,10 @@ A replacement preview must preserve all egress checks and additionally show:
 
 ## Remaining limitations
 
-- No automated browser test exists yet.
+- UI-003A route switching smoke proof passed.
 - Static check only validates file presence.
-- Current visual/product review failed.
-- Local proof must not be marked complete for current preview.
+- Previous visual/product review failed for the old shell.
+- Local proof must not be marked complete until the redesigned shell passes owner/framework UX review.
 - Direct framework package import is not available yet.
 - `xi-io.net#239` must be treated as a real framework export blocker.
 

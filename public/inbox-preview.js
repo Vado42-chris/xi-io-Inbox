@@ -1,11 +1,12 @@
 const DATA_URL = './data/inbox-events.preview.json';
-const STORAGE_KEY = 'xiio-inbox-preview-state-v1';
+const STORAGE_KEY = 'xiio-inbox-preview-state-v2';
+
+const ROUTE_PREFIX = '#/';
+const DEFAULT_LANE = 'home';
 
 const state = {
   payload: null,
-  accountId: null,
-  view: 'inbox',
-  selectedEventId: null,
+  laneId: DEFAULT_LANE,
 };
 
 function escapeHtml(value) {
@@ -23,10 +24,10 @@ function label(value) {
 
 function pillClass(value) {
   const normalized = String(value || 'unknown');
-  if (['verified', 'complete', 'ready', 'preview_enabled'].includes(normalized)) return 'pill pill-ok';
-  if (['blocked', 'critical', 'danger', 'human_required'].includes(normalized)) return 'pill pill-danger';
-  if (['needs_review', 'in_progress', 'draft_only', 'preview_only', 'medium', 'high'].includes(normalized)) return 'pill pill-warning';
-  return 'pill';
+  if (['available', 'preview_ready', 'draft_only', 'local_only'].includes(normalized)) return 'pill pill-ok';
+  if (['blocked', 'runtime_blocked', 'send_blocked', 'provider_blocked', 'failed'].includes(normalized)) return 'pill pill-danger';
+  if (['preview_only', 'undecided', 'pending', 'needs_review', 'not_started', 'direct_export_blocked'].includes(normalized)) return 'pill pill-warning';
+  return 'pill pill-neutral';
 }
 
 function renderPill(value) {
@@ -41,19 +42,58 @@ function safeParse(value, fallback) {
   }
 }
 
-function loadState() {
-  const stored = safeParse(localStorage.getItem(STORAGE_KEY) || '{}', {});
-  if (stored.accountId) state.accountId = stored.accountId;
-  if (stored.view) state.view = stored.view;
-  if (stored.selectedEventId) state.selectedEventId = stored.selectedEventId;
+function getPayload() {
+  return state.payload || {
+    workspace: {},
+    lanes: [],
+    laneContent: {},
+    providerGates: [],
+    egressPolicy: {},
+    inspector: {},
+  };
+}
+
+function getLanes() {
+  return getPayload().lanes || [];
+}
+
+function laneIds() {
+  return new Set(getLanes().map((lane) => lane.id));
+}
+
+function laneFromHash() {
+  const raw = String(window.location.hash || '').replace(ROUTE_PREFIX, '').trim();
+  if (laneIds().has(raw)) return raw;
+  return DEFAULT_LANE;
+}
+
+function activeLane() {
+  return getLanes().find((lane) => lane.id === state.laneId) || getLanes()[0] || {
+    id: DEFAULT_LANE,
+    label: 'Home',
+    route: '#/home',
+    description: 'Preview lane unavailable.',
+    status: 'preview_only',
+  };
+}
+
+function activeLaneContent() {
+  return getPayload().laneContent?.[state.laneId] || {
+    eyebrow: 'preview lane',
+    title: activeLane().label,
+    summary: activeLane().description,
+    primary: [],
+    secondary: [],
+  };
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    accountId: state.accountId,
-    view: state.view,
-    selectedEventId: state.selectedEventId,
-  }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ laneId: state.laneId }));
+}
+
+function loadState() {
+  const stored = safeParse(localStorage.getItem(STORAGE_KEY) || '{}', {});
+  if (stored.laneId) state.laneId = stored.laneId;
 }
 
 async function fetchJson(url, fallback) {
@@ -66,231 +106,218 @@ async function fetchJson(url, fallback) {
   }
 }
 
-function getPayload() {
-  return state.payload || { accounts: [], views: [], events: [] };
+function syncRoute() {
+  const nextLane = laneFromHash();
+  if (state.laneId !== nextLane) {
+    state.laneId = nextLane;
+    saveState();
+  }
 }
 
-function getActiveAccount() {
-  const payload = getPayload();
-  return payload.accounts.find((account) => account.accountId === state.accountId) || payload.accounts[0] || null;
+function ensureRoute() {
+  if (!window.location.hash || !laneIds().has(laneFromHash())) {
+    window.location.hash = `${ROUTE_PREFIX}${DEFAULT_LANE}`;
+    state.laneId = DEFAULT_LANE;
+    saveState();
+  }
 }
 
-function getVisibleEvents() {
-  const account = getActiveAccount();
-  return getPayload().events.filter((event) => {
-    const matchesAccount = !account || event.accountId === account.accountId;
-    const matchesView = (event.viewTags || []).includes(state.view);
-    return matchesAccount && matchesView;
-  });
-}
-
-function getSelectedEvent() {
-  const visible = getVisibleEvents();
-  return visible.find((event) => event.eventId === state.selectedEventId) || visible[0] || null;
-}
-
-function renderAccountRail() {
-  const payload = getPayload();
-  const active = getActiveAccount();
+function renderTopBar() {
+  const workspace = getPayload().workspace || {};
   return `
-    <aside class="left-rail" aria-label="Accounts, providers, and filters">
-      <section class="zone">
-        <p class="eyebrow">account lens</p>
-        <h3>${escapeHtml(active?.displayName || 'No account')}</h3>
-        <p class="muted">Provider: ${escapeHtml(active?.providerId || 'unknown')}</p>
-        <div class="pill-row">
-          ${renderPill(active?.syncState || 'unknown')}
-          ${renderPill(active?.privacyProfile || 'unknown')}
+    <header class="app-topbar" role="banner">
+      <section class="brand-block" aria-label="Product identity">
+        <p class="eyebrow">xi-io Inbox</p>
+        <h1>Unified ingress operations</h1>
+      </section>
+
+      <section class="topbar-context" aria-label="Active workspace and system state">
+        <div>
+          <span class="context-label">Workspace</span>
+          <strong>${escapeHtml(workspace.displayName || 'Preview workspace')}</strong>
+        </div>
+        <div>
+          <span class="context-label">Account</span>
+          <strong>${escapeHtml(workspace.activeAccount || 'Preview account')}</strong>
+        </div>
+        <div class="pill-row compact-row">
+          ${renderPill(workspace.providerStatus || 'preview_only')}
+          ${renderPill(workspace.privacyMode || 'local_only')}
+          ${renderPill(workspace.ibalStatus || 'preview_only')}
         </div>
       </section>
 
-      <section class="zone stack">
-        <p class="eyebrow">accounts</p>
-        ${(payload.accounts || []).map((account) => `
-          <button class="account-button ${account.accountId === active?.accountId ? 'is-selected' : ''}" type="button" data-account-id="${escapeHtml(account.accountId)}">
-            <strong>${escapeHtml(account.displayName)}</strong>
-            <span class="muted">${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))}</span>
-          </button>
-        `).join('')}
-      </section>
-
-      <section class="zone stack">
-        <p class="eyebrow">views</p>
-        ${(payload.views || []).map((view) => `
-          <button class="view-button ${view.id === state.view ? 'is-selected' : ''}" type="button" data-view-id="${escapeHtml(view.id)}" title="${escapeHtml(view.description)}">
-            ${escapeHtml(view.label)}
-          </button>
-        `).join('')}
-      </section>
-    </aside>
+      <label class="command-box" aria-label="Search and command placeholder">
+        <span>Search / command</span>
+        <input type="search" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Preview only')}" disabled />
+      </label>
+    </header>
   `;
 }
 
-function renderEventCard(event, selectedId) {
+function renderSafetyBanner() {
+  const policy = getPayload().egressPolicy || {};
+  const statements = policy.safetyStatements || [];
   return `
-    <article class="event-card ${event.eventId === selectedId ? 'is-selected' : ''}" data-event-id="${escapeHtml(event.eventId)}" tabindex="0" aria-current="${event.eventId === selectedId ? 'true' : 'false'}">
-      <div class="event-meta">
-        <div class="pill-row">
-          ${renderPill(event.eventType)}
-          ${renderPill(event.lifecycleState)}
-          ${renderPill(event.reviewState)}
-          ${event.privacy?.sensitive ? renderPill('privacy_sensitive') : ''}
-        </div>
-        <time class="muted">${escapeHtml(new Date(event.timestamp).toLocaleString())}</time>
+    <section class="safety-banner" role="status" aria-live="polite">
+      <div>
+        <p class="eyebrow">preview safety gate</p>
+        <h2>Static shell only. Product runtime is not decided.</h2>
       </div>
-      <h3>${escapeHtml(event.title)}</h3>
-      <p>${escapeHtml(event.summary)}</p>
+      <ul>
+        ${statements.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+      </ul>
+    </section>
+  `;
+}
+
+function renderNavigation() {
+  return `
+    <nav class="lane-nav" aria-label="Primary xi-io Inbox lanes">
+      ${getLanes().map((lane) => `
+        <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
+          <span>${escapeHtml(lane.label)}</span>
+          ${renderPill(lane.status || 'preview_only')}
+        </a>
+      `).join('')}
+    </nav>
+  `;
+}
+
+function renderMetricCard(item) {
+  return `
+    <article class="metric-card">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+      <p>${escapeHtml(item.note || '')}</p>
     </article>
   `;
 }
 
-function renderStream() {
-  const events = getVisibleEvents();
-  const selected = getSelectedEvent();
-  const view = getPayload().views.find((item) => item.id === state.view);
+function renderLaneItem(item) {
   return `
-    <section class="stream" aria-label="Message and action proposal stream">
-      <header class="stream-header">
-        <div>
-          <p class="eyebrow">${escapeHtml(label(state.view))}</p>
-          <h2>${escapeHtml(view?.label || 'Inbox')} stream</h2>
-          <p class="muted">${escapeHtml(view?.description || 'Preview stream')}</p>
-        </div>
-        ${renderPill(`${events.length}_shown`)}
+    <article class="lane-item">
+      <header>
+        <strong>${escapeHtml(item.title)}</strong>
+        ${renderPill(item.state || 'preview_only')}
       </header>
-      <section class="event-list">
-        ${events.length ? events.map((event) => renderEventCard(event, selected?.eventId)).join('') : '<p class="empty-state">No preview events match this view.</p>'}
-      </section>
-    </section>
+      <p>${escapeHtml(item.summary)}</p>
+    </article>
   `;
 }
 
-function renderEvidence(event) {
-  const evidence = event?.evidence || [];
+function renderMainLane() {
+  const lane = activeLane();
+  const content = activeLaneContent();
   return `
-    <section class="context-section">
-      <h4>Evidence and source refs</h4>
-      ${evidence.length ? evidence.map((item) => `
-        <article class="card">
-          <strong>${escapeHtml(item.path)}</strong>
-          <p>${escapeHtml(item.finding)}</p>
-          <div class="pill-row">${renderPill(item.state)}${renderPill(item.evidenceType)}${renderPill(item.sourceTier)}</div>
-        </article>
-      `).join('') : '<p class="muted">No evidence attached.</p>'}
-    </section>
-  `;
-}
-
-function renderActions(event) {
-  const actions = event?.actions || [];
-  return `
-    <section class="context-section">
-      <h4>Draft-only actions</h4>
-      <div class="stack">
-        ${actions.map((action) => `
-          <button class="action-button ${action.state === 'preview_enabled' ? 'primary' : ''}" type="button" ${action.state === 'blocked' ? 'disabled' : ''} title="${escapeHtml((action.blockedBy || []).join(', ') || action.state)}">
-            ${escapeHtml(action.label)} · ${escapeHtml(label(action.state))}
-          </button>
-        `).join('')}
-      </div>
-      <p class="muted">External send, forward, delete, and disclosure actions remain blocked in this preview.</p>
-    </section>
-  `;
-}
-
-function renderContext() {
-  const event = getSelectedEvent();
-  if (!event) {
-    return `
-      <aside class="context-panel" aria-label="Selected thread context">
-        <section class="context-section"><h3>Select an event</h3><p class="muted">Thread context appears here.</p></section>
-      </aside>
-    `;
-  }
-  return `
-    <aside class="context-panel" aria-label="Selected thread context">
-      <section class="context-section">
-        <p class="eyebrow">selected thread</p>
-        <h3>${escapeHtml(event.title)}</h3>
-        <div class="pill-row">
-          ${renderPill(event.providerId)}
-          ${renderPill(event.lifecycleState)}
-          ${renderPill(event.reviewState)}
-          ${event.requiresLocalVerification ? renderPill('local_verification_required') : ''}
+    <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
+      <header class="lane-header">
+        <div>
+          <p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>
+          <h2>${escapeHtml(content.title || lane.label)}</h2>
+          <p>${escapeHtml(content.summary || lane.description || '')}</p>
         </div>
-        <p>${escapeHtml(event.summary)}</p>
+        <div class="pill-row compact-row">
+          ${renderPill(lane.status || 'preview_only')}
+          ${renderPill(content.proofState || 'not_started')}
+        </div>
+      </header>
+
+      <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
+        ${(content.primary || []).map(renderMetricCard).join('')}
       </section>
-      ${renderEvidence(event)}
-      <section class="context-section">
-        <h4>Claims checked</h4>
-        ${(event.claims || []).map((claim) => `<article class="card"><strong>${escapeHtml(claim.claim)}</strong><p>${escapeHtml(claim.caveat || '')}</p>${renderPill(claim.state)}</article>`).join('')}
+
+      <section class="lane-section" aria-label="${escapeHtml(lane.label)} preview workpath">
+        <div class="section-heading">
+          <p class="eyebrow">lane placeholder</p>
+          <h3>${escapeHtml(content.placeholderTitle || 'Preview workpath')}</h3>
+        </div>
+        <div class="lane-item-list">
+          ${(content.secondary || []).map(renderLaneItem).join('')}
+        </div>
       </section>
-      ${renderActions(event)}
-      <section class="context-section">
-        <h4>Closure criteria</h4>
-        <ol>${(event.closureCriteria || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
+    </main>
+  `;
+}
+
+function renderInspectorSection(title, body, stateValue = 'preview_only') {
+  return `
+    <section class="inspector-section">
+      <header>
+        <h3>${escapeHtml(title)}</h3>
+        ${renderPill(stateValue)}
+      </header>
+      <p>${escapeHtml(body)}</p>
+    </section>
+  `;
+}
+
+function renderDisabledActions() {
+  const actions = getPayload().egressPolicy?.blockedActions || [];
+  return `
+    <div class="disabled-action-list" aria-label="Blocked egress actions">
+      ${actions.map((action) => `
+        <button class="disabled-action" type="button" disabled>
+          ${escapeHtml(label(action))} blocked
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderInspector() {
+  const inspector = getPayload().inspector || {};
+  return `
+    <aside class="right-inspector" aria-label="Context, evidence, Ibal, and receipts">
+      ${renderInspectorSection('Selected item context', inspector.context || 'Lane-level placeholder only. No provider item is selected.', 'preview_only')}
+      ${renderInspectorSection('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.', 'preview_only')}
+      <section class="inspector-section">
+        <header>
+          <h3>Draft / egress state</h3>
+          ${renderPill('draft_only')}
+        </header>
+        <p>${escapeHtml(inspector.egressState || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
+        ${renderDisabledActions()}
       </section>
+      ${renderInspectorSection('Ibal proposal', inspector.ibalProposal || 'Ibal is a first-class lane and contextual proposal source. It proposes only in this preview.', 'pending')}
+      ${renderInspectorSection('Receipts', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.', 'preview_only')}
     </aside>
   `;
 }
 
-function render() {
+function renderShell() {
   const mount = document.getElementById('inboxPreviewMount');
   if (!mount) return;
-  const active = getActiveAccount();
-  if (!state.accountId && active) state.accountId = active.accountId;
-  const selected = getSelectedEvent();
-  if (!state.selectedEventId && selected) state.selectedEventId = selected.eventId;
-  mount.innerHTML = `${renderAccountRail()}${renderStream()}${renderContext()}`;
+
+  mount.innerHTML = `
+    <section class="app-shell" aria-label="xi-io Inbox unified app shell">
+      ${renderTopBar()}
+      ${renderSafetyBanner()}
+      <section class="app-frame">
+        ${renderNavigation()}
+        ${renderMainLane()}
+        ${renderInspector()}
+      </section>
+    </section>
+  `;
 }
 
 function bindEvents() {
-  document.addEventListener('click', (event) => {
-    const accountButton = event.target.closest('[data-account-id]');
-    if (accountButton) {
-      state.accountId = accountButton.dataset.accountId;
-      state.selectedEventId = null;
-      saveState();
-      render();
-      return;
-    }
-
-    const viewButton = event.target.closest('[data-view-id]');
-    if (viewButton) {
-      state.view = viewButton.dataset.viewId;
-      state.selectedEventId = null;
-      saveState();
-      render();
-      return;
-    }
-
-    const eventCard = event.target.closest('[data-event-id]');
-    if (eventCard) {
-      state.selectedEventId = eventCard.dataset.eventId;
-      saveState();
-      render();
-    }
-  });
-
-  document.addEventListener('keydown', (event) => {
-    const eventCard = event.target.closest('[data-event-id]');
-    if (!eventCard) return;
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      state.selectedEventId = eventCard.dataset.eventId;
-      saveState();
-      render();
-    }
+  window.addEventListener('hashchange', () => {
+    syncRoute();
+    renderShell();
   });
 }
 
 async function init() {
   loadState();
-  state.payload = await fetchJson(DATA_URL, { accounts: [], views: [], events: [] });
-  render();
+  state.payload = await fetchJson(DATA_URL, {});
+  ensureRoute();
+  syncRoute();
+  renderShell();
 }
 
 bindEvents();
 init();
 
-window.xiioInboxPreview = { state, render, init };
+window.xiioInboxPreview = { state, renderShell, init };
