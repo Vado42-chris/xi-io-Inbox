@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## UI-001: framework UI adoption
 
-Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; direct package reuse still pending `xi-io.net#235`.
+Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; local visual proof still pending.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -71,8 +71,11 @@ Status: static framework-derived preview added on branch `ui-002/framework-deriv
 - [x] Decide direct reuse vs adapted copy vs promoted framework package for first preview.
 - [x] Create first static Inbox UI preview using framework-derived components.
 - [x] Record accessibility and draft-only egress checks.
+- [x] Add local preview proof prompt.
+- [x] Add PR #12 self-review.
+- [x] Tighten static validation to check file presence, preview JSON, and JavaScript syntax.
 - [ ] Promote reusable UI consumer contract in `xi-io.net#235`.
-- [ ] Add visual/local preview evidence after running locally.
+- [ ] Run local visual proof and record evidence.
 
 ## Pass 4: runtime skeleton
 
@@ -86,7 +89,7 @@ Blocked until Pass 3 local build proof and UI-001 framework UI consumer contract
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker now explicit and first static preview in branch.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit and first static preview in draft PR.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
