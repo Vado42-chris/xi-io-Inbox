@@ -2,19 +2,22 @@
 
 ## Purpose
 
-Track the local browser smoke proof required before PR #12 leaves draft.
+Track the local browser smoke proof and owner/framework UX review status for PR #12.
 
 ## Status
 
 ```text
-Result: PENDING
+Technical render smoke proof: PASSED by local owner/Codex/Zed preview
+Owner/framework UX review: FAILED on 2026-06-09
+Local visual proof complete: NO
+PR #12 merge readiness: BLOCKED
 ```
 
 ## Scope correction
 
-This receipt is for static preview smoke proof only.
+This receipt is not a product-quality pass.
 
-A PASS here means the current static preview renders and behaves as expected in a local browser. It does not mean the product platform is decided or ready.
+A technical render pass only means the current static page can open and render. It does not mean the preview is acceptable as a unified xi-io application.
 
 Platform/runtime decisions are tracked in `xi-io-Inbox#13` and documented in:
 
@@ -27,72 +30,57 @@ docs/architecture/platform-runtime-decision-matrix.md
 - `xi-io.net#238` merged the Workbench UI consumer contract.
 - `xi-io.net#235` is closed as completed.
 - `xi-io.net#239` tracks future stable direct export/package work.
+- `xi-io.net#239` is now treated as a real blocker for direct framework UI reuse.
 
 The PR #12 preview uses the adapted-copy/static-preview path. Direct framework package import is not complete.
 
-## Required commands
+## Owner/framework UX review result
 
-```bash
-npm run check
-npm run dev
-```
+The current preview is insufficient as an xi-io product UI.
 
-Open:
+Review findings:
 
-```text
-http://localhost:4488
-```
+- It does not feel like a unified xi-io application.
+- It does not express the full Inbox, Calendar, Tasks, Extensions, Ibal, Receipts, provider gate, and automation model.
+- It compresses too many concerns into one unclear page.
+- It lacks clear lanes, clear workpaths, clear navigation, clear information architecture, and clear user purpose.
+- Adapted-copy compliance is not enough if the result does not express the framework product architecture.
 
-## Evidence receipt
+## Required correction
 
-```text
-Date:
-Machine:
-Branch:
-Commit SHA:
-npm run check result:
-npm run dev result:
-Local URL opened:
-Browser:
-Console errors:
-Rail / stream / context verified: yes | no
-Click selection verified: yes | no
-Keyboard selection verified: yes | no
-Warning banner verified: yes | no
-Privacy state verified: yes | no
-Blocked action state verified: yes | no
-No provider data verified: yes | no
-No provider request required: yes | no
-Screenshot captured: yes | no
-Result: PASS | FAIL | BLOCKED
-Notes:
-```
+Do not merge PR #12 as-is.
 
-## PASS means
+Do not mark UI-002 visual proof complete.
 
-- The static preview opens locally.
-- The rail / stream / context UI renders.
-- Basic click and keyboard smoke behavior works.
-- Draft-only blocked-action language is visible.
-- No provider data or provider request is required.
+Keep PR #12 draft.
 
-## PASS does not mean
+The next UI work must replace the current preview with a framework-compliant unified app shell or consume real framework exports once `xi-io.net#239` is resolved.
 
-- final web app decision,
-- Electron decision,
-- Tauri decision,
-- native Android decision,
-- local cloud/home server decision,
-- product runtime readiness,
-- storage/security model readiness,
-- provider integration readiness.
+## Required future UI acceptance criteria
+
+A replacement preview must explicitly include:
+
+- unified app shell,
+- Inbox lane,
+- Calendar lane,
+- Tasks lane,
+- Extensions lane,
+- Ibal orchestration surface,
+- receipts/audit surface,
+- provider gates,
+- draft-only egress controls,
+- clear navigation and information architecture,
+- framework visual language,
+- direct framework reuse or documented framework export blocker.
 
 ## PR gate
 
-PR #12 remains draft until this file records PASS evidence from a real local browser run.
+PR #12 remains draft.
 
-After PASS, PR #12 may leave draft only as a static preview PR. Product/runtime testing remains blocked by `ARCH-004`.
+After redesign, a new local proof may be recorded only if the redesigned preview satisfies both technical smoke proof and owner/framework UX review.
+
+Product/runtime testing remains blocked by `ARCH-004`.
 
 ## Decision value
 
-`UI_002_LOCAL_PROOF_PENDING_STATIC_PREVIEW_ONLY_PLATFORM_UNDECIDED`
+`UI_002_TECHNICAL_SMOKE_PASSED_OWNER_FRAMEWORK_UX_REVIEW_FAILED`
