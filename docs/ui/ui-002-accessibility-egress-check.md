@@ -62,18 +62,18 @@ xi-io.net#239
 ## Product IA / framework UX checks
 
 - [x] Unified xi-io app shell skeleton is present.
-- [x] Inbox lane placeholder is visible.
-- [x] Calendar lane placeholder is visible.
-- [x] Tasks lane placeholder is visible.
-- [x] Extensions lane placeholder is visible.
-- [x] Ibal orchestration lane placeholder is explicit.
-- [x] Receipts/audit lane placeholder is explicit.
-- [x] Provider gates placeholder is explicit before real data/actions.
-- [x] Automations proposal/dry-run placeholder is visible.
+- [x] Inbox lane has first-pass account, smart-view, thread, draft, evidence, and egress-gate content.
+- [x] Calendar lane has first-pass agenda, proposal, conflict, reminder/source, and receipt content.
+- [x] Tasks lane has first-pass status board, due/source, linked-reference, and next-action content.
+- [x] Extensions lane has first-pass provider/tool/local-server/framework-export gate and secret-boundary content.
+- [x] Ibal orchestration lane has first-pass priority, next-action, unresolved-item, blocker, synthesis, and what-changed content.
+- [x] Receipts/audit lane has first-pass ledger, proposal, draft, gate-change, proof, runtime-evidence placeholder, and blocked-event content.
+- [x] Provider gates are explicit before real data/actions.
+- [x] Automations proposal/dry-run lane has first-pass template, trigger, approval, dry-run, disabled-status, and receipt-requirement content.
 - [x] Navigation creates clear lanes and workpaths.
 - [ ] Framework visual language/product quality owner review for the redesigned shell is not complete.
 
-UI-003A establishes shell structure only. It does not complete final lane IA, product density, or owner/framework UX proof.
+UI-003B establishes first-pass lane density only. It does not complete UI-003C Inbox refinement, final product polish, or owner/framework UX proof.
 
 ## Egress checks
 
@@ -97,6 +97,7 @@ A replacement preview must preserve all egress checks and additionally show:
 ## Remaining limitations
 
 - UI-003A route switching smoke proof passed.
+- UI-003B route switching smoke proof passed with 9 lanes, 2 or more sections per lane, lane-aware inspector state, 8 or more disabled egress controls per route, and 0 external requests.
 - Static check only validates file presence.
 - Previous visual/product review failed for the old shell.
 - Local proof must not be marked complete until the redesigned shell passes owner/framework UX review.

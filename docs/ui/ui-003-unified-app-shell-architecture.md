@@ -11,7 +11,7 @@ UI-002 technical render smoke proof: passed
 UI-002 owner/framework UX review: failed on 2026-06-09
 UI-003 tracker: xi-io-Inbox#14
 Direct framework export blocker: xi-io.net#239
-Implementation status: UI-003A shell skeleton implemented
+Implementation status: UI-003B lane detail fixtures implemented
 ```
 
 ## Decision
@@ -297,7 +297,7 @@ The redesigned proof must answer yes to:
 2. Update PR #12 body so it cannot look green.
 3. Replace the current preview shell with a unified app shell. Status: UI-003A complete.
 4. Reuse existing validation scripts and no-provider safety checks.
-5. Add lane-oriented preview fixture data. Status: UI-003A skeleton fixtures complete.
+5. Add lane-oriented preview fixture data. Status: UI-003B first-pass lane detail fixtures complete.
 6. Run static validation.
 7. Run browser/visual proof.
 8. Record owner/framework UX review result.
@@ -342,6 +342,55 @@ Next slice:
 
 ```text
 UI-003B: lane detail fixtures and first-pass lane content density.
+```
+
+## UI-003B Implementation Note
+
+UI-003B adds first-pass lane detail fixtures and lane-specific rendering without adding runtime behavior.
+
+Implemented surfaces:
+
+- Home: priority stack, provider gate summary, draft/egress status, urgent inbox previews, upcoming calendar previews, open task previews, receipt previews, and Ibal next safe action proposal,
+- Inbox: account/provider summary, smart views, thread list, selected thread preview, draft proposal, evidence reference, and blocked send/forward/delete/archive/disclose/publish/provider/repo gates,
+- Calendar: agenda preview, pending event proposals, conflict placeholder, reminder/source links, and event receipt placeholder,
+- Tasks: task status board, due/source metadata, linked inbox/calendar/receipt references, and next safe action proposal,
+- Automations: templates, trigger condition previews, approval gates, dry-run flow, disabled execution state, and receipt requirements,
+- Extensions: email/calendar/task/GitHub/source/local-server/framework-export gates, permission summaries, and secret boundary summary,
+- Receipts: ledger-style audit lane for proof receipts, proposals, drafts, provider gate changes, runtime evidence placeholder, and blocked events,
+- Ibal: priority stack, suggested next safe actions, unresolved items, blockers, cross-lane synthesis, what changed summary, and proposed actions only,
+- Settings / Provider Gates: account connection state, provider permissions, AI routing, local/cloud boundary, draft-only egress policy, receipt settings, and disabled dangerous actions.
+
+Validation recorded during UI-003B:
+
+```text
+npm run check: pass
+hash route smoke: pass
+invalid hash normalization: #/home
+fixture lane count: 9
+each lane has lane-specific sections: yes
+each lane has lane-specific inspector copy: yes
+minimum sections per lane during route smoke: 2
+disabled egress controls per route: 8 minimum
+external requests during route smoke: 0
+provider connection: absent
+runtime action execution: absent
+```
+
+Not implemented in UI-003B:
+
+- UI-003C Inbox lane refinement,
+- final lane-detail product polish,
+- provider connection,
+- local cloud/home server behavior,
+- provider credentials,
+- automation execution,
+- Pass 4 runtime skeleton,
+- redesigned owner/framework visual proof.
+
+Next slice:
+
+```text
+UI-003C: Inbox lane only.
 ```
 
 ## Decision value
