@@ -28,7 +28,7 @@ Read first:
 2. `docs/ui/inbox-framework-component-map.md`
 3. `docs/ui/ui-002-static-preview-plan.md`
 4. `docs/ui/ui-002-accessibility-egress-check.md`
-5. `docs/ui/ui-002-local-visual-proof-status.md`
+5. `docs/ui/ui-002-local-proof-status.md`
 6. `docs/reviews/pr-12-self-review.md`
 7. `TODO.md`
 
@@ -70,7 +70,7 @@ Verify:
 - no network/provider request is required for preview rendering
 - adapted-copy/source-note language remains consistent with the merged framework contract
 
-Evidence to record in `docs/ui/ui-002-local-visual-proof-status.md`:
+Evidence to record in `docs/ui/ui-002-local-proof-status.md`:
 
 ```text
 Date:
@@ -111,13 +111,13 @@ Next action:
 ```
 
 If PASS:
-- update `docs/ui/ui-002-local-visual-proof-status.md`
+- update `docs/ui/ui-002-local-proof-status.md`
 - update `TODO.md`
 - update `docs/reviews/pr-12-self-review.md`
 - mark PR #12 ready for review only after the evidence is committed
 
 If FAIL or BLOCKED:
-- record the failure/blocker in `docs/ui/ui-002-local-visual-proof-status.md`
+- record the failure/blocker in `docs/ui/ui-002-local-proof-status.md`
 - keep PR #12 draft
 - do not add runtime behavior to make the proof pass
 ```
