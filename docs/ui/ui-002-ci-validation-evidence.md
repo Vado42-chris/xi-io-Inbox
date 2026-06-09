@@ -11,12 +11,13 @@ Record automated validation evidence for PR #12.
 ## Latest commit validated
 
 ```text
-ce6e9782378ab89157395fe704055bfbda1495e1
+e4cd7a1a3095bd67813cfa92bee4ca9953e82716
 ```
 
-## Previous validated commit
+## Previous validated commits
 
 ```text
+ce6e9782378ab89157395fe704055bfbda1495e1
 d08dfe026d3b45935930d525ad13d95f89f0e222
 ```
 
@@ -29,8 +30,8 @@ Static Preview Check
 ## Latest workflow run
 
 ```text
-run id: 27192776944
-run number: 10
+run id: 27194007274
+run number: 11
 status: completed
 conclusion: success
 ```
@@ -38,7 +39,7 @@ conclusion: success
 ## Job
 
 ```text
-job id: 80276787593
+job id: 80280942765
 name: Static preview validation
 status: completed
 conclusion: success
@@ -57,7 +58,7 @@ conclusion: success
 ## Artifacts
 
 ```text
-none
+none checked for run 11
 ```
 
 No workflow artifact is expected for this validation job.
@@ -76,9 +77,9 @@ This validates:
 
 ## Latest-head interpretation
 
-The current PR #12 head has fresh passing CI for static preview validation.
+The current PR #12 head has fresh passing CI for static preview validation after the local proof-readiness and CI evidence updates.
 
-The latest commits after the previous CI evidence were documentation/proof-readiness updates plus TODO synchronization. The static preview check still passed on the current head.
+The latest commits after the original CI evidence were documentation/proof-readiness updates plus TODO synchronization. The static preview check still passed on the updated head.
 
 ## Remaining blocker
 
@@ -92,4 +93,4 @@ docs/ui/ui-002-local-proof-status.md
 
 ## Decision value
 
-`UI_002G_CI_STATIC_VALIDATION_PASSED_ON_CURRENT_HEAD_VISUAL_PROOF_PENDING`
+`UI_002G_CI_STATIC_VALIDATION_PASSED_ON_UPDATED_HEAD_VISUAL_PROOF_PENDING`
