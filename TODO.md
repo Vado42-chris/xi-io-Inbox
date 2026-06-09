@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## UI-001: framework UI adoption
 
-Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed; framework consumer contract draft PR opened in `xi-io.net#238`; local visual proof still pending.
+Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed; framework consumer contract merged in `xi-io.net#238`; stable direct export/package follow-up tracked in `xi-io.net#239`; local visual proof still pending.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -77,12 +77,13 @@ Status: static framework-derived preview added on branch `ui-002/framework-deriv
 - [x] Add GitHub Actions static preview validation workflow.
 - [x] Record successful CI validation evidence.
 - [x] Open framework consumer contract draft PR in `xi-io.net#238`.
-- [ ] Merge or otherwise resolve framework consumer contract in `xi-io.net#238` / `xi-io.net#235`.
+- [x] Merge framework consumer contract in `xi-io.net#238` and close `xi-io.net#235`.
+- [x] Track stable direct export/package follow-up in `xi-io.net#239`.
 - [ ] Run local visual proof and record evidence.
 
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 3 local build proof and UI-001 framework UI consumer contract decision are complete.
+Blocked until Pass 3 local build proof and UI-001 local visual proof are complete. Framework consumer contract is now merged, but direct framework package import remains future work in `xi-io.net#239`.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -92,8 +93,8 @@ Blocked until Pass 3 local build proof and UI-001 framework UI consumer contract
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, and framework consumer contract in draft PR.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, and framework consumer contract merged.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 7 to 11 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 6 to 10 remaining passes.
