@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## UI-001: framework UI adoption
 
-Status: blocker added after point-of-order review. No Inbox runtime UI should be created before this is satisfied.
+Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; direct package reuse still pending `xi-io.net#235`.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -68,13 +68,15 @@ Status: blocker added after point-of-order review. No Inbox runtime UI should be
 - [x] Add Inbox framework component map.
 - [x] Add Cursor prompt for UI framework adoption.
 - [x] Add framework-side freshness issue for reusable UI consumer contract.
-- [ ] Decide direct reuse vs adapted copy vs promoted framework package.
-- [ ] Create first static Inbox UI preview using framework-derived components.
-- [ ] Record accessibility and draft-only egress checks.
+- [x] Decide direct reuse vs adapted copy vs promoted framework package for first preview.
+- [x] Create first static Inbox UI preview using framework-derived components.
+- [x] Record accessibility and draft-only egress checks.
+- [ ] Promote reusable UI consumer contract in `xi-io.net#235`.
+- [ ] Add visual/local preview evidence after running locally.
 
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 3 local build proof and UI-001 framework UI adoption decision are complete.
+Blocked until Pass 3 local build proof and UI-001 framework UI consumer contract decision are complete.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -84,8 +86,8 @@ Blocked until Pass 3 local build proof and UI-001 framework UI adoption decision
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker now explicit.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker now explicit and first static preview in branch.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 9 to 13 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 8 to 12 remaining passes.
