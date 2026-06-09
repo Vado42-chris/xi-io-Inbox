@@ -1,0 +1,14 @@
+{
+  "name": "xi-io-inbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static-first xi-io Inbox preview shell using framework-derived UI patterns.",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 4488 --directory public",
+    "start": "npm run dev",
+    "preview": "npm run dev",
+    "check:static": "node -e \"const fs=require('fs'); const files=['public/index.html','public/inbox-preview.css','public/inbox-preview.js','public/data/inbox-events.preview.json']; for (const f of files) { if (!fs.existsSync(f)) { console.error('missing '+f); process.exit(1); } } console.log('xi-io Inbox static preview files present');\"",
+    "check": "npm run check:static"
+  }
+}
