@@ -2,12 +2,24 @@
 
 ## Purpose
 
-Track the local browser proof required before PR #12 leaves draft.
+Track the local browser smoke proof required before PR #12 leaves draft.
 
 ## Status
 
 ```text
 Result: PENDING
+```
+
+## Scope correction
+
+This receipt is for static preview smoke proof only.
+
+A PASS here means the current static preview renders and behaves as expected in a local browser. It does not mean the product platform is decided or ready.
+
+Platform/runtime decisions are tracked in `xi-io-Inbox#13` and documented in:
+
+```text
+docs/architecture/platform-runtime-decision-matrix.md
 ```
 
 ## Framework state
@@ -56,10 +68,31 @@ Result: PASS | FAIL | BLOCKED
 Notes:
 ```
 
+## PASS means
+
+- The static preview opens locally.
+- The rail / stream / context UI renders.
+- Basic click and keyboard smoke behavior works.
+- Draft-only blocked-action language is visible.
+- No provider data or provider request is required.
+
+## PASS does not mean
+
+- final web app decision,
+- Electron decision,
+- Tauri decision,
+- native Android decision,
+- local cloud/home server decision,
+- product runtime readiness,
+- storage/security model readiness,
+- provider integration readiness.
+
 ## PR gate
 
 PR #12 remains draft until this file records PASS evidence from a real local browser run.
 
+After PASS, PR #12 may leave draft only as a static preview PR. Product/runtime testing remains blocked by `ARCH-004`.
+
 ## Decision value
 
-`UI_002_LOCAL_PROOF_PENDING_RECEIPT_READY`
+`UI_002_LOCAL_PROOF_PENDING_STATIC_PREVIEW_ONLY_PLATFORM_UNDECIDED`
