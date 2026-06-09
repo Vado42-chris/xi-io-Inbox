@@ -79,7 +79,7 @@ Status: platform/runtime decision gate created after review found UI-002 could b
 
 ## UI-001: framework UI adoption
 
-Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed on the latest checked head; framework consumer contract merged in `xi-io.net#238`; stable direct export/package follow-up tracked in `xi-io.net#239`; local proof receipt is ready; local visual proof still pending; product/runtime testing blocked by `ARCH-004`.
+Status: technical static render smoke proof passed locally, but owner/framework UX review failed on 2026-06-09. PR #12 remains draft and must not merge as-is. `xi-io.net#239` is a real blocker for direct framework UI reuse, and the current adapted-copy preview must be replaced by a framework-compliant unified app shell.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -102,11 +102,16 @@ Status: static framework-derived preview added on branch `ui-002/framework-deriv
 - [x] Add local proof status receipt file.
 - [x] Refresh CI evidence for current proof-readiness head.
 - [x] Correct UI-002 docs so local proof means static preview smoke proof only.
-- [ ] Run local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
+- [x] Record owner/framework UX review failure.
+- [x] Add stricter UI acceptance criteria for unified app shell, lanes, Ibal, receipts, provider gates, automations, and framework visual language.
+- [ ] Inspect real `xi-io.net` framework sources before redesign.
+- [ ] Propose revised UI architecture before implementation.
+- [ ] Replace current preview with framework-compliant unified app shell.
+- [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 3 local build proof, UI-001 local static preview proof, and ARCH-004 platform/runtime envelope decisions are complete. Framework consumer contract is now merged, but direct framework package import remains future work in `xi-io.net#239`.
+Blocked until Pass 3 local build proof, redesigned UI-001 static preview proof, and ARCH-004 platform/runtime envelope decisions are complete. Framework consumer contract is now merged, but direct framework package import remains blocked by `xi-io.net#239`.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -116,8 +121,8 @@ Blocked until Pass 3 local build proof, UI-001 local static preview proof, and A
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, framework consumer contract merged, local proof receipt ready, CI freshness verified, platform/runtime decision gate documented, and two-way platform/runtime framework freshness synced.
+Current estimated work to reach repo-ready MVP planning state: reopened for UI-002 redesign because technical render passed but owner/framework UX review failed.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, and platform/runtime decision coverage for initial MVP: 5 to 8 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 5 to 8 remaining passes.
