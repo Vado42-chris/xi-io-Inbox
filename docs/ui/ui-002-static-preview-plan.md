@@ -80,6 +80,12 @@ A replacement preview must use a framework-compliant unified app shell with expl
 - Automations,
 - Draft-only Egress.
 
+The redesign architecture is recorded in:
+
+```text
+docs/ui/ui-003-unified-app-shell-architecture.md
+```
+
 ## Required acceptance criteria
 
 A replacement preview must provide:
