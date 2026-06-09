@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>xi-io Inbox Preview</title>
+    <link rel="stylesheet" href="./inbox-preview.css" />
+  </head>
+  <body>
+    <header class="app-header" role="banner">
+      <div>
+        <p class="eyebrow">xi-io Inbox</p>
+        <h1>Ingress, analysis, controlled egress</h1>
+        <p class="muted">Static preview. No email provider is connected. No external action can run from this screen.</p>
+      </div>
+      <span class="pill pill-warning">preview only</span>
+    </header>
+
+    <section class="warning-banner" role="status" aria-live="polite">
+      <strong>Framework-derived UI smoke test</strong>
+      <span>Adapted from xi-io.net Workbench rail / stream / context patterns. Runtime import and send actions remain blocked.</span>
+    </section>
+
+    <main id="inboxPreviewMount" class="inbox-shell" aria-label="xi-io Inbox static preview"></main>
+
+    <script type="module" src="./inbox-preview.js"></script>
+  </body>
+</html>
