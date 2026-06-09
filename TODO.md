@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## UI-001: framework UI adoption
 
-Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed; framework consumer contract merged in `xi-io.net#238`; stable direct export/package follow-up tracked in `xi-io.net#239`; local visual proof still pending.
+Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed; framework consumer contract merged in `xi-io.net#238`; stable direct export/package follow-up tracked in `xi-io.net#239`; local proof receipt is ready; local visual proof still pending.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -79,7 +79,9 @@ Status: static framework-derived preview added on branch `ui-002/framework-deriv
 - [x] Open framework consumer contract draft PR in `xi-io.net#238`.
 - [x] Merge framework consumer contract in `xi-io.net#238` and close `xi-io.net#235`.
 - [x] Track stable direct export/package follow-up in `xi-io.net#239`.
-- [ ] Run local visual proof and record evidence.
+- [x] Update local preview proof prompt after framework contract merge.
+- [x] Add local proof status receipt file.
+- [ ] Run local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
 
@@ -93,8 +95,8 @@ Blocked until Pass 3 local build proof and UI-001 local visual proof are complet
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, and framework consumer contract merged.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, framework consumer contract merged, and local proof receipt ready.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 6 to 10 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 6 to 9 remaining passes.
