@@ -4,6 +4,16 @@
 
 Record the accessibility and controlled-egress status for the first static Inbox UI preview.
 
+## Current review result
+
+```text
+Technical render smoke proof: passed locally
+Owner/framework UX review: failed on 2026-06-09
+Merge readiness: blocked
+```
+
+The current preview has basic static accessibility and egress guardrails, but that is not enough. It fails product-level information architecture and framework UX review.
+
 ## Scope
 
 Files added for preview:
@@ -28,7 +38,15 @@ The preview adapts `xi-io.net` Workbench UI patterns:
 - keyboard card selection
 - preview-safe action language
 
-## Accessibility checks
+Adapted-copy compliance is not sufficient when the result does not express the full xi-io product architecture.
+
+Direct framework export/package reuse remains blocked by:
+
+```text
+xi-io.net#239
+```
+
+## Static accessibility checks
 
 - [x] Top preview shell has `aria-label`.
 - [x] Left rail has `aria-label`.
@@ -41,6 +59,20 @@ The preview adapts `xi-io.net` Workbench UI patterns:
 - [x] Empty stream state is plain language.
 - [x] Responsive single-column layout exists for narrow screens.
 
+## Product IA / framework UX checks
+
+- [ ] Unified xi-io app shell is present.
+- [ ] Inbox lane is clear and email-client-like.
+- [ ] Calendar lane is clear and schedulable.
+- [ ] Tasks lane is clear and trackable.
+- [ ] Extensions lane is clear for providers/tools/add-ons.
+- [ ] Ibal orchestration surface is explicit.
+- [ ] Receipts/audit surface is explicit.
+- [ ] Provider gates are explicit before real data/actions.
+- [ ] Automations creation path is clear.
+- [ ] Navigation creates clear lanes and workpaths.
+- [ ] Framework visual language feels like xi-io, not a generic dashboard.
+
 ## Egress checks
 
 - [x] Preview data only.
@@ -50,14 +82,25 @@ The preview adapts `xi-io.net` Workbench UI patterns:
 - [x] Draft-only language appears in the context action panel.
 - [x] External send, forward, delete, and disclosure remain blocked in copy.
 
+## Egress acceptance criteria for redesign
+
+A replacement preview must preserve all egress checks and additionally show:
+
+- draft creation path,
+- provider gate before real account connection,
+- receipt/audit trail for confirmed safe actions,
+- Ibal recommendation as proposal only,
+- blocked send/forward/delete/disclose actions until explicit future policy permits them.
+
 ## Remaining limitations
 
 - No automated browser test exists yet.
 - Static check only validates file presence.
-- Visual proof still needs local preview or screenshot.
+- Current visual/product review failed.
+- Local proof must not be marked complete for current preview.
 - Direct framework package import is not available yet.
-- `xi-io.net#235` still needs a reusable UI consumer contract.
+- `xi-io.net#239` must be treated as a real framework export blocker.
 
 ## Decision value
 
-`UI_002_ACCESSIBILITY_EGRESS_CHECK_RECORDED_PREVIEW_ONLY`
+`UI_002_ACCESSIBILITY_EGRESS_STATIC_GUARDS_PRESENT_PRODUCT_UX_REVIEW_FAILED`
