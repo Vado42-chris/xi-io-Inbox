@@ -10,6 +10,26 @@ Capture the platform and deployment decisions that must be made before `xi-io In
 
 It is not yet ready for end-product testing because the product runtime envelope is not decided.
 
+## Framework contract
+
+Framework-level rule:
+
+```text
+xi-io.net/docs/framework/platform-runtime-envelope-contract-v1.md
+```
+
+Framework tracking issue:
+
+```text
+xi-io.net#240
+```
+
+Core framework rule:
+
+```text
+A preview surface is not a platform decision.
+```
+
 ## Current known state
 
 - `xi-io Inbox` is a unified ingress, analysis, and controlled-egress command center.
@@ -20,6 +40,7 @@ It is not yet ready for end-product testing because the product runtime envelope
 - Framework UI consumer contract is merged in `xi-io.net#238`.
 - Stable direct framework export/package work remains future work in `xi-io.net#239`.
 - Platform/runtime decision is tracked in `xi-io-Inbox#13`.
+- Cross-product platform/runtime envelope is tracked in `xi-io.net#240`.
 
 ## Non-decision warning
 
@@ -171,6 +192,31 @@ Before product testing, decide:
 - privacy threat model,
 - receipt and audit model.
 
+## Required decision receipt
+
+Use the framework receipt shape from `xi-io.net`:
+
+```text
+Product:
+Issue/PR:
+Primary runtime surface:
+Secondary surfaces:
+Storage boundary:
+Provider secret boundary:
+Local cloud/home server role:
+Hosted cloud role:
+Offline behavior:
+Sync behavior:
+Backup/export/import behavior:
+Distribution model:
+Audit/receipt behavior:
+Privacy/threat assumptions:
+Rejected options:
+Reasoning:
+Follow-up issues:
+Decision value:
+```
+
 ## What UI-002 may test
 
 Allowed:
@@ -194,4 +240,4 @@ Not allowed:
 
 ## Decision value
 
-`PLATFORM_RUNTIME_DECISION_MATRIX_ADDED_STATIC_PREVIEW_SCOPE_CORRECTED`
+`PLATFORM_RUNTIME_DECISION_MATRIX_SYNCED_WITH_FRAMEWORK_CONTRACT`
