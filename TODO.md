@@ -58,9 +58,25 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 - [ ] Complete detailed license/NOTICE/dependency review before distribution.
 - [ ] Finalize package/application ID, redirect URI, and provider configuration plan.
 
+## ARCH-004: platform runtime and deployment envelope
+
+Status: platform/runtime decision gate created after review found UI-002 could be mistaken for product-platform testing. End-product runtime is not yet decided.
+
+- [x] Create `ARCH-004` issue for platform/runtime decision gate.
+- [x] Add platform runtime decision matrix.
+- [x] Classify UI-002 as static preview smoke proof only.
+- [x] Document local cloud / home server as an explicit option.
+- [x] Document local web, Tauri, Electron, Android, local cloud, hosted cloud, and multi-surface shared core options.
+- [x] Set provisional planning model to multi-surface shared core.
+- [ ] Decide primary first runtime surface.
+- [ ] Decide whether first desktop/control-room shell is local web, Tauri, or another path.
+- [ ] Decide Android role after local Android mail spine proof.
+- [ ] Decide local cloud/home server role and security boundary.
+- [ ] Decide storage, provider secret, sync, backup, distribution, and offline behavior boundaries.
+
 ## UI-001: framework UI adoption
 
-Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed on the latest checked head; framework consumer contract merged in `xi-io.net#238`; stable direct export/package follow-up tracked in `xi-io.net#239`; local proof receipt is ready; local visual proof still pending.
+Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed on the latest checked head; framework consumer contract merged in `xi-io.net#238`; stable direct export/package follow-up tracked in `xi-io.net#239`; local proof receipt is ready; local visual proof still pending; product/runtime testing blocked by `ARCH-004`.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -82,11 +98,12 @@ Status: static framework-derived preview added on branch `ui-002/framework-deriv
 - [x] Update local preview proof prompt after framework contract merge.
 - [x] Add local proof status receipt file.
 - [x] Refresh CI evidence for current proof-readiness head.
+- [x] Correct UI-002 docs so local proof means static preview smoke proof only.
 - [ ] Run local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
 
-Blocked until Pass 3 local build proof and UI-001 local visual proof are complete. Framework consumer contract is now merged, but direct framework package import remains future work in `xi-io.net#239`.
+Blocked until Pass 3 local build proof, UI-001 local static preview proof, and ARCH-004 platform/runtime envelope decisions are complete. Framework consumer contract is now merged, but direct framework package import remains future work in `xi-io.net#239`.
 
 - [ ] Create app skeleton or import chosen mail spine.
 - [ ] Add schema validation tooling.
@@ -96,8 +113,8 @@ Blocked until Pass 3 local build proof and UI-001 local visual proof are complet
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, framework consumer contract merged, local proof receipt ready, and CI freshness verified.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, framework consumer contract merged, local proof receipt ready, CI freshness verified, and platform/runtime decision gate documented.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, and two-way framework freshness for initial MVP: 5 to 8 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, and platform/runtime decision coverage for initial MVP: 6 to 9 remaining passes.
