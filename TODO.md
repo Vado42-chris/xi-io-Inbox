@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## UI-001: framework UI adoption
 
-Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; local visual proof still pending.
+Status: static framework-derived preview added on branch `ui-002/framework-derived-static-preview`; automated static validation passed; local visual proof still pending.
 
 - [x] Identify concrete `xi-io.net` framework UI component sources.
 - [x] Create `UI-001` issue.
@@ -74,6 +74,8 @@ Status: static framework-derived preview added on branch `ui-002/framework-deriv
 - [x] Add local preview proof prompt.
 - [x] Add PR #12 self-review.
 - [x] Tighten static validation to check file presence, preview JSON, and JavaScript syntax.
+- [x] Add GitHub Actions static preview validation workflow.
+- [x] Record successful CI validation evidence.
 - [ ] Promote reusable UI consumer contract in `xi-io.net#235`.
 - [ ] Run local visual proof and record evidence.
 
