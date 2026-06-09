@@ -8,6 +8,16 @@
 
 Docs and static preview review complete. Keep PR as draft until local visual proof is captured.
 
+## Framework state
+
+The framework-side Workbench UI consumer contract is merged in `xi-io.net#238`.
+
+`xi-io.net#235` is closed as completed.
+
+Stable direct framework export/package promotion remains future work in `xi-io.net#239`.
+
+This means the adapted-copy/static-preview path used by PR #12 is now covered by framework policy, but direct framework package reuse is not claimed complete.
+
 ## Scope check
 
 | Check | Status |
@@ -24,6 +34,8 @@ Docs and static preview review complete. Keep PR as draft until local visual pro
 | JavaScript syntax check added | yes |
 | Accessibility smoke checklist recorded | yes |
 | Draft-only egress checklist recorded | yes |
+| Framework consumer contract merged | yes |
+| Stable direct export/package follow-up tracked | yes, `xi-io.net#239` |
 | Local visual proof captured | pending |
 
 ## Safety review
@@ -36,7 +48,7 @@ The UI copies the framework Workbench shape:
 left rail / center stream / right context
 ```
 
-The direct framework package import remains blocked until `xi-io.net#235` defines a consumer contract.
+The adapted-copy path is allowed by the merged framework consumer contract. Direct framework package import remains future work until `xi-io.net#239` resolves a stable export/package path.
 
 ## Validation now available
 
@@ -52,6 +64,8 @@ check:json
 check:js
 ```
 
+GitHub Actions static preview validation has passed previously for this PR. Local browser/visual proof remains separate and pending.
+
 ## Merge recommendation
 
 Do not merge yet.
@@ -60,11 +74,14 @@ Keep draft until local proof confirms:
 
 - preview opens locally,
 - rail / stream / context renders correctly,
+- click selection works,
 - keyboard selection works,
+- warning banner is visible,
 - blocked actions are visibly blocked,
 - no provider data is connected,
+- no provider/network call is required for preview rendering,
 - screenshot or evidence note is attached.
 
 ## Decision value
 
-`PR_12_SELF_REVIEW_COMPLETE_LOCAL_VISUAL_PROOF_PENDING`
+`PR_12_SELF_REVIEW_COMPLETE_LOCAL_VISUAL_PROOF_PENDING_FRAMEWORK_CONTRACT_MERGED`
