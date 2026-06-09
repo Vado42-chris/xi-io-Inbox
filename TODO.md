@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## ARCH-004: platform runtime and deployment envelope
 
-Status: platform/runtime decision gate created after review found UI-002 could be mistaken for product-platform testing. End-product runtime is not yet decided.
+Status: platform/runtime decision gate created after review found UI-002 could be mistaken for product-platform testing. End-product runtime is not yet decided. Cross-product framework contract and tracking now exist in `xi-io.net`.
 
 - [x] Create `ARCH-004` issue for platform/runtime decision gate.
 - [x] Add platform runtime decision matrix.
@@ -68,6 +68,9 @@ Status: platform/runtime decision gate created after review found UI-002 could b
 - [x] Document local cloud / home server as an explicit option.
 - [x] Document local web, Tauri, Electron, Android, local cloud, hosted cloud, and multi-surface shared core options.
 - [x] Set provisional planning model to multi-surface shared core.
+- [x] Add framework platform/runtime envelope contract in `xi-io.net`.
+- [x] Open framework tracking issue `xi-io.net#240`.
+- [x] Sync Inbox platform matrix back to the framework contract and issue.
 - [ ] Decide primary first runtime surface.
 - [ ] Decide whether first desktop/control-room shell is local web, Tauri, or another path.
 - [ ] Decide Android role after local Android mail spine proof.
@@ -113,8 +116,8 @@ Blocked until Pass 3 local build proof, UI-001 local static preview proof, and A
 
 ## Pass estimate
 
-Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, framework consumer contract merged, local proof receipt ready, CI freshness verified, and platform/runtime decision gate documented.
+Current estimated work to reach repo-ready MVP planning state: complete, with UI adoption blocker explicit, first static preview in draft PR, framework consumer contract merged, local proof receipt ready, CI freshness verified, platform/runtime decision gate documented, and two-way platform/runtime framework freshness synced.
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, and platform/runtime decision coverage for initial MVP: 6 to 9 remaining passes.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, and platform/runtime decision coverage for initial MVP: 5 to 8 remaining passes.
