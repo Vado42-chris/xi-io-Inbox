@@ -6,7 +6,25 @@
 
 ## Review status
 
-Docs and static preview review complete. Keep PR as draft until local visual proof is captured.
+Docs and static preview review complete. Keep PR as draft until local static preview smoke proof is captured.
+
+## Scope correction
+
+PR #12 is not product/runtime/platform proof.
+
+It is a static framework-derived preview PR only.
+
+The product platform/runtime envelope is undecided and now tracked in:
+
+```text
+xi-io-Inbox#13
+```
+
+Decision matrix:
+
+```text
+docs/architecture/platform-runtime-decision-matrix.md
+```
 
 ## Framework state
 
@@ -29,6 +47,11 @@ This means the adapted-copy/static-preview path used by PR #12 is now covered by
 | Runtime send action added | no |
 | Runtime forward action added | no |
 | Runtime delete action added | no |
+| Final web app architecture decided | no |
+| Electron architecture decided | no |
+| Tauri architecture decided | no |
+| Native Android runtime decided | no |
+| Local cloud/home server role decided | no |
 | Static file check added | yes |
 | JSON validity check added | yes |
 | JavaScript syntax check added | yes |
@@ -36,7 +59,8 @@ This means the adapted-copy/static-preview path used by PR #12 is now covered by
 | Draft-only egress checklist recorded | yes |
 | Framework consumer contract merged | yes |
 | Stable direct export/package follow-up tracked | yes, `xi-io.net#239` |
-| Local visual proof captured | pending |
+| Platform runtime decision tracked | yes, `xi-io-Inbox#13` |
+| Local static preview smoke proof captured | pending |
 
 ## Safety review
 
@@ -64,13 +88,13 @@ check:json
 check:js
 ```
 
-GitHub Actions static preview validation has passed previously for this PR. Local browser/visual proof remains separate and pending.
+GitHub Actions static preview validation has passed previously for this PR. Local browser/static preview smoke proof remains separate and pending.
 
 ## Merge recommendation
 
 Do not merge yet.
 
-Keep draft until local proof confirms:
+Keep draft until local static preview smoke proof confirms:
 
 - preview opens locally,
 - rail / stream / context renders correctly,
@@ -82,6 +106,8 @@ Keep draft until local proof confirms:
 - no provider/network call is required for preview rendering,
 - screenshot or evidence note is attached.
 
+After local PASS, PR #12 may leave draft only as a static preview PR. Product/runtime testing remains blocked by `ARCH-004`.
+
 ## Decision value
 
-`PR_12_SELF_REVIEW_COMPLETE_LOCAL_VISUAL_PROOF_PENDING_FRAMEWORK_CONTRACT_MERGED`
+`PR_12_SELF_REVIEW_STATIC_PREVIEW_ONLY_PLATFORM_RUNTIME_UNDECIDED`
