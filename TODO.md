@@ -155,7 +155,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-006B Calendar progressive disclosure IA.
 - [x] UI-006C Tasks progressive disclosure IA.
 - [x] UI-006D Automations progressive disclosure IA.
-- [ ] UI-006E Extensions progressive disclosure IA.
+- [x] UI-006E Extensions progressive disclosure IA.
 - [ ] UI-006F Settings progressive disclosure IA.
 - [ ] Owner completes UI-003E visual checklist in proof packet (sign-off required).
 - [ ] Merge-prep and `xi-io.net#239` framework freshness after owner UI-003E PASS.
@@ -176,4 +176,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-005 complete; UI-006A–D complete (Inbox/Calendar/Tasks/Automations workspace IA). Remaining: UI-006E–F (~2 passes), owner UI-003E re-review (~1 owner action), merge-prep (~1 pass), `xi-io.net#239` freshness (~1–2 passes). ARCH-002/ARCH-004 separate. **~5 passes** agent work + owner sign-off.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-005 complete; UI-006A–E complete. Remaining: UI-006F Settings (~1 pass), owner UI-003E re-review (~1 owner action), merge-prep (~1 pass), `xi-io.net#239` freshness (~1–2 passes). ARCH-002/ARCH-004 separate. **~4 passes** agent work + owner sign-off.

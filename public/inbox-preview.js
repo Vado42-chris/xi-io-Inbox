@@ -71,6 +71,7 @@ function defaultExtensionsOps() {
     selectedInstallId: null,
     installs: [],
     receipts: [],
+    formOpen: false,
   };
 }
 
@@ -703,10 +704,16 @@ function clearAutomationsPreviewState() {
 function extensionFixtures() {
   const extensions = getPayload().laneContent?.extensions || {};
   const section = sectionByType(extensions, 'extension-matrix');
+  const sectionIndex = (extensions.sections || []).findIndex((entry) => entry === section);
   return (section?.providers || []).map((provider, index) => ({
     ...provider,
     fixtureId: `ext-fixture:${index}`,
+    focusId: `extensions:extension-matrix:${sectionIndex}:${index}`,
   }));
+}
+
+function extensionSecretBoundaryItems() {
+  return sectionByType(getPayload().laneContent?.extensions || {}, 'secret-boundary')?.items || [];
 }
 
 function allExtensionInstalls() {
@@ -796,6 +803,7 @@ function saveExtensionProvision(formData, installId) {
     summary: notes || '(empty notes)',
   });
   state.extensions.selectedInstallId = installId;
+  state.extensions.formOpen = false;
   saveState();
   setStatusMessage('Local provision notes saved. No credentials stored.', 'extensions');
 }
@@ -3019,65 +3027,128 @@ function renderExtensionsLocalReceipts(installId) {
   `).join('');
 }
 
-function renderExtensionsOperabilityPanel() {
-  const fixtures = extensionFixtures();
-  const selected = selectedExtensionInstall();
-  const installId = selected?.id || '';
+function renderExtensionsProvisionForm(installId) {
+  const install = allExtensionInstalls().find((entry) => entry.id === installId) || selectedExtensionInstall();
+  const id = installId || install?.id || '';
   return `
-    <section class="lane-section extensions-operability-panel" aria-label="Extensions local operability">
-      <header class="section-head">
-        <div>
-          <p class="section-eyebrow">local operability</p>
-          <h3>Preview install and provision</h3>
-          <p>Record local preview installs only. No OAuth or provider connection.</p>
-        </div>
-        <span class="draft-proposal-state">preview install only</span>
-      </header>
-      <div id="extensionsStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'extensions' ? state.statusMessage : 'Ready for local Extensions operability.')}</div>
-      <div class="extensions-fixture-list" aria-label="Fixture providers">
-        <h4>Provider fixtures (${fixtures.length})</h4>
-        ${fixtures.map((fixture) => {
-          const install = installForFixture(fixture.fixtureId);
-          return `
-            <article class="provider-gate-row">
-              <div>
-                <strong>${escapeHtml(fixture.label)}</strong>
-                <p>${escapeHtml(fixture.summary)}</p>
-                <span class="provider-permission-line">${escapeHtml(fixture.permissions)}</span>
-                <p class="form-hint">Fixture state: ${escapeHtml(label(fixture.state))}${install ? ' · preview installed locally' : ''}</p>
-              </div>
-              <div class="inbox-form-actions">
-                ${install
-    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(install.id)}" data-inspector-focus="${escapeHtml(`extensions:local:${install.id}`)}">View install</button>
-                   <button class="inbox-action-btn" type="button" data-extensions-action="remove-install" data-install-id="${escapeHtml(install.id)}">Remove preview install</button>`
-    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-fixture-id="${escapeHtml(fixture.fixtureId)}">Record preview install</button>`}
-                <button class="inbox-action-btn is-blocked" type="button" disabled>Connect/OAuth blocked</button>
-              </div>
-            </article>
-          `;
-        }).join('')}
+    <form class="inbox-draft-form" data-extensions-form="provision" aria-label="Provision notes">
+      <input type="hidden" name="installId" value="${escapeHtml(id)}" />
+      <label for="ext-provision-notes">Provision notes</label>
+      <textarea id="ext-provision-notes" name="provisionNotes" rows="3">${escapeHtml(install?.provisionNotes || '')}</textarea>
+      <p class="form-hint">Planning notes only. No credentials or tokens stored.</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-extensions-action="provision-save">Save notes</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Provider write blocked</button>
       </div>
-      ${installId ? `
-        <form class="inbox-draft-form" data-extensions-form="provision" aria-label="Local provision notes">
-          <input type="hidden" name="installId" value="${escapeHtml(installId)}" />
-          <h4>Provision notes for ${escapeHtml(selected?.label || 'install')}</h4>
-          <label for="ext-provision-notes">Local provision notes (preview)</label>
-          <textarea id="ext-provision-notes" name="provisionNotes" rows="3">${escapeHtml(selected?.provisionNotes || '')}</textarea>
-          <p class="form-hint">Planning notes only. No credentials or tokens stored.</p>
-          <div class="inbox-form-actions">
-            <button class="inbox-action-btn is-primary" type="submit" data-extensions-action="provision-save">Save provision notes</button>
-            <button class="inbox-action-btn is-blocked" type="button" disabled>Provider write blocked</button>
+    </form>
+  `;
+}
+
+function renderExtensionsProvisionSheet() {
+  const install = selectedExtensionInstall();
+  return `
+    <div class="lane-compose-root extensions-compose-root ${state.extensions.formOpen ? 'is-open' : ''}" aria-hidden="${state.extensions.formOpen ? 'false' : 'true'}">
+      <button class="lane-compose-backdrop" type="button" data-extensions-action="close-form" aria-label="Close"></button>
+      <section class="lane-compose-sheet" role="dialog" aria-modal="true" aria-label="Provision notes">
+        <header class="lane-compose-head">
+          <h3>Provision · ${escapeHtml(install?.label || 'install')}</h3>
+          <button class="inbox-action-btn" type="button" data-extensions-action="close-form">Close</button>
+        </header>
+        ${renderExtensionsProvisionForm(install?.id)}
+      </section>
+    </div>
+  `;
+}
+
+function renderExtensionsReadingPane() {
+  const fixtures = extensionFixtures();
+  const install = selectedExtensionInstall();
+  const fixture = fixtures.find((entry) => entry.focusId === state.focusId);
+  const boundaryItems = extensionSecretBoundaryItems();
+  if (install && state.focusId === `extensions:local:${install.id}`) {
+    return `
+      <section class="lane-reading-pane" aria-label="Install details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(install.label)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(label(install.state))} · preview install</p>
           </div>
-        </form>
-      ` : '<p class="form-hint">Select or create a preview install to edit provision notes.</p>'}
-      <article class="draft-proposal-panel">
-        <header><strong>Local receipt preview</strong><span class="draft-proposal-state">preview only</span></header>
-        ${renderExtensionsLocalReceipts(installId)}
-      </article>
-      <div class="inbox-clear-control">
-        <button class="inbox-action-btn is-danger" type="button" data-extensions-action="clear-all">Clear all local Extensions preview state</button>
+        </header>
+        <p><strong>Permissions:</strong> ${escapeHtml(install.permissions || 'unset')}</p>
+        ${install.provisionNotes ? `<p><strong>Notes:</strong> ${escapeHtml(install.provisionNotes)}</p>` : ''}
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-extensions-action="edit-provision" data-install-id="${escapeHtml(install.id)}">Edit provision notes</button>
+          <button class="inbox-action-btn" type="button" data-extensions-action="remove-install" data-install-id="${escapeHtml(install.id)}">Remove install</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect/OAuth blocked</button>
+        </div>
+        ${(state.extensions.receipts || []).filter((r) => r.installId === install.id).length ? `
+          <details class="lane-reading-details"><summary>Receipts</summary>${renderExtensionsLocalReceipts(install.id)}</details>
+        ` : ''}
+      </section>
+    `;
+  }
+  if (fixture) {
+    const localInstall = installForFixture(fixture.fixtureId);
+    return `
+      <section class="lane-reading-pane" aria-label="Provider details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(fixture.label)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(label(fixture.state))}${localInstall ? ' · preview installed' : ''}</p>
+          </div>
+        </header>
+        <p>${escapeHtml(fixture.summary)}</p>
+        <p class="form-hint">Permissions: ${escapeHtml(fixture.permissions)}</p>
+        <div class="inbox-action-toolbar">
+          ${localInstall
+    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(localInstall.id)}">View install</button>`
+    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-fixture-id="${escapeHtml(fixture.fixtureId)}">Record preview install</button>`}
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect/OAuth blocked</button>
+        </div>
+        ${boundaryItems.length ? `
+          <details class="lane-reading-details">
+            <summary>Secret boundary</summary>
+            <ul class="extensions-boundary-list">${boundaryItems.map((item) => `
+              <li><strong>${escapeHtml(item.title)}</strong> — ${escapeHtml(item.summary)}</li>
+            `).join('')}</ul>
+          </details>
+        ` : ''}
+      </section>
+    `;
+  }
+  return `<section class="lane-reading-pane is-empty" aria-label="Provider details"><p class="lane-empty-state">Select a provider fixture.</p></section>`;
+}
+
+function renderExtensionsWorkspace() {
+  const fixtures = extensionFixtures();
+  const selectedId = state.extensions.selectedInstallId;
+  return `
+    <div class="lane-workspace extensions-workspace">
+      <div class="lane-toolbar" role="toolbar" aria-label="Extensions actions">
+        <div id="extensionsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'extensions' ? state.statusMessage : '')}</div>
+        <details class="lane-toolbar-overflow">
+          <summary>More</summary>
+          <button class="inbox-action-btn is-danger" type="button" data-extensions-action="clear-all">Clear local extensions state</button>
+        </details>
       </div>
-    </section>
+      <div class="lane-workspace-grid extensions-workspace-grid">
+        <div class="extensions-item-list" aria-label="Provider fixtures">
+          ${fixtures.map((fixture) => {
+            const install = installForFixture(fixture.fixtureId);
+            const isSelected = state.focusId === fixture.focusId
+              || (install && (selectedId === install.id || state.focusId === `extensions:local:${install.id}`));
+            return `
+            <button class="extensions-list-row ${isSelected ? 'is-selected' : ''}" type="button" data-extensions-action="select-fixture" data-fixture-id="${escapeHtml(fixture.fixtureId)}" data-inspector-focus="${escapeHtml(fixture.focusId)}">
+              <span class="extensions-list-badge">${install ? 'installed' : escapeHtml(label(fixture.state))}</span>
+              <div><strong>${escapeHtml(fixture.label)}</strong><p>${escapeHtml(fixture.permissions)}</p></div>
+            </button>
+          `;
+          }).join('')}
+        </div>
+        ${renderExtensionsReadingPane()}
+      </div>
+      ${renderExtensionsProvisionSheet()}
+    </div>
   `;
 }
 
@@ -3417,20 +3488,20 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? ' is-compact' : ''}">
+      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
-          ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
-          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks' }[lane.id] || (content.title || lane.label))}</h2>
-          ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
+          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Extensions' }[lane.id] || (content.title || lane.label))}</h2>
+          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? '' : `
+        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>`}
       </header>
 
-      ${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? '' : `
+      ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>`}
@@ -3440,9 +3511,9 @@ function renderMainLane() {
         ${lane.id === 'calendar' ? renderCalendarWorkspace() : ''}
         ${lane.id === 'tasks' ? renderTasksWorkspace() : ''}
         ${lane.id === 'automations' ? renderAutomationsWorkspace() : ''}
-        ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
+        ${lane.id === 'extensions' ? renderExtensionsWorkspace() : ''}
         ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
-        ${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -3937,6 +4008,32 @@ function handleSettingsAction(action, settingsKey) {
 }
 
 function handleExtensionsAction(action, installId, fixtureId) {
+  if (action === 'select-fixture') {
+    if (!fixtureId) return;
+    const fixture = extensionFixtures().find((entry) => entry.fixtureId === fixtureId);
+    if (!fixture) return;
+    state.focusId = fixture.focusId;
+    const install = installForFixture(fixtureId);
+    state.extensions.selectedInstallId = install?.id || null;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'edit-provision') {
+    if (!installId) return;
+    state.extensions.selectedInstallId = installId;
+    state.focusId = `extensions:local:${installId}`;
+    state.extensions.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-form') {
+    state.extensions.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'preview-install') {
     previewInstallExtension(fixtureId);
     renderShell();
