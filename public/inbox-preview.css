@@ -719,14 +719,16 @@ input:focus-visible {
 .is-calendar-lane.lane-content,
 .is-tasks-lane.lane-content,
 .is-automations-lane.lane-content,
-.is-extensions-lane.lane-content {
+.is-extensions-lane.lane-content,
+.is-settings-lane.lane-content {
   padding-top: 0.35rem;
 }
 
 .tasks-workspace-grid,
 .calendar-workspace-grid,
 .automations-workspace-grid,
-.extensions-workspace-grid {
+.extensions-workspace-grid,
+.settings-workspace-grid {
   grid-template-columns: minmax(14rem, 0.95fr) minmax(0, 1.4fr);
 }
 
@@ -856,6 +858,46 @@ input:focus-visible {
   padding-left: 1.1rem;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.settings-item-list {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  overflow: auto;
+  max-height: calc(100vh - 14rem);
+}
+
+.settings-list-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-list-row.is-selected {
+  border-color: rgba(105, 210, 255, 0.7);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.settings-list-badge {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.settings-list-row p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .calendar-workspace-grid {

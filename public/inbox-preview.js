@@ -81,6 +81,7 @@ function defaultSettingsOps() {
     gateOverrides: {},
     policyOverrides: {},
     receipts: [],
+    formOpen: false,
   };
 }
 
@@ -874,6 +875,7 @@ function saveSettingsGate(formData, gateKey) {
   });
   state.settings.selectedKey = gateKey;
   state.focusId = `settings:local:gate:${gateKey}`;
+  state.settings.formOpen = false;
   saveState();
   setStatusMessage('Local gate notes saved. Runtime gates remain blocked.', 'settings');
 }
@@ -896,6 +898,7 @@ function saveSettingsPolicy(formData, policyKey) {
   });
   state.settings.selectedKey = policyKey;
   state.focusId = `settings:local:policy:${policyKey}`;
+  state.settings.formOpen = false;
   saveState();
   setStatusMessage('Local policy preview saved. Runtime policy apply remains blocked.', 'settings');
 }
@@ -3166,83 +3169,159 @@ function renderSettingsLocalReceipts(key) {
 
 const SETTINGS_POLICY_VALUES = ['blocked', 'disabled', 'false', 'undecided', 'preview_only', 'draft_only'];
 
-function renderSettingsOperabilityPanel() {
+function isSettingsGateKey(key) {
+  return String(key || '').startsWith('gate:');
+}
+
+function renderSettingsGateForm(gateKey) {
+  const gate = settingsGateFixtures().find((entry) => entry.gateKey === gateKey);
+  const override = gate ? gateOverrideFor(gate.gateKey) : null;
+  if (!gate) return '';
+  return `
+    <form class="inbox-draft-form" data-settings-form="gate" aria-label="Gate planning">
+      <input type="hidden" name="gateKey" value="${escapeHtml(gate.gateKey)}" />
+      <label for="gate-notes-edit">Planning notes</label>
+      <textarea id="gate-notes-edit" name="notes" rows="2">${escapeHtml(override?.notes || '')}</textarea>
+      <label for="gate-control-edit">Preview control label</label>
+      <input id="gate-control-edit" name="previewControl" type="text" autocomplete="off" value="${escapeHtml(override?.previewControl || gate.control)}" />
+      <p class="form-hint">Fixture: ${escapeHtml(gate.summary)}</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-settings-action="gate-save">Save</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderSettingsPolicyForm(policyKey) {
+  const policy = settingsPolicyFixtures().find((entry) => entry.policyKey === policyKey);
+  const override = policy ? policyOverrideFor(policy.policyKey) : null;
+  if (!policy) return '';
+  return `
+    <form class="inbox-draft-form" data-settings-form="policy" aria-label="Policy preview">
+      <input type="hidden" name="policyKey" value="${escapeHtml(policy.policyKey)}" />
+      <label for="policy-value-edit">Preview value</label>
+      <select id="policy-value-edit" name="previewValue">
+        ${SETTINGS_POLICY_VALUES.map((value) => `
+          <option value="${escapeHtml(value)}" ${(override?.previewValue || policy.value) === value ? 'selected' : ''}>${escapeHtml(label(value))}</option>
+        `).join('')}
+      </select>
+      <label for="policy-notes-edit">Planning notes</label>
+      <textarea id="policy-notes-edit" name="notes" rows="2">${escapeHtml(override?.notes || '')}</textarea>
+      <p class="form-hint">${escapeHtml(policy.summary)}</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-settings-action="policy-save">Save</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Apply blocked</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderSettingsEditSheet() {
+  const key = state.settings.selectedKey || '';
+  const isGate = isSettingsGateKey(key);
+  const gate = isGate ? settingsGateFixtures().find((entry) => entry.gateKey === key) : null;
+  const policy = !isGate ? settingsPolicyFixtures().find((entry) => entry.policyKey === key) : null;
+  const title = gate?.label || policy?.label || 'Setting';
+  return `
+    <div class="lane-compose-root settings-compose-root ${state.settings.formOpen ? 'is-open' : ''}" aria-hidden="${state.settings.formOpen ? 'false' : 'true'}">
+      <button class="lane-compose-backdrop" type="button" data-settings-action="close-form" aria-label="Close"></button>
+      <section class="lane-compose-sheet" role="dialog" aria-modal="true" aria-label="Edit setting">
+        <header class="lane-compose-head">
+          <h3>${escapeHtml(title)}</h3>
+          <button class="inbox-action-btn" type="button" data-settings-action="close-form">Close</button>
+        </header>
+        ${isGate ? renderSettingsGateForm(key) : renderSettingsPolicyForm(key)}
+      </section>
+    </div>
+  `;
+}
+
+function renderSettingsReadingPane() {
+  const key = state.settings.selectedKey;
+  const gate = isSettingsGateKey(key) ? settingsGateFixtures().find((entry) => entry.gateKey === key) : null;
+  const policy = !gate ? settingsPolicyFixtures().find((entry) => entry.policyKey === key) : null;
+  const gateOverride = gate ? gateOverrideFor(gate.gateKey) : null;
+  const policyOverride = policy ? policyOverrideFor(policy.policyKey) : null;
+  if (gate) {
+    return `
+      <section class="lane-reading-pane" aria-label="Gate details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(gate.label)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(label(gate.state))} · provider gate</p>
+          </div>
+        </header>
+        <p>${escapeHtml(gate.summary)}</p>
+        <p><strong>Control:</strong> ${escapeHtml(gateOverride?.previewControl || gate.control)}</p>
+        ${gateOverride?.notes ? `<p><strong>Notes:</strong> ${escapeHtml(gateOverride.notes)}</p>` : ''}
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-settings-action="edit-item" data-settings-key="${escapeHtml(gate.gateKey)}">Edit planning notes</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
+        </div>
+        ${(state.settings.receipts || []).filter((r) => r.key === gate.gateKey).length ? `
+          <details class="lane-reading-details"><summary>Receipts</summary>${renderSettingsLocalReceipts(gate.gateKey)}</details>
+        ` : ''}
+      </section>
+    `;
+  }
+  if (policy) {
+    return `
+      <section class="lane-reading-pane" aria-label="Policy details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(policy.label)}</h3>
+            <p class="lane-reading-meta">policy · ${escapeHtml(label(policyOverride?.previewValue || policy.value))}</p>
+          </div>
+        </header>
+        <p>${escapeHtml(policy.summary)}</p>
+        <p><strong>Fixture value:</strong> ${escapeHtml(policy.value)}</p>
+        ${policyOverride?.notes ? `<p><strong>Notes:</strong> ${escapeHtml(policyOverride.notes)}</p>` : ''}
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-settings-action="edit-item" data-settings-key="${escapeHtml(policy.policyKey)}">Edit preview value</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Apply blocked</button>
+        </div>
+        ${(state.settings.receipts || []).filter((r) => r.key === policy.policyKey).length ? `
+          <details class="lane-reading-details"><summary>Receipts</summary>${renderSettingsLocalReceipts(policy.policyKey)}</details>
+        ` : ''}
+      </section>
+    `;
+  }
+  return `<section class="lane-reading-pane is-empty" aria-label="Setting details"><p class="lane-empty-state">Select a gate or policy.</p></section>`;
+}
+
+function renderSettingsWorkspace() {
   const gates = settingsGateFixtures();
   const policies = settingsPolicyFixtures();
-  const selectedKey = state.settings.selectedKey || gates[0]?.gateKey || '';
-  const selectedGate = gates.find((entry) => entry.gateKey === selectedKey) || gates[0] || null;
-  const selectedPolicy = policies.find((entry) => entry.policyKey === selectedKey) || null;
-  const gateOverride = selectedGate ? gateOverrideFor(selectedGate.gateKey) : null;
-  const policyOverride = selectedPolicy ? policyOverrideFor(selectedPolicy.policyKey) : null;
+  const selectedKey = state.settings.selectedKey;
   return `
-    <section class="lane-section settings-operability-panel" aria-label="Settings local operability">
-      <header class="section-head">
-        <div>
-          <p class="section-eyebrow">local operability</p>
-          <h3>Gate and policy planning</h3>
-          <p>Edit local gate/policy preview values only. No runtime apply or provider connect.</p>
+    <div class="lane-workspace settings-workspace">
+      <div class="lane-toolbar" role="toolbar" aria-label="Settings actions">
+        <div id="settingsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'settings' ? state.statusMessage : '')}</div>
+        <details class="lane-toolbar-overflow">
+          <summary>More</summary>
+          <button class="inbox-action-btn is-danger" type="button" data-settings-action="clear-all">Clear local settings state</button>
+        </details>
+      </div>
+      <div class="lane-workspace-grid settings-workspace-grid">
+        <div class="settings-item-list" aria-label="Gates and policies">
+          ${gates.map((gate) => `
+            <button class="settings-list-row ${selectedKey === gate.gateKey ? 'is-selected' : ''}" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">
+              <span class="settings-list-badge">gate</span>
+              <div><strong>${escapeHtml(gate.label)}</strong><p>${escapeHtml(gate.control)}</p></div>
+            </button>
+          `).join('')}
+          ${policies.map((policy) => `
+            <button class="settings-list-row ${selectedKey === policy.policyKey ? 'is-selected' : ''}" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}" data-inspector-focus="${escapeHtml(`settings:local:policy:${policy.policyKey}`)}">
+              <span class="settings-list-badge">policy</span>
+              <div><strong>${escapeHtml(policy.label)}</strong><p>${escapeHtml(policy.value)}</p></div>
+            </button>
+          `).join('')}
         </div>
-        <span class="draft-proposal-state">planning only</span>
-      </header>
-      <div id="settingsStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'settings' ? state.statusMessage : 'Ready for local Settings operability.')}</div>
-      <div class="settings-gate-form-list" aria-label="Provider gate planning forms">
-        <h4>Provider gates (${gates.length})</h4>
-        ${gates.map((gate) => {
-          const override = gateOverrideFor(gate.gateKey);
-          const focused = selectedKey === gate.gateKey;
-          return `
-            <form class="inbox-draft-form settings-gate-form ${focused ? 'is-selected' : ''}" data-settings-form="gate" aria-label="Gate planning: ${escapeHtml(gate.label)}">
-              <input type="hidden" name="gateKey" value="${escapeHtml(gate.gateKey)}" />
-              <h5>${escapeHtml(gate.label)} <em>${escapeHtml(label(gate.state))}</em></h5>
-              <p class="form-hint">Fixture: ${escapeHtml(gate.summary)} · control: ${escapeHtml(gate.control)}</p>
-              <label for="gate-notes-${escapeHtml(gate.gateKey)}">Local planning notes</label>
-              <textarea id="gate-notes-${escapeHtml(gate.gateKey)}" name="notes" rows="2">${escapeHtml(override?.notes || '')}</textarea>
-              <label for="gate-control-${escapeHtml(gate.gateKey)}">Preview control label (local)</label>
-              <input id="gate-control-${escapeHtml(gate.gateKey)}" name="previewControl" type="text" autocomplete="off" value="${escapeHtml(override?.previewControl || gate.control)}" />
-              <div class="inbox-form-actions">
-                <button class="inbox-action-btn is-primary" type="submit" data-settings-action="gate-save">Save gate notes</button>
-                <button class="inbox-action-btn" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">Inspect</button>
-                <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
-              </div>
-            </form>
-          `;
-        }).join('')}
+        ${renderSettingsReadingPane()}
       </div>
-      <div class="settings-policy-form-list" aria-label="Policy preview forms">
-        <h4>Policy defaults (${policies.length})</h4>
-        ${policies.map((policy) => {
-          const override = policyOverrideFor(policy.policyKey);
-          const focused = selectedKey === policy.policyKey;
-          return `
-            <form class="inbox-draft-form settings-policy-form ${focused ? 'is-selected' : ''}" data-settings-form="policy" aria-label="Policy preview: ${escapeHtml(policy.label)}">
-              <input type="hidden" name="policyKey" value="${escapeHtml(policy.policyKey)}" />
-              <h5>${escapeHtml(policy.label)} <em>fixture: ${escapeHtml(policy.value)}</em></h5>
-              <p class="form-hint">${escapeHtml(policy.summary)}</p>
-              <label for="policy-value-${escapeHtml(policy.policyKey)}">Local preview value</label>
-              <select id="policy-value-${escapeHtml(policy.policyKey)}" name="previewValue">
-                ${SETTINGS_POLICY_VALUES.map((value) => `
-                  <option value="${escapeHtml(value)}" ${(override?.previewValue || policy.value) === value ? 'selected' : ''}>${escapeHtml(label(value))}</option>
-                `).join('')}
-              </select>
-              <label for="policy-notes-${escapeHtml(policy.policyKey)}">Local planning notes</label>
-              <textarea id="policy-notes-${escapeHtml(policy.policyKey)}" name="notes" rows="2">${escapeHtml(override?.notes || '')}</textarea>
-              <div class="inbox-form-actions">
-                <button class="inbox-action-btn is-primary" type="submit" data-settings-action="policy-save">Save policy preview</button>
-                <button class="inbox-action-btn" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}" data-inspector-focus="${escapeHtml(`settings:local:policy:${policy.policyKey}`)}">Inspect</button>
-                <button class="inbox-action-btn is-blocked" type="button" disabled>Apply blocked</button>
-              </div>
-            </form>
-          `;
-        }).join('')}
-      </div>
-      <article class="draft-proposal-panel">
-        <header><strong>Local receipt preview</strong><span class="draft-proposal-state">preview only</span></header>
-        ${renderSettingsLocalReceipts(selectedKey)}
-      </article>
-      <div class="inbox-clear-control">
-        <button class="inbox-action-btn is-danger" type="button" data-settings-action="clear-all">Clear all local Settings preview state</button>
-      </div>
-    </section>
+      ${renderSettingsEditSheet()}
+    </div>
   `;
 }
 
@@ -3488,20 +3567,20 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? ' is-compact' : ''}">
+      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
-          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
-          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Extensions' }[lane.id] || (content.title || lane.label))}</h2>
-          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
+          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Extensions', settings: 'Settings' }[lane.id] || (content.title || lane.label))}</h2>
+          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `
+        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>`}
       </header>
 
-      ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : `
+      ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>`}
@@ -3512,8 +3591,8 @@ function renderMainLane() {
         ${lane.id === 'tasks' ? renderTasksWorkspace() : ''}
         ${lane.id === 'automations' ? renderAutomationsWorkspace() : ''}
         ${lane.id === 'extensions' ? renderExtensionsWorkspace() : ''}
-        ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
-        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${lane.id === 'settings' ? renderSettingsWorkspace() : ''}
+        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -3989,6 +4068,23 @@ function handleIbalAction(action, proposalId) {
 }
 
 function handleSettingsAction(action, settingsKey) {
+  if (action === 'edit-item') {
+    if (!settingsKey) return;
+    state.settings.selectedKey = settingsKey;
+    state.focusId = isSettingsGateKey(settingsKey)
+      ? `settings:local:gate:${settingsKey}`
+      : `settings:local:policy:${settingsKey}`;
+    state.settings.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-form') {
+    state.settings.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'select-gate' || action === 'select-policy') {
     if (!settingsKey) return;
     state.settings.selectedKey = settingsKey;
