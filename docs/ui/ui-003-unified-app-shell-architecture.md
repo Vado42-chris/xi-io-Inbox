@@ -497,23 +497,28 @@ UI-003E visual proof recording: blocked
 UI-004 polish planning: required
 ```
 
-Required UI-004 planning docs:
+UI-004A corrects the initial partial polish planning docs into a numbered design-director packet. UI-004A is documentation/planning only; it does not implement visual polish.
 
-- `docs/ui/polish/ui-004-polish-standards.md`
-- `docs/ui/polish/home.md`
-- `docs/ui/polish/inbox.md`
-- `docs/ui/polish/calendar.md`
-- `docs/ui/polish/tasks.md`
-- `docs/ui/polish/automations.md`
-- `docs/ui/polish/extensions.md`
-- `docs/ui/polish/receipts.md`
-- `docs/ui/polish/ibal.md`
-- `docs/ui/polish/settings-provider-gates.md`
+Required UI-004A planning docs:
+
+- `docs/ui/polish/00-xi-io-visual-product-standard.md`
+- `docs/ui/polish/01-home-polish-plan.md`
+- `docs/ui/polish/02-inbox-polish-plan.md`
+- `docs/ui/polish/03-calendar-polish-plan.md`
+- `docs/ui/polish/04-tasks-polish-plan.md`
+- `docs/ui/polish/05-automations-polish-plan.md`
+- `docs/ui/polish/06-extensions-polish-plan.md`
+- `docs/ui/polish/07-receipts-polish-plan.md`
+- `docs/ui/polish/08-ibal-polish-plan.md`
+- `docs/ui/polish/09-settings-provider-gates-polish-plan.md`
+- `docs/ui/polish/10-component-pattern-inventory.md`
+- `docs/ui/polish/11-interaction-standard.md`
+- `docs/ui/polish/12-visual-qa-rubric.md`
 
 Next slice:
 
 ```text
-UI-004A: shared visual system implementation.
+UI-004B: shell, topbar, lane navigation, safety/trust treatment, and right inspector system polish only.
 ```
 
 ## Decision value
