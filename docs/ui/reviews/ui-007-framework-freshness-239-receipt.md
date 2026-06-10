@@ -10,7 +10,13 @@
 
 ## Commit SHA
 
-(recorded at commit)
+Inbox: `5d5c834` (record full SHA at push)
+
+Framework (`xi-io.net`): `1c60d6e1e28dcae19dc9ca34c9d1eef19c53c0ac`
+
+## Issue comment
+
+https://github.com/Vado42-chris/xi-io.net/issues/239#issuecomment-4672812891
 
 ## Scope
 
