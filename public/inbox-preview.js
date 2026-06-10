@@ -17,6 +17,7 @@ const state = {
   calendar: defaultCalendarOps(),
   tasks: defaultTasksOps(),
   automations: defaultAutomationsOps(),
+  extensions: defaultExtensionsOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -56,6 +57,14 @@ function defaultAutomationsOps() {
   };
 }
 
+function defaultExtensionsOps() {
+  return {
+    selectedInstallId: null,
+    installs: [],
+    receipts: [],
+  };
+}
+
 function previewStateEnvelope() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -66,6 +75,7 @@ function previewStateEnvelope() {
     calendar: state.calendar,
     tasks: state.tasks,
     automations: state.automations,
+    extensions: state.extensions,
   };
 }
 
@@ -100,6 +110,12 @@ function applyPreviewEnvelope(stored) {
     receipts: stored.automations?.receipts || [],
     lastDryRun: stored.automations?.lastDryRun || null,
   };
+  state.extensions = {
+    ...defaultExtensionsOps(),
+    ...(stored.extensions || {}),
+    installs: stored.extensions?.installs || [],
+    receipts: stored.extensions?.receipts || [],
+  };
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
 }
@@ -119,6 +135,7 @@ function migratePreviewStorage() {
       calendar: defaultCalendarOps(),
       tasks: defaultTasksOps(),
       automations: defaultAutomationsOps(),
+      extensions: defaultExtensionsOps(),
     };
   }
 
@@ -132,6 +149,7 @@ function migratePreviewStorage() {
     calendar: defaultCalendarOps(),
     tasks: defaultTasksOps(),
     automations: defaultAutomationsOps(),
+    extensions: defaultExtensionsOps(),
   };
 }
 
@@ -280,6 +298,7 @@ function setStatusMessage(message, laneId = state.laneId) {
     calendar: 'calendarStatusRegion',
     tasks: 'tasksStatusRegion',
     automations: 'automationsStatusRegion',
+    extensions: 'extensionsStatusRegion',
     inbox: 'inboxStatusRegion',
   }[laneId] || 'inboxStatusRegion';
   const region = document.getElementById(regionId);
@@ -602,6 +621,112 @@ function clearAutomationsPreviewState() {
   setStatusMessage('All local Automations preview state cleared. Fixture templates unchanged.', 'automations');
 }
 
+function extensionFixtures() {
+  const extensions = getPayload().laneContent?.extensions || {};
+  const section = sectionByType(extensions, 'extension-matrix');
+  return (section?.providers || []).map((provider, index) => ({
+    ...provider,
+    fixtureId: `ext-fixture:${index}`,
+  }));
+}
+
+function allExtensionInstalls() {
+  return state.extensions.installs || [];
+}
+
+function selectedExtensionInstall() {
+  const installs = allExtensionInstalls();
+  return installs.find((entry) => entry.id === state.extensions.selectedInstallId) || installs[0] || null;
+}
+
+function installForFixture(fixtureId) {
+  return allExtensionInstalls().find((entry) => entry.fixtureId === fixtureId) || null;
+}
+
+function addExtensionReceipt({ type, title, installId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    installId: installId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No OAuth, credentials, provider connection, or runtime write occurred.',
+  };
+  state.extensions.receipts = [receipt, ...(state.extensions.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function previewInstallExtension(fixtureId) {
+  const fixture = extensionFixtures().find((entry) => entry.fixtureId === fixtureId);
+  if (!fixture || installForFixture(fixtureId)) return;
+  const id = createLocalId('ext');
+  const now = new Date().toISOString();
+  const install = {
+    id,
+    fixtureId,
+    label: fixture.label,
+    permissions: fixture.permissions,
+    provisionNotes: '',
+    state: 'preview_installed',
+    installedAt: now,
+    updatedAt: now,
+  };
+  state.extensions.installs = [install, ...(state.extensions.installs || [])];
+  state.extensions.selectedInstallId = id;
+  state.focusId = `extensions:local:${id}`;
+  addExtensionReceipt({
+    type: 'install',
+    title: 'Local preview install recorded',
+    installId: id,
+    summary: `${fixture.label} — preview only, not connected.`,
+  });
+  saveState();
+  setStatusMessage(`Preview install recorded for ${fixture.label}. No provider connection.`, 'extensions');
+}
+
+function removeExtensionInstall(installId) {
+  if (!installId) return;
+  const install = allExtensionInstalls().find((entry) => entry.id === installId);
+  state.extensions.installs = (state.extensions.installs || []).filter((entry) => entry.id !== installId);
+  if (state.extensions.selectedInstallId === installId) {
+    state.extensions.selectedInstallId = state.extensions.installs[0]?.id || null;
+  }
+  addExtensionReceipt({
+    type: 'remove',
+    title: 'Local preview install removed',
+    installId,
+    summary: install ? `${install.label} removed from preview state.` : 'Install removed.',
+  });
+  saveState();
+  setStatusMessage('Local preview install removed. Provider remains disconnected.', 'extensions');
+}
+
+function saveExtensionProvision(formData, installId) {
+  if (!installId) return;
+  const notes = String(formData.get('provisionNotes') || '').trim();
+  state.extensions.installs = (state.extensions.installs || []).map((entry) => (
+    entry.id === installId
+      ? { ...entry, provisionNotes: notes, updatedAt: new Date().toISOString() }
+      : entry
+  ));
+  addExtensionReceipt({
+    type: 'provision',
+    title: 'Local provision notes updated',
+    installId,
+    summary: notes || '(empty notes)',
+  });
+  state.extensions.selectedInstallId = installId;
+  saveState();
+  setStatusMessage('Local provision notes saved. No credentials stored.', 'extensions');
+}
+
+function clearExtensionsPreviewState() {
+  state.extensions = defaultExtensionsOps();
+  saveState();
+  setStatusMessage('All local Extensions preview state cleared. Fixture providers unchanged.', 'extensions');
+}
+
 function inboxTriageFor(threadId) {
   return state.inbox.triage[threadId] || { reviewed: false, deferred: false };
 }
@@ -897,6 +1022,10 @@ function defaultFocusIdForLane(laneId) {
     const rule = selectedAutomationRule();
     return rule ? `automations:local:${rule.id}` : 'lane:automations';
   }
+  if (laneId === 'extensions') {
+    const install = selectedExtensionInstall();
+    return install ? `extensions:local:${install.id}` : 'lane:extensions';
+  }
   return `lane:${laneId}`;
 }
 
@@ -965,6 +1094,22 @@ function inspectableItemsForLane(laneId) {
         safeNext: 'Run dry-run simulation; enable/execute remains blocked.',
         blocked: 'Automation execution, enablement, provider/repo mutation remain blocked.',
         receipt: 'Dry-run receipt preview available.',
+      });
+    });
+  }
+
+  if (laneId === 'extensions') {
+    allExtensionInstalls().forEach((install) => {
+      items.push({
+        id: `extensions:local:${install.id}`,
+        kind: 'local preview install',
+        title: install.label,
+        summary: install.provisionNotes || 'Preview install only.',
+        meta: install.permissions,
+        state: install.state,
+        safeNext: 'Edit local provision notes; OAuth/connect remains blocked.',
+        blocked: 'OAuth, credentials, provider read/write, and runtime connection remain blocked.',
+        receipt: 'Install/provision receipt preview available.',
       });
     });
   }
@@ -1106,6 +1251,9 @@ function selectInspectorFocus(focusId) {
   }
   if (focusId.startsWith('automations:local:')) {
     state.automations.selectedRuleId = focusId.replace('automations:local:', '');
+  }
+  if (focusId.startsWith('extensions:local:')) {
+    state.extensions.selectedInstallId = focusId.replace('extensions:local:', '');
   }
   saveState();
   renderShell();
@@ -1998,6 +2146,80 @@ function renderDryRun(section) {
   `;
 }
 
+function renderExtensionsLocalReceipts(installId) {
+  const receipts = (state.extensions.receipts || []).filter((entry) => !installId || entry.installId === installId);
+  if (!receipts.length) return '<p class="form-hint">No local extension receipts yet.</p>';
+  return receipts.map((receipt) => `
+    <article class="local-receipt-row">
+      <header><strong>${escapeHtml(receipt.title)}</strong><span>${escapeHtml(label(receipt.type))} · local receipt</span></header>
+      <p>${escapeHtml(receipt.summary)}</p>
+      <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+    </article>
+  `).join('');
+}
+
+function renderExtensionsOperabilityPanel() {
+  const fixtures = extensionFixtures();
+  const selected = selectedExtensionInstall();
+  const installId = selected?.id || '';
+  return `
+    <section class="lane-section extensions-operability-panel" aria-label="Extensions local operability">
+      <header class="section-head">
+        <div>
+          <p class="section-eyebrow">local operability</p>
+          <h3>Preview install and provision</h3>
+          <p>Record local preview installs only. No OAuth or provider connection.</p>
+        </div>
+        <span class="draft-proposal-state">preview install only</span>
+      </header>
+      <div id="extensionsStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'extensions' ? state.statusMessage : 'Ready for local Extensions operability.')}</div>
+      <div class="extensions-fixture-list" aria-label="Fixture providers">
+        <h4>Provider fixtures (${fixtures.length})</h4>
+        ${fixtures.map((fixture) => {
+          const install = installForFixture(fixture.fixtureId);
+          return `
+            <article class="provider-gate-row">
+              <div>
+                <strong>${escapeHtml(fixture.label)}</strong>
+                <p>${escapeHtml(fixture.summary)}</p>
+                <span class="provider-permission-line">${escapeHtml(fixture.permissions)}</span>
+                <p class="form-hint">Fixture state: ${escapeHtml(label(fixture.state))}${install ? ' · preview installed locally' : ''}</p>
+              </div>
+              <div class="inbox-form-actions">
+                ${install
+    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(install.id)}" data-inspector-focus="${escapeHtml(`extensions:local:${install.id}`)}">View install</button>
+                   <button class="inbox-action-btn" type="button" data-extensions-action="remove-install" data-install-id="${escapeHtml(install.id)}">Remove preview install</button>`
+    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-fixture-id="${escapeHtml(fixture.fixtureId)}">Record preview install</button>`}
+                <button class="inbox-action-btn is-blocked" type="button" disabled>Connect/OAuth blocked</button>
+              </div>
+            </article>
+          `;
+        }).join('')}
+      </div>
+      ${installId ? `
+        <form class="inbox-draft-form" data-extensions-form="provision" aria-label="Local provision notes">
+          <input type="hidden" name="installId" value="${escapeHtml(installId)}" />
+          <h4>Provision notes for ${escapeHtml(selected?.label || 'install')}</h4>
+          <label for="ext-provision-notes">Local provision notes (preview)</label>
+          <textarea id="ext-provision-notes" name="provisionNotes" rows="3">${escapeHtml(selected?.provisionNotes || '')}</textarea>
+          <p class="form-hint">Planning notes only. No credentials or tokens stored.</p>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit" data-extensions-action="provision-save">Save provision notes</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Provider write blocked</button>
+          </div>
+        </form>
+      ` : '<p class="form-hint">Select or create a preview install to edit provision notes.</p>'}
+      <article class="draft-proposal-panel">
+        <header><strong>Local receipt preview</strong><span class="draft-proposal-state">preview only</span></header>
+        ${renderExtensionsLocalReceipts(installId)}
+      </article>
+      <div class="inbox-clear-control">
+        <button class="inbox-action-btn is-danger" type="button" data-extensions-action="clear-all">Clear all local Extensions preview state</button>
+      </div>
+    </section>
+  `;
+}
+
 function renderExtensionMatrix(section) {
   const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
@@ -2261,6 +2483,7 @@ function renderMainLane() {
         ${lane.id === 'calendar' ? renderCalendarOperabilityPanel() : ''}
         ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
         ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
+        ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
@@ -2294,6 +2517,26 @@ function activeInspectorModel() {
   const focusItem = activeInspectableItem();
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
+
+  if (focusItem?.id?.startsWith('extensions:local:')) {
+    const installId = focusItem.id.replace('extensions:local:', '');
+    const install = allExtensionInstalls().find((entry) => entry.id === installId);
+    const receipts = (state.extensions.receipts || []).filter((entry) => entry.installId === installId);
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `Local preview install: ${install?.label || 'unknown'}. Not connected to provider.`,
+      why: install?.provisionNotes || 'Preview install records intent only; real connection requires gated runtime.',
+      evidence: `Permissions (fixture): ${install?.permissions || 'n/a'}. Fixture ref: ${install?.fixtureId || 'n/a'}.`,
+      safeNext: 'Edit provision notes locally; keep OAuth and provider connection blocked.',
+      blocked: 'OAuth, credentials, provider read/write, repo mutation, and runtime connection remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal proposes preserving provider gates until ARCH-004 decisions.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
+        : 'Install receipt appears after preview install.',
+    };
+  }
 
   if (focusItem?.id?.startsWith('automations:local:')) {
     const ruleId = focusItem.id.replace('automations:local:', '');
@@ -2465,6 +2708,33 @@ function renderShell() {
   `;
 }
 
+function handleExtensionsAction(action, installId, fixtureId) {
+  if (action === 'preview-install') {
+    previewInstallExtension(fixtureId);
+    renderShell();
+    return;
+  }
+  if (action === 'remove-install') {
+    removeExtensionInstall(installId);
+    renderShell();
+    return;
+  }
+  if (action === 'select-install') {
+    if (!installId) return;
+    state.extensions.selectedInstallId = installId;
+    state.focusId = `extensions:local:${installId}`;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all local Extensions preview installs and receipts?')) {
+      clearExtensionsPreviewState();
+      renderShell();
+    }
+  }
+}
+
 function handleAutomationsAction(action, ruleId) {
   if (action === 'rule-clear') {
     clearLocalAutomationRule(ruleId);
@@ -2588,6 +2858,16 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const extensionsForm = event.target.closest?.('[data-extensions-form]');
+    if (extensionsForm) {
+      event.preventDefault();
+      const formData = new FormData(extensionsForm);
+      const installId = String(formData.get('installId') || '').trim();
+      saveExtensionProvision(formData, installId);
+      renderShell();
+      return;
+    }
+
     const automationsForm = event.target.closest?.('[data-automations-form]');
     if (automationsForm) {
       event.preventDefault();
@@ -2635,6 +2915,17 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const extensionsAction = event.target.closest?.('[data-extensions-action]');
+    if (extensionsAction?.dataset.extensionsAction && extensionsAction.dataset.extensionsAction !== 'provision-save') {
+      event.preventDefault();
+      handleExtensionsAction(
+        extensionsAction.dataset.extensionsAction,
+        extensionsAction.dataset.installId,
+        extensionsAction.dataset.fixtureId,
+      );
+      return;
+    }
+
     const automationsAction = event.target.closest?.('[data-automations-action]');
     if (automationsAction?.dataset.automationsAction && automationsAction.dataset.automationsAction !== 'rule-save') {
       event.preventDefault();
