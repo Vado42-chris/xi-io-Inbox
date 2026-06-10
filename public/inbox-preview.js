@@ -326,6 +326,16 @@ function navLanes() {
   return getLanes().filter((lane) => lane.id !== IBAL_LEGACY_LANE);
 }
 
+const PRIMARY_NAV_LANE_IDS = new Set(['home', 'inbox', 'receipts', 'settings']);
+
+function primaryNavLanes() {
+  return navLanes().filter((lane) => PRIMARY_NAV_LANE_IDS.has(lane.id));
+}
+
+function outcomeNavLanes() {
+  return navLanes().filter((lane) => !PRIMARY_NAV_LANE_IDS.has(lane.id));
+}
+
 function laneIds() {
   return new Set(getLanes().map((lane) => lane.id));
 }
@@ -399,6 +409,7 @@ function threadsForMailboxView() {
     return threads.filter((thread) => (thread.labels || []).includes('provider_gate')
       || thread.state === 'provider_blocked');
   }
+  if (view === 'approval-queue') return [];
   return threads;
 }
 
@@ -1826,14 +1837,24 @@ function renderTopBar() {
 function renderInboxMailNav() {
   const section = inboxLayoutSection();
   const activeView = state.inbox.mailboxView || 'inbox';
+  const smartViews = (section.views || []).filter((view) => mailboxViewId(view.label) !== 'drafts');
+  const draftListCount = inboxThreads().filter((thread) => replyDraftFor(thread.id) || thread.draft).length;
   return `
     <div class="mail-nav-section" aria-label="Mail folders and views">
-      <p class="mail-nav-label">Folders</p>
+      <p class="mail-nav-label">Mail</p>
       <button class="mail-nav-item ${activeView === 'inbox' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="inbox">
-        <span>All inbox</span>
+        <span>Inbox</span>
         <strong>${inboxThreads().length}</strong>
       </button>
-      ${(section.views || []).map((view) => {
+      <button class="mail-nav-item ${activeView === 'drafts' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="drafts">
+        <span>Drafts</span>
+        <strong>${draftListCount}</strong>
+      </button>
+      <button class="mail-nav-item ${activeView === 'approval-queue' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="approval-queue">
+        <span>Approval Queue</span>
+        <strong>0</strong>
+      </button>
+      ${smartViews.map((view) => {
         const viewId = mailboxViewId(view.label);
         return `
           <button class="mail-nav-item ${activeView === viewId ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}">
@@ -1853,19 +1874,30 @@ function renderInboxMailNav() {
 }
 
 function renderNavigation() {
+  const outcomes = outcomeNavLanes();
   return `
     <nav class="lane-nav mail-nav-pane" aria-label="Primary navigation">
-      <p class="lane-nav-label">Lanes</p>
-      ${navLanes().map((lane) => {
+      <p class="lane-nav-label">Workbench</p>
+      ${primaryNavLanes().map((lane) => {
         const hint = laneNavHint(lane.status);
         return `
           <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
-            <span>${escapeHtml(lane.label)}</span>
+            <span>${escapeHtml(lane.id === 'inbox' ? 'Mail' : lane.label)}</span>
             ${hint ? `<span class="lane-nav-hint">${escapeHtml(hint)}</span>` : ''}
           </a>
         `;
       }).join('')}
       ${state.laneId === 'inbox' ? renderInboxMailNav() : ''}
+      ${outcomes.length ? `
+        <details class="lane-nav-outcomes">
+          <summary>Outcomes (preview)</summary>
+          ${outcomes.map((lane) => `
+            <a class="lane-link lane-link-demoted ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}">
+              <span>${escapeHtml(lane.label)}</span>
+            </a>
+          `).join('')}
+        </details>
+      ` : ''}
     </nav>
   `;
 }
@@ -2033,6 +2065,10 @@ function renderInboxComposeSheet() {
 
 function syncMailboxThreadSelection() {
   if (state.laneId !== 'inbox') return;
+  if (state.inbox.mailboxView === 'approval-queue') {
+    state.threadId = null;
+    return;
+  }
   const visible = threadsForMailboxView();
   if (!visible.length) {
     state.threadId = null;
@@ -2051,6 +2087,13 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
   const messages = thread?.messages || [];
   const evidence = thread?.evidence || [];
   const attachments = thread?.attachments || [];
+  if (state.inbox.mailboxView === 'approval-queue') {
+    return `
+      <section class="inbox-reading-pane mail-reading-pane is-empty" aria-label="Approval queue">
+        <p class="lane-empty-state">No drafts in approval queue. Approve-for-send workflow ships in UI-007B-R2.</p>
+      </section>
+    `;
+  }
   if (!thread) {
     return `
       <section class="inbox-reading-pane is-empty" aria-label="Message reading pane">
@@ -2124,7 +2167,9 @@ function renderInboxWorkspace() {
       ${renderInboxToolbar()}
       <div class="inbox-workspace-grid mail-workbench-center">
         <div class="thread-list-panel mail-list-pane" aria-label="Conversations">
-          ${visibleThreads.length ? visibleThreads.map((thread) => `
+          ${state.inbox.mailboxView === 'approval-queue' ? `
+            <p class="lane-empty-state">Approval Queue — drafts approved for send will appear here (UI-007B-R2). Send remains blocked in Tier 1.</p>
+          ` : visibleThreads.length ? visibleThreads.map((thread) => `
             <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <div class="thread-row-main">
                 <div class="thread-row-top">

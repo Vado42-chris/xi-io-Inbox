@@ -158,9 +158,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-006E Extensions progressive disclosure IA.
 - [x] UI-006F Settings progressive disclosure IA.
 - [x] UI-007A state reconciliation + draft workbench architecture (docs only).
-- [ ] Operator push UI-006 commits (6 ahead of remote) + PR #12 body sync.
-- [ ] Owner completes UI-003E visual checklist in proof packet (post UI-006 sign-off).
-- [x] UI-007B-R1 four-column mail shell (folders in left nav, list|reading center, context rail).
+- [ ] Operator push local commits (10 ahead of remote as of 2026-06-10) + PR #12 body sync.
+- [ ] Owner Inbox workbench screenshot review only (UI-007B-R1); full UI-003E deferred until post-R3.
+- [x] UI-007B-R1 mail navigation graduation (`docs/ui/reviews/ui-007b-r1-mail-navigation-graduation-receipt.md`).
 - [ ] UI-007B-R2 Drafts / Approval Queue workbench (real draft objects).
 - [ ] `xi-io.net#239` framework freshness after UI-007B patterns stable.
 - [ ] Merge-prep final after owner UI-003E PASS.
@@ -181,4 +181,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and draft workbench MVP: UI-005/006/007A complete locally. Remaining: operator push (~0 agent), owner UI-003E re-review (~1 owner), UI-007B workbench (~2–3 passes), framework `#239` (~1–2 passes), merge-prep after visual PASS (~1 pass). ARCH-002/ARCH-004 separate. **~5–6 agent passes** + owner sign-off + operator push.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and draft workbench MVP: UI-005/006/007A/007B-R1 complete locally. Remaining: operator push (~0 agent), owner Inbox screenshot (~1 owner), UI-007B-R2/R3 (~2 passes), UI-007C send-event wiring (~1 pass), UI-007D files/labels (~1 pass), framework `xi-io.net#239` two-way sync (~1–2 passes), merge-prep + full UI-003E after visual PASS (~1 pass). ARCH-002/ARCH-004 separate. **~6–7 agent passes** + 2 owner actions + operator push.

@@ -108,7 +108,9 @@ Cognitive overload; no progressive disclosure; compose/reply/forms always visibl
 technical jargon and redundant blocked-action stacks. Other lanes likely same pattern.
 ```
 
-Follow-up: UI-006A–F complete (2026-06-10, commit `197f25d`). All operable lanes use compact header + list/detail workspace + modal forms. Inbox: 3-pane folders/threads/reading + compose/reply modals. Re-review required before PASS.
+Follow-up: UI-006A–F complete (2026-06-10, commit `197f25d`). All operable lanes use compact header + list/detail workspace + modal forms.
+
+Follow-up: UI-007B-R1 mail navigation graduation (2026-06-10). Inbox is now a 4-column mail workbench: left mail folders (Inbox, Drafts, Approval Queue placeholder), center list|reading, right context rail; outcome lanes demoted under collapsible "Outcomes (preview)". **Owner should re-review Inbox workbench only** before full UI-003E checklist. Full UI-003E PASS remains blocked.
 
 If PASS:
 
