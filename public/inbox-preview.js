@@ -269,7 +269,22 @@ function inspectableItemsForLane(laneId) {
       (section.items || []).forEach((item, index) => pushItem(index, 'agenda item', item));
     }
     if (section.type === 'calendar-proposals' || section.type === 'proposal-list') {
-      (section.items || []).forEach((item, index) => pushItem(index, 'proposal', item));
+      (section.items || []).forEach((item, index) => pushItem(index, 'calendar proposal', {
+        ...item,
+        safeNext: 'Review proposal without provider calendar write.',
+        blocked: 'Provider calendar writes remain blocked.',
+      }));
+    }
+    if (section.type === 'conflict-panel') {
+      (section.items || []).forEach((item, index) => pushItem(index, 'calendar conflict', item));
+    }
+    if (section.type === 'task-links') {
+      (section.links || []).forEach((linkItem, index) => pushItem(index, 'task source link', {
+        title: linkItem.title,
+        summary: linkItem.summary,
+        state: linkItem.state,
+        meta: linkItem.source,
+      }));
     }
     if (section.type === 'task-board') {
       (section.columns || []).forEach((column, columnIndex) => {
@@ -667,15 +682,16 @@ function renderAgenda(section) {
   return `
     <section class="lane-section agenda-preview" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="timeline-list">
+      <div class="calendar-agenda-rail">
         ${(section.items || []).map((item, index) => {
           const focusId = `${state.laneId}:agenda:${sectionIndex}:${index}`;
           return `
-            <article class="timeline-row is-inspector-focusable ${state.focusId === focusId ? 'is-inspector-focused' : ''}" data-inspector-focus="${escapeHtml(focusId)}" tabindex="0" aria-selected="${state.focusId === focusId ? 'true' : 'false'}">
+            <article class="calendar-agenda-row is-inspector-focusable ${state.focusId === focusId ? 'is-inspector-focused' : ''}" data-inspector-focus="${escapeHtml(focusId)}" tabindex="0" aria-selected="${state.focusId === focusId ? 'true' : 'false'}">
               <time>${escapeHtml(item.time)}</time>
               <div>
                 <strong>${escapeHtml(item.title)}</strong>
                 <p>${escapeHtml(item.summary)}</p>
+                ${item.tags?.length ? `<span class="calendar-source-line">${item.tags.map((tag) => escapeHtml(label(tag))).join(' · ')}</span>` : ''}
               </div>
             </article>
           `;
@@ -686,22 +702,49 @@ function renderAgenda(section) {
 }
 
 function renderProposalList(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section proposal-list" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="lane-item-list">
-        ${(section.items || []).map((item) => renderLaneItem(item, 'lane-item proposal-card')).join('')}
+      <div class="calendar-proposal-list">
+        ${(section.items || []).map((item, index) => {
+          const focusId = `${state.laneId}:calendar-proposals:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="calendar-proposal-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <div>
+                <strong>${escapeHtml(item.title)}</strong>
+                <p>${escapeHtml(item.summary)}</p>
+              </div>
+              <div class="calendar-proposal-meta">
+                <span>${escapeHtml(item.meta || 'source pending')}</span>
+                <em>${escapeHtml(label(item.state || 'proposal_only'))}</em>
+              </div>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
 }
 
 function renderConflictPanel(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section conflict-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="split-panel">
-        ${(section.items || []).map((item) => renderLaneItem(item, 'lane-item conflict-card')).join('')}
+      <div class="calendar-conflict-list">
+        ${(section.items || []).map((item, index) => {
+          const focusId = `${state.laneId}:conflict-panel:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="calendar-conflict-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.summary)}</p>
+              <span>${escapeHtml(label(item.state || 'preview_only'))}</span>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -711,12 +754,12 @@ function renderTaskBoard(section) {
   return `
     <section class="lane-section task-board" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="board-columns">
+      <div class="task-kanban-board">
         ${(section.columns || []).map((column) => `
-          <section class="board-column">
+          <section class="task-kanban-column">
             <header>
               <strong>${escapeHtml(column.label)}</strong>
-              ${renderPill(column.state || 'preview_only')}
+              <span>${escapeHtml(label(column.state || 'preview_only'))}</span>
             </header>
             ${(column.items || []).map((item, index) => {
               const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
@@ -724,15 +767,11 @@ function renderTaskBoard(section) {
               const focusId = `${state.laneId}:task-board:${sectionIndex}:${columnIndex}-${index}`;
               const focused = state.focusId === focusId;
               return `
-                <article class="lane-item task-card is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" data-inspector-focus="${escapeHtml(focusId)}" tabindex="0" aria-selected="${focused ? 'true' : 'false'}">
-                  <header>
-                    <strong>${escapeHtml(item.title)}</strong>
-                    ${renderPill(item.state || 'preview_only')}
-                  </header>
+                <button class="task-kanban-card is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+                  <strong>${escapeHtml(item.title)}</strong>
                   <p>${escapeHtml(item.summary)}</p>
-                  ${item.meta ? `<small>${escapeHtml(item.meta)}</small>` : ''}
-                  ${renderDetailList(item.details)}
-                </article>
+                  ${item.meta ? `<span class="task-source-line">${escapeHtml(item.meta)}</span>` : ''}
+                </button>
               `;
             }).join('')}
           </section>
@@ -746,15 +785,22 @@ function renderTaskLinks(section) {
   return `
     <section class="lane-section task-links" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="source-link-grid">
-        ${(section.links || []).map((linkItem) => `
-          <article>
-            <span>${escapeHtml(linkItem.source)}</span>
-            <strong>${escapeHtml(linkItem.title)}</strong>
-            <p>${escapeHtml(linkItem.summary)}</p>
-            ${renderPill(linkItem.state || 'preview_only')}
-          </article>
-        `).join('')}
+      <div class="task-source-list">
+        ${(section.links || []).map((linkItem, index) => {
+          const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
+          const focusId = `${state.laneId}:task-links:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="task-source-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <span class="task-source-lane">${escapeHtml(linkItem.source)}</span>
+              <div>
+                <strong>${escapeHtml(linkItem.title)}</strong>
+                <p>${escapeHtml(linkItem.summary)}</p>
+              </div>
+              <em>${escapeHtml(label(linkItem.state || 'preview_only'))}</em>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -1046,7 +1092,7 @@ function renderMainLane() {
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>
 
-      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}">
+      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}">
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>

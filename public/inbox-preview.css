@@ -1433,3 +1433,145 @@ input:focus-visible {
   color: var(--amber);
   font-size: 0.82rem;
 }
+
+/* UI-004F Calendar and Tasks polish */
+.is-calendar-lane .metric-card,
+.is-tasks-lane .metric-card {
+  box-shadow: none;
+}
+
+.calendar-agenda-rail,
+.calendar-proposal-list,
+.calendar-conflict-list,
+.task-kanban-board,
+.task-source-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 22, 26, 0.45);
+}
+
+.calendar-agenda-row,
+.calendar-proposal-row,
+.calendar-conflict-row,
+.task-source-row {
+  display: grid;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(52, 59, 67, 0.75);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.calendar-agenda-row {
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.calendar-agenda-row time {
+  color: var(--cyan);
+  font-weight: 800;
+}
+
+.calendar-source-line,
+.task-source-line {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.calendar-proposal-row,
+.task-source-row {
+  grid-template-columns: minmax(0, 1.2fr) auto;
+  gap: 0.85rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.calendar-proposal-meta,
+.task-source-row em {
+  display: grid;
+  justify-items: end;
+  gap: 0.2rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.calendar-conflict-row {
+  gap: 0.25rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.calendar-conflict-row span {
+  color: var(--amber);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.task-kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.65rem;
+  border: 0;
+  background: transparent;
+}
+
+.task-kanban-column {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 22, 26, 0.45);
+  padding: 0.65rem;
+}
+
+.task-kanban-column header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.task-kanban-column header span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.task-kanban-card {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  border: 1px solid rgba(52, 59, 67, 0.85);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  padding: 0.65rem;
+  text-align: left;
+}
+
+.task-kanban-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.task-source-row {
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+}
+
+.task-source-lane {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
