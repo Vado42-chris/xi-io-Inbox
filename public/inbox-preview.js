@@ -8,6 +8,7 @@ const state = {
   payload: null,
   laneId: DEFAULT_LANE,
   threadId: null,
+  focusId: null,
 };
 
 function escapeHtml(value) {
@@ -114,13 +115,18 @@ function selectedInboxThread() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ laneId: state.laneId, threadId: state.threadId }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    laneId: state.laneId,
+    threadId: state.threadId,
+    focusId: state.focusId,
+  }));
 }
 
 function loadState() {
   const stored = safeParse(localStorage.getItem(STORAGE_KEY) || '{}', {});
   if (stored.laneId) state.laneId = stored.laneId;
   if (stored.threadId) state.threadId = stored.threadId;
+  if (stored.focusId) state.focusId = stored.focusId;
 }
 
 async function fetchJson(url, fallback) {
@@ -137,10 +143,15 @@ function syncRoute() {
   const nextLane = laneFromHash();
   if (state.laneId !== nextLane) {
     state.laneId = nextLane;
+    state.focusId = defaultFocusIdForLane(nextLane);
     saveState();
   }
   if (!state.threadId && inboxThreads().length) {
     state.threadId = selectedInboxThread()?.id || null;
+    saveState();
+  }
+  if (!state.focusId) {
+    state.focusId = defaultFocusIdForLane(state.laneId);
     saveState();
   }
 }
@@ -156,9 +167,135 @@ function ensureRoute() {
 function selectInboxThread(threadId) {
   if (!threadId || !inboxThreads().some((thread) => thread.id === threadId)) return;
   state.threadId = threadId;
+  state.focusId = `inbox-thread:${threadId}`;
   saveState();
   renderShell();
   document.querySelector(`[data-thread-id="${CSS.escape(threadId)}"]`)?.focus({ preventScroll: true });
+}
+
+function laneNavHint(status) {
+  const normalized = String(status || 'preview_only');
+  if (['provider_blocked', 'runtime_blocked', 'blocked'].includes(normalized)) return 'gated';
+  if (['proposal_only', 'dry_run_only'].includes(normalized)) return 'proposal';
+  return '';
+}
+
+function trustTokenClass(status) {
+  const normalized = String(status || 'preview_only');
+  if (['provider_blocked', 'runtime_blocked', 'blocked', 'send_blocked', 'action_blocked'].includes(normalized)) return 'is-blocked';
+  if (['draft_only', 'local_only', 'documented', 'available'].includes(normalized)) return 'is-safe';
+  return 'is-preview';
+}
+
+function renderTrustToken(labelText, status) {
+  return `<span class="trust-token ${trustTokenClass(status)}">${escapeHtml(labelText)}</span>`;
+}
+
+function defaultFocusIdForLane(laneId) {
+  if (laneId === 'inbox') {
+    const thread = selectedInboxThread();
+    return thread ? `inbox-thread:${thread.id}` : 'lane:inbox';
+  }
+  return `lane:${laneId}`;
+}
+
+function inspectableItemsForLane(laneId) {
+  const content = getPayload().laneContent?.[laneId] || {};
+  const items = [{ id: `lane:${laneId}`, kind: 'lane', title: content.title || activeLane().label, summary: content.summary || activeLane().description }];
+
+  if (laneId === 'inbox') {
+    inboxThreads().forEach((thread) => {
+      items.push({
+        id: `inbox-thread:${thread.id}`,
+        kind: 'inbox thread',
+        title: thread.title,
+        summary: thread.summary,
+        inspector: thread.inspector,
+        state: thread.state,
+        safeNext: thread.draft?.title || 'Review thread metadata and draft proposal only.',
+        blocked: 'Send, forward, delete, archive, disclose, publish, provider mutation, and repository mutation remain blocked.',
+        receipt: 'A future confirmed draft or triage action would require a receipt.',
+      });
+    });
+    return items;
+  }
+
+  (content.sections || []).forEach((section, sectionIndex) => {
+    const pushItem = (suffix, kind, source) => {
+      items.push({
+        id: `${laneId}:${section.type}:${sectionIndex}:${suffix}`,
+        kind,
+        title: source.title,
+        summary: source.summary,
+        state: source.state,
+        meta: source.meta,
+        tags: source.tags,
+        safeNext: source.action?.title || source.draft?.title || `Review ${kind} in ${content.title || laneId} without runtime action.`,
+        blocked: 'Provider writes, automation execution, and dangerous egress remain blocked in this preview.',
+        receipt: 'Receipt would be created only after a future confirmed action.',
+      });
+    };
+
+    if (section.type === 'priority-stack') {
+      (section.items || []).forEach((item, index) => pushItem(index, 'priority item', item));
+    }
+    if (section.type === 'agenda') {
+      (section.items || []).forEach((item, index) => pushItem(index, 'agenda item', item));
+    }
+    if (section.type === 'calendar-proposals' || section.type === 'proposal-list') {
+      (section.items || []).forEach((item, index) => pushItem(index, 'proposal', item));
+    }
+    if (section.type === 'task-board') {
+      (section.columns || []).forEach((column, columnIndex) => {
+        (column.items || []).forEach((item, index) => pushItem(`${columnIndex}-${index}`, 'task', { ...item, meta: item.meta || column.label }));
+      });
+    }
+    if (section.type === 'receipt-ledger') {
+      (section.rows || []).forEach((row, index) => pushItem(index, 'receipt row', { title: row.title, summary: row.source, state: row.state, meta: row.kind }));
+    }
+    if (section.type === 'next-safe-action' && section.action) {
+      pushItem('action', 'safe action', section.action);
+    }
+  });
+
+  return items;
+}
+
+function activeInspectableItem() {
+  const items = inspectableItemsForLane(state.laneId);
+  return items.find((item) => item.id === state.focusId) || items[0] || null;
+}
+
+function selectInspectorFocus(focusId) {
+  if (!focusId) return;
+  const laneItems = inspectableItemsForLane(state.laneId);
+  if (!laneItems.some((item) => item.id === focusId)) return;
+  state.focusId = focusId;
+  if (focusId.startsWith('inbox-thread:')) {
+    state.threadId = focusId.replace('inbox-thread:', '');
+  }
+  saveState();
+  renderShell();
+  document.querySelector(`[data-inspector-focus="${CSS.escape(focusId)}"]`)?.focus({ preventScroll: true });
+}
+
+function renderTrustRail() {
+  const policy = getPayload().egressPolicy || {};
+  const statements = policy.safetyStatements || [];
+  return `
+    <section class="trust-rail" role="status" aria-live="polite" aria-label="Preview trust and safety state">
+      <strong>Preview shell</strong>
+      <span>Draft-only egress</span>
+      <span>No provider connection</span>
+      <span>Runtime undecided</span>
+      <details>
+        <summary>Trust details</summary>
+        <ul>
+          ${statements.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+        </ul>
+      </details>
+    </section>
+  `;
 }
 
 function renderTopBar() {
@@ -170,19 +307,15 @@ function renderTopBar() {
         <h1>Unified ingress operations</h1>
       </section>
 
-      <section class="topbar-context" aria-label="Active workspace and system state">
-        <div>
-          <span class="context-label">Workspace</span>
-          <strong>${escapeHtml(workspace.displayName || 'Preview workspace')}</strong>
+      <section class="topbar-context trust-cluster" aria-label="Active workspace and trust state">
+        <div class="trust-cluster-line">
+          <span><strong>${escapeHtml(workspace.displayName || 'Preview workspace')}</strong></span>
+          <span>${escapeHtml(workspace.activeAccount || 'Preview account')}</span>
         </div>
-        <div>
-          <span class="context-label">Account</span>
-          <strong>${escapeHtml(workspace.activeAccount || 'Preview account')}</strong>
-        </div>
-        <div class="pill-row compact-row">
-          ${renderPill(workspace.providerStatus || 'preview_only')}
-          ${renderPill(workspace.privacyMode || 'local_only')}
-          ${renderPill(workspace.ibalStatus || 'preview_only')}
+        <div class="trust-cluster-line" aria-label="Global trust tokens">
+          ${renderTrustToken('provider gated', workspace.providerStatus || 'provider_blocked')}
+          ${renderTrustToken('privacy local only', workspace.privacyMode || 'local_only')}
+          ${renderTrustToken('ibal proposal only', workspace.ibalStatus || 'proposal_only')}
         </div>
       </section>
 
@@ -190,35 +323,25 @@ function renderTopBar() {
         <span>Search / command</span>
         <input type="search" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Preview only')}" disabled />
       </label>
-    </header>
-  `;
-}
 
-function renderSafetyBanner() {
-  const policy = getPayload().egressPolicy || {};
-  const statements = policy.safetyStatements || [];
-  return `
-    <section class="safety-banner" role="status" aria-live="polite">
-      <div>
-        <p class="eyebrow">preview safety gate</p>
-        <h2>Static shell only. Product runtime is not decided.</h2>
-      </div>
-      <ul>
-        ${statements.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
-      </ul>
-    </section>
+      ${renderTrustRail()}
+    </header>
   `;
 }
 
 function renderNavigation() {
   return `
     <nav class="lane-nav" aria-label="Primary xi-io Inbox lanes">
-      ${getLanes().map((lane) => `
-        <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
-          <span>${escapeHtml(lane.label)}</span>
-          ${renderPill(lane.status || 'preview_only')}
-        </a>
-      `).join('')}
+      <p class="lane-nav-label">Lanes</p>
+      ${getLanes().map((lane) => {
+        const hint = laneNavHint(lane.status);
+        return `
+          <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
+            <span>${escapeHtml(lane.label)}</span>
+            ${hint ? `<span class="lane-nav-hint">${escapeHtml(hint)}</span>` : ''}
+          </a>
+        `;
+      }).join('')}
     </nav>
   `;
 }
@@ -268,21 +391,29 @@ function renderSectionHeader(section) {
   `;
 }
 
+function inspectorFocusAttrs(id) {
+  const focused = state.focusId === id;
+  return `data-inspector-focus="${escapeHtml(id)}" class="is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" tabindex="0" aria-selected="${focused ? 'true' : 'false'}"`;
+}
+
 function renderPriorityStack(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section priority-stack" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
       <ol class="ranked-list">
-        ${(section.items || []).map((item) => `
-          <li>
-            <span class="rank-token">${escapeHtml(item.rank)}</span>
-            <div>
-              <strong>${escapeHtml(item.title)}</strong>
-              <p>${escapeHtml(item.summary)}</p>
-              ${renderPillRow(item.tags || [])}
-            </div>
-          </li>
-        `).join('')}
+        ${(section.items || []).map((item, index) => {
+          const focusId = `${state.laneId}:priority-stack:${sectionIndex}:${index}`;
+          return `
+            <li ${inspectorFocusAttrs(focusId)} role="option">
+              <span class="rank-token">${escapeHtml(item.rank)}</span>
+              <div>
+                <strong>${escapeHtml(item.title)}</strong>
+                <p>${escapeHtml(item.summary)}</p>
+              </div>
+            </li>
+          `;
+        }).join('')}
       </ol>
     </section>
   `;
@@ -352,7 +483,7 @@ function renderInboxLayout(section) {
         </aside>
         <div class="thread-list">
           ${(section.threads || []).map((thread) => `
-            <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
+            <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <header>
                 <span>
                   <strong>${escapeHtml(thread.sender || thread.title)}</strong>
@@ -474,20 +605,23 @@ function renderDraftEgress(section) {
 }
 
 function renderAgenda(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section agenda-preview" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
       <div class="timeline-list">
-        ${(section.items || []).map((item) => `
-          <article class="timeline-row">
-            <time>${escapeHtml(item.time)}</time>
-            <div>
-              <strong>${escapeHtml(item.title)}</strong>
-              <p>${escapeHtml(item.summary)}</p>
-              ${renderPillRow(item.tags || [])}
-            </div>
-          </article>
-        `).join('')}
+        ${(section.items || []).map((item, index) => {
+          const focusId = `${state.laneId}:agenda:${sectionIndex}:${index}`;
+          return `
+            <article class="timeline-row is-inspector-focusable ${state.focusId === focusId ? 'is-inspector-focused' : ''}" data-inspector-focus="${escapeHtml(focusId)}" tabindex="0" aria-selected="${state.focusId === focusId ? 'true' : 'false'}">
+              <time>${escapeHtml(item.time)}</time>
+              <div>
+                <strong>${escapeHtml(item.title)}</strong>
+                <p>${escapeHtml(item.summary)}</p>
+              </div>
+            </article>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -526,7 +660,23 @@ function renderTaskBoard(section) {
               <strong>${escapeHtml(column.label)}</strong>
               ${renderPill(column.state || 'preview_only')}
             </header>
-            ${(column.items || []).map((item) => renderLaneItem(item, 'lane-item task-card')).join('')}
+            ${(column.items || []).map((item, index) => {
+              const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
+              const columnIndex = (section.columns || []).findIndex((entry) => entry === column);
+              const focusId = `${state.laneId}:task-board:${sectionIndex}:${columnIndex}-${index}`;
+              const focused = state.focusId === focusId;
+              return `
+                <article class="lane-item task-card is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" data-inspector-focus="${escapeHtml(focusId)}" tabindex="0" aria-selected="${focused ? 'true' : 'false'}">
+                  <header>
+                    <strong>${escapeHtml(item.title)}</strong>
+                    ${renderPill(item.state || 'preview_only')}
+                  </header>
+                  <p>${escapeHtml(item.summary)}</p>
+                  ${item.meta ? `<small>${escapeHtml(item.meta)}</small>` : ''}
+                  ${renderDetailList(item.details)}
+                </article>
+              `;
+            }).join('')}
           </section>
         `).join('')}
       </div>
@@ -785,9 +935,9 @@ function renderMainLane() {
           <h2>${escapeHtml(content.title || lane.label)}</h2>
           <p>${escapeHtml(content.summary || lane.description || '')}</p>
         </div>
-        <div class="pill-row compact-row">
-          ${renderPill(lane.status || 'preview_only')}
-          ${renderPill(content.proofState || 'not_started')}
+        <div class="lane-status-line">
+          <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
+          <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>
       </header>
 
@@ -802,14 +952,12 @@ function renderMainLane() {
   `;
 }
 
-function renderInspectorSection(title, body, stateValue = 'preview_only') {
+function renderInspectorBlock(title, body, listItems = []) {
   return `
-    <section class="inspector-section">
-      <header>
-        <h3>${escapeHtml(title)}</h3>
-        ${renderPill(stateValue)}
-      </header>
+    <section class="inspector-block">
+      <h3>${escapeHtml(title)}</h3>
       <p>${escapeHtml(body)}</p>
+      ${listItems.length ? `<ul>${listItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
     </section>
   `;
 }
@@ -827,35 +975,76 @@ function renderDisabledActions() {
   `;
 }
 
-function activeInspector() {
-  if (state.laneId === 'inbox') {
-    const thread = selectedInboxThread();
-    if (thread?.inspector) return thread.inspector;
+function activeInspectorModel() {
+  const focusItem = activeInspectableItem();
+  const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
+  const focusInspector = focusItem?.inspector || {};
+
+  if (focusItem?.id?.startsWith('inbox-thread:') && focusInspector.context) {
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: focusInspector.context,
+      why: focusItem.summary,
+      evidence: focusInspector.evidence,
+      safeNext: focusItem.safeNext,
+      blocked: focusInspector.egressState || focusItem.blocked,
+      ibalProposal: focusInspector.ibalProposal,
+      receipts: focusInspector.receipts || focusItem.receipt,
+    };
   }
-  return activeLaneContent().inspector || getPayload().inspector || {};
+
+  if (focusItem && focusItem.id !== `lane:${state.laneId}`) {
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `${label(focusItem.kind)} selected in ${activeLane().label}. Fixture metadata only.`,
+      why: focusItem.summary || laneInspector.context,
+      evidence: focusItem.meta ? `Source/meta: ${focusItem.meta}` : laneInspector.evidence,
+      safeNext: focusItem.safeNext || laneInspector.ibalProposal,
+      blocked: focusItem.blocked || laneInspector.egressState,
+      ibalProposal: laneInspector.ibalProposal,
+      receipts: focusItem.receipt || laneInspector.receipts,
+    };
+  }
+
+  return {
+    kind: 'lane',
+    title: activeLaneContent().title || activeLane().label,
+    summary: activeLaneContent().summary || activeLane().description,
+    context: laneInspector.context,
+    why: activeLaneContent().summary || activeLane().description,
+    evidence: laneInspector.evidence,
+    safeNext: laneInspector.ibalProposal,
+    blocked: laneInspector.egressState,
+    ibalProposal: laneInspector.ibalProposal,
+    receipts: laneInspector.receipts,
+  };
 }
 
 function renderInspector() {
   const lane = activeLane();
-  const inspector = activeInspector();
+  const inspector = activeInspectorModel();
   return `
-    <aside class="right-inspector" aria-label="Context, evidence, Ibal, and receipts">
+    <aside class="right-inspector" aria-label="Selected object intelligence">
       <header class="inspector-title">
-        <p class="eyebrow">right inspector</p>
-        <h2>${escapeHtml(lane.label)}</h2>
+        <p class="inspector-object-kind">${escapeHtml(inspector.kind || 'lane')}</p>
+        <h2 class="inspector-selected-title">${escapeHtml(inspector.title || lane.label)}</h2>
+        <p>${escapeHtml(inspector.summary || '')}</p>
       </header>
-      ${renderInspectorSection('Selected item context', inspector.context || 'Lane-level placeholder only. No provider item is selected.', 'preview_only')}
-      ${renderInspectorSection('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.', 'preview_only')}
-      <section class="inspector-section">
-        <header>
-          <h3>Draft / egress state</h3>
-          ${renderPill('draft_only')}
-        </header>
-        <p>${escapeHtml(inspector.egressState || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
+      ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
+      ${renderInspectorBlock('Why it matters', inspector.why || 'Context helps determine the next safe action without runtime writes.')}
+      ${renderInspectorBlock('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.')}
+      ${renderInspectorBlock('Safe next action', inspector.safeNext || 'Review fixture context and keep actions in draft or proposal mode.')}
+      <section class="inspector-block">
+        <h3>Blocked actions</h3>
+        <p>${escapeHtml(inspector.blocked || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
         ${renderDisabledActions()}
       </section>
-      ${renderInspectorSection('Ibal proposal', inspector.ibalProposal || 'Ibal is a first-class lane and contextual proposal source. It proposes only in this preview.', 'pending')}
-      ${renderInspectorSection('Receipts', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.', 'preview_only')}
+      ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || 'Ibal proposes only in this preview and cannot execute actions.')}
+      ${renderInspectorBlock('Receipt expectation', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.')}
     </aside>
   `;
 }
@@ -867,7 +1056,6 @@ function renderShell() {
   mount.innerHTML = `
     <section class="app-shell" aria-label="xi-io Inbox unified app shell">
       ${renderTopBar()}
-      ${renderSafetyBanner()}
       <section class="app-frame">
         ${renderNavigation()}
         ${renderMainLane()}
@@ -884,9 +1072,24 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const focusTarget = event.target.closest?.('[data-inspector-focus]');
+    if (focusTarget?.dataset.inspectorFocus) {
+      selectInspectorFocus(focusTarget.dataset.inspectorFocus);
+      return;
+    }
+
     const threadButton = event.target.closest?.('[data-thread-id]');
     if (!threadButton) return;
     selectInboxThread(threadButton.dataset.threadId);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    const focusTarget = event.target.closest?.('[data-inspector-focus]');
+    if (!focusTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectInspectorFocus(focusTarget.dataset.inspectorFocus);
+    }
   });
 }
 
@@ -894,6 +1097,7 @@ async function init() {
   loadState();
   state.payload = await fetchJson(DATA_URL, {});
   state.threadId = selectedInboxThread()?.id || state.threadId;
+  state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);
   ensureRoute();
   syncRoute();
   renderShell();

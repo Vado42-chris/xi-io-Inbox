@@ -133,8 +133,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Complete UI-004A.5 page leveling, wargame scenario, engine hook, and white-label framework planning.
 - [x] Complete PLAN-001A product delivery governance and backlog skeleton before running UI-004A.6.
 - [x] Run UI-004A.6 simulated wargame review against the current UI-003B/UI-003C/UI-003D shell using PLAN-001A requirements, stories, gates, and compliance IDs.
-- [ ] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only. Required repairs: reduce status/badge noise, integrate safety as trust grammar, establish consistent right-inspector selection/focus behavior, preserve blocked egress, and keep platform/runtime/provider claims blocked.
-- [ ] Implement page-specific polish after UI-004B.
+- [x] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only. Required repairs: reduce status/badge noise, integrate safety as trust grammar, establish consistent right-inspector selection/focus behavior, preserve blocked egress, and keep platform/runtime/provider claims blocked.
+- [ ] Implement UI-004C Inbox lane polish as the first page-specific polish slice after UI-004B shell pass.
+- [ ] Implement remaining page-specific polish after UI-004C.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
@@ -154,4 +155,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 6 remaining passes after UI-004A.6, because shell/navigation/inspector polish, page-specific polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain. Product UI code may proceed only for UI-004B shell/topbar/lane navigation/safety/inspector repair scope.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 3 to 5 remaining passes after UI-004B, because page-specific polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain. Product UI code may proceed for UI-004C Inbox lane polish next.
