@@ -922,3 +922,255 @@ input:focus-visible {
     flex-direction: column;
   }
 }
+
+/* UI-004C Inbox lane polish */
+.is-inbox-lane .metric-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 0.5rem;
+}
+
+.is-inbox-lane .metric-card {
+  padding: 0.65rem 0.75rem;
+  box-shadow: none;
+}
+
+.inbox-grid {
+  grid-template-columns: 13.5rem minmax(0, 1fr);
+  align-items: start;
+}
+
+.mailbox-panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 22, 26, 0.55);
+  padding: 0.7rem;
+}
+
+.account-gate-row {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(52, 59, 67, 0.7);
+}
+
+.account-gate-row:last-of-type {
+  border-bottom: 0;
+}
+
+.account-gate-state {
+  color: var(--amber);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.thread-list-panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 22, 26, 0.45);
+  overflow: hidden;
+}
+
+.thread-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(52, 59, 67, 0.75);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+}
+
+.thread-row:last-child {
+  border-bottom: 0;
+}
+
+.thread-row-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.thread-sender {
+  font-size: 0.86rem;
+}
+
+.thread-time {
+  color: var(--muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.thread-subject {
+  display: block;
+  margin: 0.2rem 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.thread-snippet,
+.thread-label-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.thread-row-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  min-width: 6.5rem;
+}
+
+.thread-status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.thread-status-chip.is-urgent {
+  color: var(--amber);
+  background: rgba(231, 199, 97, 0.08);
+}
+
+.selected-thread-hero {
+  border: 1px solid rgba(105, 210, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(105, 210, 255, 0.04);
+  padding: 1rem;
+}
+
+.selected-thread-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.selected-thread-eyebrow {
+  margin: 0 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.selected-thread-head h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+}
+
+.thread-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0.85rem 0 0.5rem;
+}
+
+.message-row {
+  border: 0;
+  border-bottom: 1px solid rgba(52, 59, 67, 0.7);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.75rem 0;
+}
+
+.message-row:last-child {
+  border-bottom: 0;
+}
+
+.message-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.message-state {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.inbox-evidence-grid,
+.inbox-draft-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.inbox-evidence-block,
+.draft-proposal-panel,
+.egress-policy-module {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(20, 22, 26, 0.55);
+  padding: 0.8rem;
+}
+
+.inbox-evidence-block header,
+.draft-proposal-panel header,
+.egress-policy-module header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.inbox-evidence-block header span,
+.draft-proposal-state,
+.egress-policy-mode {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.inbox-evidence-block.is-blocked header span {
+  color: var(--amber);
+}
+
+.draft-proposal-panel {
+  border-color: rgba(105, 210, 255, 0.28);
+}
+
+.egress-policy-module {
+  border-color: rgba(255, 135, 125, 0.25);
+}
+
+.egress-policy-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.egress-policy-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.egress-policy-list em {
+  color: var(--red);
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+}

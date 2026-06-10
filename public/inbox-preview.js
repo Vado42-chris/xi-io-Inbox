@@ -44,6 +44,32 @@ function renderPillRow(items) {
   `;
 }
 
+function renderThreadStatusChip(state) {
+  const normalized = String(state || 'preview_only');
+  const tone = ['needs_review', 'human_required', 'urgent_thread'].includes(normalized) ? 'is-urgent' : 'is-neutral';
+  return `<span class="thread-status-chip ${tone}">${escapeHtml(label(normalized))}</span>`;
+}
+
+function renderCompactLabelLine(labels) {
+  if (!labels?.length) return '';
+  return `<p class="thread-label-line">${labels.map((item) => escapeHtml(label(item))).join(' · ')}</p>`;
+}
+
+function renderEgressPolicyModule(actions) {
+  const blocked = actions || getPayload().egressPolicy?.blockedActions || [];
+  return `
+    <section class="egress-policy-module" aria-label="Blocked egress policy">
+      <header>
+        <strong>Draft-only egress</strong>
+        <span class="egress-policy-mode">no runtime writes</span>
+      </header>
+      <ul class="egress-policy-list">
+        ${blocked.map((action) => `<li><span>${escapeHtml(label(action))}</span><em>blocked</em></li>`).join('')}
+      </ul>
+    </section>
+  `;
+}
+
 function safeParse(value, fallback) {
   try {
     return JSON.parse(value);
@@ -464,13 +490,13 @@ function renderInboxLayout(section) {
     <section class="lane-section inbox-layout" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
       <div class="inbox-grid">
-        <aside class="mailbox-panel">
+        <aside class="mailbox-panel" aria-label="Mailbox and account context">
           <h4>Accounts</h4>
           ${(section.accounts || []).map((account) => `
-            <article>
+            <article class="account-gate-row">
               <strong>${escapeHtml(account.name)}</strong>
               <p>${escapeHtml(account.meta)}</p>
-              ${renderPill(account.state || 'provider_blocked')}
+              <span class="account-gate-state">${escapeHtml(label(account.state || 'provider_blocked'))}</span>
             </article>
           `).join('')}
           <h4>Smart views</h4>
@@ -481,19 +507,21 @@ function renderInboxLayout(section) {
             </div>
           `).join('')}
         </aside>
-        <div class="thread-list">
+        <div class="thread-list-panel" aria-label="Thread list">
           ${(section.threads || []).map((thread) => `
             <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
-              <header>
-                <span>
-                  <strong>${escapeHtml(thread.sender || thread.title)}</strong>
-                  <small>${escapeHtml(thread.receivedAt || '')}</small>
-                </span>
-                ${renderPill(thread.state || 'preview_only')}
-              </header>
-              <span class="thread-subject">${escapeHtml(thread.title)}</span>
-              <p>${escapeHtml(thread.summary)}</p>
-              ${renderPillRow(thread.labels || [])}
+              <div class="thread-row-main">
+                <div class="thread-row-top">
+                  <strong class="thread-sender">${escapeHtml(thread.sender || thread.title)}</strong>
+                  <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
+                </div>
+                <span class="thread-subject">${escapeHtml(thread.title)}</span>
+                <p class="thread-snippet">${escapeHtml(thread.summary)}</p>
+              </div>
+              <div class="thread-row-meta">
+                ${renderThreadStatusChip(thread.state || 'preview_only')}
+                ${renderCompactLabelLine((thread.labels || []).slice(0, 2))}
+              </div>
             </button>
           `).join('')}
         </div>
@@ -507,15 +535,16 @@ function renderThreadDetail(section) {
   return `
     <section class="lane-section thread-detail-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <article class="detail-panel">
-        <header>
+      <article class="selected-thread-hero">
+        <header class="selected-thread-head">
           <div>
-            <strong>${escapeHtml(thread.title || 'Selected thread preview')}</strong>
+            <p class="selected-thread-eyebrow">${escapeHtml(thread.sender || 'Selected thread')}</p>
+            <h3>${escapeHtml(thread.title || 'Selected thread preview')}</h3>
             <p>${escapeHtml(thread.summary || '')}</p>
           </div>
-          ${renderPill(thread.state || 'needs_review')}
+          ${renderThreadStatusChip(thread.state || 'needs_review')}
         </header>
-        <dl class="detail-grid">
+        <dl class="thread-metadata-grid">
           ${(thread.fields || thread.detailFields || []).map((field) => `
             <div>
               <dt>${escapeHtml(field.label)}</dt>
@@ -523,7 +552,7 @@ function renderThreadDetail(section) {
             </div>
           `).join('')}
         </dl>
-        ${renderPillRow(thread.tags || [])}
+        ${renderCompactLabelLine(thread.tags || [])}
       </article>
     </section>
   `;
@@ -538,12 +567,12 @@ function renderMessageTimeline(section) {
       <div class="message-stack">
         ${messages.map((message) => `
           <article class="message-row">
-            <header>
+            <header class="message-row-head">
               <div>
                 <strong>${escapeHtml(message.from)}</strong>
                 <small>${escapeHtml(message.meta)}</small>
               </div>
-              ${renderPill(message.state || 'preview_only')}
+              <span class="message-state">${escapeHtml(label(message.state || 'preview_only'))}</span>
             </header>
             <p>${escapeHtml(message.summary)}</p>
           </article>
@@ -560,19 +589,13 @@ function renderEvidenceTray(section) {
   return `
     <section class="lane-section evidence-tray-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="split-panel">
-        <article class="lane-item evidence-list">
-          <header>
-            <strong>Evidence refs</strong>
-            ${renderPill('preview_only')}
-          </header>
+      <div class="inbox-evidence-grid">
+        <article class="inbox-evidence-block">
+          <header><strong>Evidence refs</strong><span>preview only</span></header>
           ${renderDetailList(evidence.map((item) => `${item.label}: ${item.summary}`))}
         </article>
-        <article class="lane-item attachment-list">
-          <header>
-            <strong>Attachments</strong>
-            ${renderPill('provider_blocked')}
-          </header>
+        <article class="inbox-evidence-block is-blocked">
+          <header><strong>Attachments</strong><span>provider blocked</span></header>
           ${renderDetailList(attachments.map((item) => `${item.label}: ${item.state}`))}
         </article>
       </div>
@@ -583,22 +606,20 @@ function renderEvidenceTray(section) {
 function renderDraftEgress(section) {
   const thread = selectedInboxThread() || {};
   const draft = thread.draft || section.draft || {};
+  const actions = section.blockedActions || getPayload().egressPolicy?.blockedActions || [];
   return `
     <section class="lane-section draft-egress-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="split-panel">
-        ${renderLaneItem(draft, 'lane-item draft-preview')}
-        <article class="lane-item">
+      <div class="inbox-draft-grid">
+        <article class="draft-proposal-panel">
           <header>
-            <strong>Blocked gates</strong>
-            ${renderPill('action_blocked')}
+            <strong>${escapeHtml(draft.title || 'Draft proposal')}</strong>
+            <span class="draft-proposal-state">${escapeHtml(label(draft.state || 'draft_only'))}</span>
           </header>
-          <div class="disabled-action-list inline-actions">
-            ${(section.blockedActions || getPayload().egressPolicy?.blockedActions || []).map((action) => `
-              <button class="disabled-action" type="button" disabled>${escapeHtml(label(action))} blocked</button>
-            `).join('')}
-          </div>
+          <p>${escapeHtml(draft.summary || '')}</p>
+          ${renderDetailList(draft.details)}
         </article>
+        ${renderEgressPolicyModule(actions)}
       </div>
     </section>
   `;
@@ -945,7 +966,7 @@ function renderMainLane() {
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>
 
-      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}">
+      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}">
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
