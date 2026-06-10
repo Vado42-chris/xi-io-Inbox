@@ -52,6 +52,7 @@ function defaultTasksOps() {
     selectedTaskId: null,
     tasks: [],
     receipts: [],
+    formOpen: false,
   };
 }
 
@@ -565,6 +566,7 @@ function saveLocalTask(formData, taskId) {
     state.focusId = `tasks:local:${id}`;
     setStatusMessage('Local task created. Provider task write remains blocked.', 'tasks');
   }
+  state.tasks.formOpen = false;
   saveState();
 }
 
@@ -2470,75 +2472,165 @@ function renderTaskStatusButtons(taskId, currentStatus) {
   `;
 }
 
-function renderTasksOperabilityPanel() {
-  const selected = selectedLocalTask();
-  const tasks = allLocalTasks();
-  const taskId = selected?.id || '';
-  const calendarSources = allCalendarProposals().map((p) => `calendar:local:${p.id}`).join(', ') || 'none yet';
+function taskBoardFixtures() {
+  const content = activeLaneContent();
+  const section = sectionByType(content, 'task-board');
+  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
+  const items = [];
+  (section?.columns || []).forEach((column, columnIndex) => {
+    (column.items || []).forEach((item, index) => {
+      items.push({
+        focusId: `tasks:task-board:${sectionIndex}:${columnIndex}-${index}`,
+        column: column.label,
+        title: item.title,
+        summary: item.summary,
+        meta: item.meta,
+        state: item.state,
+      });
+    });
+  });
+  return items;
+}
+
+function taskLinkFixtures() {
+  return sectionByType(activeLaneContent(), 'task-links')?.links || [];
+}
+
+function renderTasksTaskForm(taskId) {
+  const selected = taskId
+    ? allLocalTasks().find((entry) => entry.id === taskId)
+    : selectedLocalTask();
+  const id = taskId || selected?.id || '';
   return `
-    <section class="lane-section tasks-operability-panel" aria-label="Tasks local operability">
-      <header class="section-head">
-        <div>
-          <p class="section-eyebrow">local operability</p>
-          <h3>Task create and edit controls</h3>
-          <p>Create and edit local preview tasks only. No provider task write.</p>
-        </div>
-        <span class="draft-proposal-state">local preview task</span>
-      </header>
-      <div id="tasksStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'tasks' ? state.statusMessage : 'Ready for local Tasks operability.')}</div>
-      <form class="inbox-draft-form" data-tasks-form="task" aria-label="Local task create/edit">
-        <input type="hidden" name="taskId" value="${escapeHtml(taskId)}" />
-        <h4 id="tasks-form-label">${taskId ? 'Edit local task' : 'New local task'}</h4>
-        <label for="task-title">Task title (preview)</label>
-        <input id="task-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
-        <label for="task-status">Status (preview)</label>
-        <select id="task-status" name="status" aria-describedby="tasks-form-hint">
-          ${TASK_STATUSES.map((status) => `<option value="${escapeHtml(status)}" ${selected?.status === status ? 'selected' : ''}>${escapeHtml(label(status))}</option>`).join('')}
-        </select>
-        <label for="task-due">Due date text (preview)</label>
-        <input id="task-due" name="dueDate" type="text" autocomplete="off" value="${escapeHtml(selected?.dueDate || '')}" placeholder="e.g. Jun 12" />
-        <label for="task-notes">Notes (local preview only)</label>
-        <textarea id="task-notes" name="notes" rows="3">${escapeHtml(selected?.notes || '')}</textarea>
-        <label for="task-source-ref">Source reference (preview)</label>
-        <input id="task-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" placeholder="inbox-thread:id or calendar:local:id" />
-        <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'tasks_local')}" />
-        <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
-        <input type="hidden" name="calendarId" value="${escapeHtml(selected?.calendarId || '')}" />
-        <p id="tasks-form-hint" class="form-hint">Local preview task. Available calendar sources: ${escapeHtml(calendarSources)}. No provider sync.</p>
-        ${taskId ? renderTaskStatusButtons(taskId, selected?.status || 'proposed') : ''}
-        <div class="inbox-form-actions">
-          <button class="inbox-action-btn is-primary" type="submit" data-tasks-action="task-save">${taskId ? 'Update local task' : 'Save local task'}</button>
-          ${taskId ? `<button class="inbox-action-btn" type="button" data-tasks-action="task-clear" data-task-id="${escapeHtml(taskId)}">Clear selected task</button>` : ''}
-          <button class="inbox-action-btn is-blocked" type="button" disabled aria-describedby="tasks-write-blocked">Provider task write blocked</button>
-        </div>
-        <p id="tasks-write-blocked" class="form-hint">Provider task sync, send, and runtime writes remain blocked.</p>
-      </form>
-      <div class="tasks-local-list" aria-label="Local tasks">
-        <h4>Local tasks (${tasks.length})</h4>
-        ${tasks.length ? tasks.map((task) => `
-          <button class="calendar-proposal-row is-inspector-focusable ${task.id === taskId ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(`tasks:local:${task.id}`)}" data-tasks-action="select-task" data-task-id="${escapeHtml(task.id)}" aria-pressed="${task.id === taskId ? 'true' : 'false'}">
-            <div>
-              <strong>${escapeHtml(task.title)}</strong>
-              <p>${escapeHtml(task.notes || '')}</p>
-            </div>
-            <div class="calendar-proposal-meta">
-              <span>${escapeHtml(label(task.status))} · ${escapeHtml(task.sourceRef || 'no source')}</span>
-              <em>${escapeHtml(label(task.sourceType || 'tasks_local'))}</em>
-            </div>
-          </button>
-        `).join('') : '<p class="form-hint">No local tasks yet. Create one or use Inbox triage to add inbox-linked tasks.</p>'}
+    <form class="inbox-draft-form" data-tasks-form="task" aria-label="Task form">
+      <input type="hidden" name="taskId" value="${escapeHtml(id)}" />
+      <label for="task-title">Title</label>
+      <input id="task-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
+      <label for="task-status">Status</label>
+      <select id="task-status" name="status">
+        ${TASK_STATUSES.map((status) => `<option value="${escapeHtml(status)}" ${selected?.status === status ? 'selected' : ''}>${escapeHtml(label(status))}</option>`).join('')}
+      </select>
+      <label for="task-due">Due</label>
+      <input id="task-due" name="dueDate" type="text" autocomplete="off" value="${escapeHtml(selected?.dueDate || '')}" />
+      <label for="task-notes">Notes</label>
+      <textarea id="task-notes" name="notes" rows="3">${escapeHtml(selected?.notes || '')}</textarea>
+      <label for="task-source-ref">Source</label>
+      <input id="task-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" />
+      <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'tasks_local')}" />
+      <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
+      <input type="hidden" name="calendarId" value="${escapeHtml(selected?.calendarId || '')}" />
+      <p class="form-hint">Preview only — no provider sync.</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-tasks-action="task-save">${id ? 'Save changes' : 'Save task'}</button>
+        ${id ? `<button class="inbox-action-btn" type="button" data-tasks-action="task-clear" data-task-id="${escapeHtml(id)}">Delete</button>` : ''}
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Sync blocked</button>
       </div>
-      <article class="draft-proposal-panel">
-        <header>
-          <strong>Local receipt preview</strong>
-          <span class="draft-proposal-state">preview only</span>
+    </form>
+  `;
+}
+
+function renderTasksTaskSheet() {
+  const taskId = state.tasks.selectedTaskId || '';
+  return `
+    <div class="lane-compose-root tasks-compose-root ${state.tasks.formOpen ? 'is-open' : ''}" aria-hidden="${state.tasks.formOpen ? 'false' : 'true'}">
+      <button class="lane-compose-backdrop" type="button" data-tasks-action="close-form" aria-label="Close"></button>
+      <section class="lane-compose-sheet" role="dialog" aria-modal="true" aria-label="New or edit task">
+        <header class="lane-compose-head">
+          <h3>${taskId ? 'Edit task' : 'New task'}</h3>
+          <button class="inbox-action-btn" type="button" data-tasks-action="close-form">Close</button>
         </header>
-        ${renderTasksLocalReceipts(taskId)}
-      </article>
-      <div class="inbox-clear-control">
-        <button class="inbox-action-btn is-danger" type="button" data-tasks-action="clear-all">Clear all local Tasks preview state</button>
+        ${renderTasksTaskForm(taskId)}
+      </section>
+    </div>
+  `;
+}
+
+function renderTasksReadingPane() {
+  const tasks = allLocalTasks();
+  const task = tasks.find((entry) => entry.id === state.tasks.selectedTaskId)
+    || (state.focusId?.startsWith('tasks:local:')
+      ? tasks.find((entry) => `tasks:local:${entry.id}` === state.focusId)
+      : null);
+  const fixture = taskBoardFixtures().find((entry) => entry.focusId === state.focusId);
+  const links = taskLinkFixtures();
+  if (task) {
+    return `
+      <section class="lane-reading-pane" aria-label="Task details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(task.title)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(label(task.status))}${task.dueDate ? ` · due ${escapeHtml(task.dueDate)}` : ''}</p>
+          </div>
+        </header>
+        <p>${escapeHtml(task.notes || 'No notes.')}</p>
+        <p class="form-hint">Source: ${escapeHtml(task.sourceRef || 'none')}</p>
+        ${renderTaskStatusButtons(task.id, task.status || 'proposed')}
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-tasks-action="edit-task" data-task-id="${escapeHtml(task.id)}">Edit</button>
+          <button class="inbox-action-btn" type="button" data-tasks-action="task-clear" data-task-id="${escapeHtml(task.id)}">Delete</button>
+        </div>
+        ${(state.tasks.receipts || []).filter((r) => r.taskId === task.id).length ? `
+          <details class="lane-reading-details"><summary>Receipts</summary>${renderTasksLocalReceipts(task.id)}</details>
+        ` : ''}
+      </section>
+    `;
+  }
+  if (fixture) {
+    return `
+      <section class="lane-reading-pane" aria-label="Task details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(fixture.title)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(fixture.column)} · preview fixture</p>
+          </div>
+        </header>
+        <p>${escapeHtml(fixture.summary)}</p>
+        ${fixture.meta ? `<p class="form-hint">${escapeHtml(fixture.meta)}</p>` : ''}
+        ${links.length ? `
+          <details class="lane-reading-details">
+            <summary>Linked sources</summary>
+            ${links.map((link) => `<p><strong>${escapeHtml(link.source)}</strong> — ${escapeHtml(link.title)}: ${escapeHtml(link.summary)}</p>`).join('')}
+          </details>
+        ` : ''}
+      </section>
+    `;
+  }
+  return `<section class="lane-reading-pane is-empty" aria-label="Task details"><p class="lane-empty-state">Select a task or create one.</p></section>`;
+}
+
+function renderTasksWorkspace() {
+  const tasks = allLocalTasks();
+  const fixtures = taskBoardFixtures();
+  const selectedId = state.tasks.selectedTaskId;
+  return `
+    <div class="lane-workspace tasks-workspace">
+      <div class="lane-toolbar" role="toolbar" aria-label="Tasks actions">
+        <button class="inbox-action-btn is-primary" type="button" data-tasks-action="new-task">New task</button>
+        <div id="tasksStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'tasks' ? state.statusMessage : '')}</div>
+        <details class="lane-toolbar-overflow">
+          <summary>More</summary>
+          <button class="inbox-action-btn is-danger" type="button" data-tasks-action="clear-all">Clear local tasks state</button>
+        </details>
       </div>
-    </section>
+      <div class="lane-workspace-grid tasks-workspace-grid">
+        <div class="tasks-item-list" aria-label="Tasks">
+          ${tasks.map((task) => `
+            <button class="tasks-list-row ${task.id === selectedId ? 'is-selected' : ''}" type="button" data-tasks-action="select-task" data-task-id="${escapeHtml(task.id)}" data-inspector-focus="${escapeHtml(`tasks:local:${task.id}`)}">
+              <span class="tasks-list-status">${escapeHtml(label(task.status))}</span>
+              <div><strong>${escapeHtml(task.title)}</strong><p>${escapeHtml(task.notes || task.dueDate || '')}</p></div>
+            </button>
+          `).join('')}
+          ${fixtures.map((item) => `
+            <button class="tasks-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-tasks-action="select-fixture" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
+              <span class="tasks-list-status">${escapeHtml(item.column)}</span>
+              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.summary)}</p></div>
+            </button>
+          `).join('')}
+        </div>
+        ${renderTasksReadingPane()}
+      </div>
+      ${renderTasksTaskSheet()}
+    </div>
   `;
 }
 
@@ -3225,20 +3317,20 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${['inbox', 'calendar'].includes(lane.id) ? ' is-compact' : ''}">
+      <header class="lane-header${['inbox', 'calendar', 'tasks'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
-          ${['inbox', 'calendar'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
-          <h2>${escapeHtml(lane.id === 'inbox' ? 'Inbox' : lane.id === 'calendar' ? 'Calendar' : (content.title || lane.label))}</h2>
-          ${['inbox', 'calendar'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
+          ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks' }[lane.id] || (content.title || lane.label))}</h2>
+          ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${['inbox', 'calendar'].includes(lane.id) ? '' : `
+        ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>`}
       </header>
 
-      ${['inbox', 'calendar'].includes(lane.id) ? '' : `
+      ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>`}
@@ -3246,11 +3338,11 @@ function renderMainLane() {
       <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
         ${lane.id === 'inbox' ? renderInboxWorkspace() : ''}
         ${lane.id === 'calendar' ? renderCalendarWorkspace() : ''}
-        ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
+        ${lane.id === 'tasks' ? renderTasksWorkspace() : ''}
         ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
         ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
         ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
-        ${['inbox', 'calendar'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -3798,9 +3890,39 @@ function handleAutomationsAction(action, ruleId) {
   }
 }
 
-function handleTasksAction(action, taskId, status) {
+function handleTasksAction(action, taskId, status, focusId) {
+  if (action === 'new-task') {
+    state.tasks.selectedTaskId = null;
+    state.tasks.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'edit-task') {
+    if (taskId) state.tasks.selectedTaskId = taskId;
+    state.tasks.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-form') {
+    state.tasks.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-fixture') {
+    if (!focusId) return;
+    state.focusId = focusId;
+    state.tasks.selectedTaskId = null;
+    state.tasks.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'task-clear') {
     clearLocalTask(taskId);
+    state.tasks.formOpen = false;
     renderShell();
     return;
   }
@@ -3808,6 +3930,7 @@ function handleTasksAction(action, taskId, status) {
     if (!taskId) return;
     state.tasks.selectedTaskId = taskId;
     state.focusId = `tasks:local:${taskId}`;
+    state.tasks.formOpen = false;
     saveState();
     renderShell();
     return;
@@ -4078,7 +4201,12 @@ function bindEvents() {
     const tasksAction = event.target.closest?.('[data-tasks-action]');
     if (tasksAction?.dataset.tasksAction && tasksAction.dataset.tasksAction !== 'task-save') {
       event.preventDefault();
-      handleTasksAction(tasksAction.dataset.tasksAction, tasksAction.dataset.taskId, tasksAction.dataset.taskStatus);
+      handleTasksAction(
+        tasksAction.dataset.tasksAction,
+        tasksAction.dataset.taskId,
+        tasksAction.dataset.taskStatus,
+        tasksAction.dataset.focusId,
+      );
       return;
     }
 
@@ -4112,6 +4240,12 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.tasks.formOpen) {
+      state.tasks.formOpen = false;
+      saveState();
+      renderShell();
+      return;
+    }
     if (event.key === 'Escape' && state.calendar.formOpen) {
       state.calendar.formOpen = false;
       saveState();
