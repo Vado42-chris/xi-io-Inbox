@@ -147,8 +147,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Run UI-005D Tasks operability (`docs/ui/reviews/ui-005d-tasks-operability-receipt.md`).
 - [x] Run UI-005E Automations dry-run operability (`docs/ui/reviews/ui-005e-automations-operability-receipt.md`).
 - [x] Run UI-005F Extensions / Provider Gates operability (`docs/ui/reviews/ui-005f-extensions-operability-receipt.md`).
-- [ ] Run UI-005G Settings operability — next slice.
-- [ ] Run UI-005H Ibal concierge shell and UI-005I Account/session shell before next UI-003E visual proof attempt.
+- [x] Run UI-005G Settings operability (`docs/ui/reviews/ui-005g-settings-operability-receipt.md`).
+- [ ] Run UI-005H Ibal concierge shell — next slice.
+- [ ] Run UI-005I Account/session shell before next UI-003E visual proof attempt.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-005 operability work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
@@ -168,4 +169,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-005A–F operability complete (`xiioInbox.preview.state` v2: inbox/calendar/tasks/automations/extensions); preliminary UI-003E failed. Remaining: UI-005G–I (~4–5 passes), UI-003E re-review, merge-prep, `xi-io.net#239` freshness. ARCH-002/ARCH-004 separate.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-005A–G operability complete (`xiioInbox.preview.state` v2: inbox/calendar/tasks/automations/extensions/settings); preliminary UI-003E failed. Remaining: UI-005H–I (~2–3 passes), UI-003E re-review, merge-prep, `xi-io.net#239` freshness. ARCH-002/ARCH-004 separate.

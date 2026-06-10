@@ -18,6 +18,7 @@ const state = {
   tasks: defaultTasksOps(),
   automations: defaultAutomationsOps(),
   extensions: defaultExtensionsOps(),
+  settings: defaultSettingsOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -65,6 +66,15 @@ function defaultExtensionsOps() {
   };
 }
 
+function defaultSettingsOps() {
+  return {
+    selectedKey: null,
+    gateOverrides: {},
+    policyOverrides: {},
+    receipts: [],
+  };
+}
+
 function previewStateEnvelope() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -76,6 +86,7 @@ function previewStateEnvelope() {
     tasks: state.tasks,
     automations: state.automations,
     extensions: state.extensions,
+    settings: state.settings,
   };
 }
 
@@ -116,6 +127,13 @@ function applyPreviewEnvelope(stored) {
     installs: stored.extensions?.installs || [],
     receipts: stored.extensions?.receipts || [],
   };
+  state.settings = {
+    ...defaultSettingsOps(),
+    ...(stored.settings || {}),
+    gateOverrides: stored.settings?.gateOverrides || {},
+    policyOverrides: stored.settings?.policyOverrides || {},
+    receipts: stored.settings?.receipts || [],
+  };
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
 }
@@ -136,6 +154,7 @@ function migratePreviewStorage() {
       tasks: defaultTasksOps(),
       automations: defaultAutomationsOps(),
       extensions: defaultExtensionsOps(),
+      settings: defaultSettingsOps(),
     };
   }
 
@@ -150,6 +169,7 @@ function migratePreviewStorage() {
     tasks: defaultTasksOps(),
     automations: defaultAutomationsOps(),
     extensions: defaultExtensionsOps(),
+    settings: defaultSettingsOps(),
   };
 }
 
@@ -299,6 +319,7 @@ function setStatusMessage(message, laneId = state.laneId) {
     tasks: 'tasksStatusRegion',
     automations: 'automationsStatusRegion',
     extensions: 'extensionsStatusRegion',
+    settings: 'settingsStatusRegion',
     inbox: 'inboxStatusRegion',
   }[laneId] || 'inboxStatusRegion';
   const region = document.getElementById(regionId);
@@ -727,6 +748,98 @@ function clearExtensionsPreviewState() {
   setStatusMessage('All local Extensions preview state cleared. Fixture providers unchanged.', 'extensions');
 }
 
+function settingsLaneContent() {
+  return getPayload().laneContent?.settings || {};
+}
+
+function settingsGateFixtures() {
+  const section = sectionByType(settingsLaneContent(), 'settings-gates');
+  return (section?.gates || []).map((gate, index) => ({
+    ...gate,
+    gateKey: `gate:${index}`,
+  }));
+}
+
+function settingsPolicyFixtures() {
+  const section = sectionByType(settingsLaneContent(), 'policy-list');
+  return (section?.policies || []).map((policy) => ({
+    ...policy,
+    policyKey: policy.label,
+  }));
+}
+
+function gateOverrideFor(gateKey) {
+  return state.settings.gateOverrides?.[gateKey] || null;
+}
+
+function policyOverrideFor(policyKey) {
+  return state.settings.policyOverrides?.[policyKey] || null;
+}
+
+function addSettingsReceipt({ type, title, key, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    key: key || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No runtime policy apply, provider change, or credential storage occurred.',
+  };
+  state.settings.receipts = [receipt, ...(state.settings.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function saveSettingsGate(formData, gateKey) {
+  if (!gateKey) return;
+  const gate = settingsGateFixtures().find((entry) => entry.gateKey === gateKey);
+  if (!gate) return;
+  const notes = String(formData.get('notes') || '').trim();
+  const previewControl = String(formData.get('previewControl') || '').trim();
+  state.settings.gateOverrides = {
+    ...state.settings.gateOverrides,
+    [gateKey]: { notes, previewControl, updatedAt: new Date().toISOString() },
+  };
+  addSettingsReceipt({
+    type: 'gate',
+    title: 'Local gate planning notes saved',
+    key: gateKey,
+    summary: `${gate.label}: ${notes || previewControl || '(updated)'}`,
+  });
+  state.settings.selectedKey = gateKey;
+  state.focusId = `settings:local:gate:${gateKey}`;
+  saveState();
+  setStatusMessage('Local gate notes saved. Runtime gates remain blocked.', 'settings');
+}
+
+function saveSettingsPolicy(formData, policyKey) {
+  if (!policyKey) return;
+  const policy = settingsPolicyFixtures().find((entry) => entry.policyKey === policyKey);
+  if (!policy) return;
+  const previewValue = String(formData.get('previewValue') || '').trim();
+  const notes = String(formData.get('notes') || '').trim();
+  state.settings.policyOverrides = {
+    ...state.settings.policyOverrides,
+    [policyKey]: { previewValue, notes, updatedAt: new Date().toISOString() },
+  };
+  addSettingsReceipt({
+    type: 'policy',
+    title: 'Local policy preview value saved',
+    key: policyKey,
+    summary: `${policyKey}: ${previewValue || policy.value} — ${notes || 'no notes'}`,
+  });
+  state.settings.selectedKey = policyKey;
+  state.focusId = `settings:local:policy:${policyKey}`;
+  saveState();
+  setStatusMessage('Local policy preview saved. Runtime policy apply remains blocked.', 'settings');
+}
+
+function clearSettingsPreviewState() {
+  state.settings = defaultSettingsOps();
+  saveState();
+  setStatusMessage('All local Settings preview state cleared. Fixture gates/policies unchanged.', 'settings');
+}
+
 function inboxTriageFor(threadId) {
   return state.inbox.triage[threadId] || { reviewed: false, deferred: false };
 }
@@ -1026,6 +1139,13 @@ function defaultFocusIdForLane(laneId) {
     const install = selectedExtensionInstall();
     return install ? `extensions:local:${install.id}` : 'lane:extensions';
   }
+  if (laneId === 'settings') {
+    const key = state.settings.selectedKey;
+    if (key?.startsWith('gate:')) return `settings:local:gate:${key}`;
+    if (key) return `settings:local:policy:${key}`;
+    const firstGate = settingsGateFixtures()[0];
+    return firstGate ? `settings:local:gate:${firstGate.gateKey}` : 'lane:settings';
+  }
   return `lane:${laneId}`;
 }
 
@@ -1110,6 +1230,39 @@ function inspectableItemsForLane(laneId) {
         safeNext: 'Edit local provision notes; OAuth/connect remains blocked.',
         blocked: 'OAuth, credentials, provider read/write, and runtime connection remain blocked.',
         receipt: 'Install/provision receipt preview available.',
+      });
+    });
+  }
+
+  if (laneId === 'settings') {
+    settingsGateFixtures().forEach((gate) => {
+      const override = gateOverrideFor(gate.gateKey);
+      if (!override) return;
+      items.push({
+        id: `settings:local:gate:${gate.gateKey}`,
+        kind: 'local gate override',
+        title: gate.label,
+        summary: override.notes || override.previewControl || 'Local gate planning notes.',
+        meta: override.previewControl || gate.control,
+        state: gate.state,
+        safeNext: 'Refine local gate planning; runtime connect remains blocked.',
+        blocked: 'Provider connect, credential storage, and runtime policy apply remain blocked.',
+        receipt: 'Gate planning receipt preview available.',
+      });
+    });
+    settingsPolicyFixtures().forEach((policy) => {
+      const override = policyOverrideFor(policy.policyKey);
+      if (!override) return;
+      items.push({
+        id: `settings:local:policy:${policy.policyKey}`,
+        kind: 'local policy override',
+        title: policy.label,
+        summary: override.notes || policy.summary,
+        meta: override.previewValue || policy.value,
+        state: 'preview_only',
+        safeNext: 'Adjust local preview value; runtime policy apply remains blocked.',
+        blocked: 'Runtime policy apply, provider mutation, and credential storage remain blocked.',
+        receipt: 'Policy preview receipt available.',
       });
     });
   }
@@ -1254,6 +1407,12 @@ function selectInspectorFocus(focusId) {
   }
   if (focusId.startsWith('extensions:local:')) {
     state.extensions.selectedInstallId = focusId.replace('extensions:local:', '');
+  }
+  if (focusId.startsWith('settings:local:gate:')) {
+    state.settings.selectedKey = focusId.replace('settings:local:gate:', '');
+  }
+  if (focusId.startsWith('settings:local:policy:')) {
+    state.settings.selectedKey = focusId.replace('settings:local:policy:', '');
   }
   saveState();
   renderShell();
@@ -2220,6 +2379,100 @@ function renderExtensionsOperabilityPanel() {
   `;
 }
 
+function renderSettingsLocalReceipts(key) {
+  const receipts = (state.settings.receipts || []).filter((entry) => !key || entry.key === key);
+  if (!receipts.length) return '<p class="form-hint">No local settings receipts yet.</p>';
+  return receipts.map((receipt) => `
+    <article class="local-receipt-row">
+      <header><strong>${escapeHtml(receipt.title)}</strong><span>${escapeHtml(label(receipt.type))} · local receipt</span></header>
+      <p>${escapeHtml(receipt.summary)}</p>
+      <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+    </article>
+  `).join('');
+}
+
+const SETTINGS_POLICY_VALUES = ['blocked', 'disabled', 'false', 'undecided', 'preview_only', 'draft_only'];
+
+function renderSettingsOperabilityPanel() {
+  const gates = settingsGateFixtures();
+  const policies = settingsPolicyFixtures();
+  const selectedKey = state.settings.selectedKey || gates[0]?.gateKey || '';
+  const selectedGate = gates.find((entry) => entry.gateKey === selectedKey) || gates[0] || null;
+  const selectedPolicy = policies.find((entry) => entry.policyKey === selectedKey) || null;
+  const gateOverride = selectedGate ? gateOverrideFor(selectedGate.gateKey) : null;
+  const policyOverride = selectedPolicy ? policyOverrideFor(selectedPolicy.policyKey) : null;
+  return `
+    <section class="lane-section settings-operability-panel" aria-label="Settings local operability">
+      <header class="section-head">
+        <div>
+          <p class="section-eyebrow">local operability</p>
+          <h3>Gate and policy planning</h3>
+          <p>Edit local gate/policy preview values only. No runtime apply or provider connect.</p>
+        </div>
+        <span class="draft-proposal-state">planning only</span>
+      </header>
+      <div id="settingsStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'settings' ? state.statusMessage : 'Ready for local Settings operability.')}</div>
+      <div class="settings-gate-form-list" aria-label="Provider gate planning forms">
+        <h4>Provider gates (${gates.length})</h4>
+        ${gates.map((gate) => {
+          const override = gateOverrideFor(gate.gateKey);
+          const focused = selectedKey === gate.gateKey;
+          return `
+            <form class="inbox-draft-form settings-gate-form ${focused ? 'is-selected' : ''}" data-settings-form="gate" aria-label="Gate planning: ${escapeHtml(gate.label)}">
+              <input type="hidden" name="gateKey" value="${escapeHtml(gate.gateKey)}" />
+              <h5>${escapeHtml(gate.label)} <em>${escapeHtml(label(gate.state))}</em></h5>
+              <p class="form-hint">Fixture: ${escapeHtml(gate.summary)} · control: ${escapeHtml(gate.control)}</p>
+              <label for="gate-notes-${escapeHtml(gate.gateKey)}">Local planning notes</label>
+              <textarea id="gate-notes-${escapeHtml(gate.gateKey)}" name="notes" rows="2">${escapeHtml(override?.notes || '')}</textarea>
+              <label for="gate-control-${escapeHtml(gate.gateKey)}">Preview control label (local)</label>
+              <input id="gate-control-${escapeHtml(gate.gateKey)}" name="previewControl" type="text" autocomplete="off" value="${escapeHtml(override?.previewControl || gate.control)}" />
+              <div class="inbox-form-actions">
+                <button class="inbox-action-btn is-primary" type="submit" data-settings-action="gate-save">Save gate notes</button>
+                <button class="inbox-action-btn" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">Inspect</button>
+                <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
+              </div>
+            </form>
+          `;
+        }).join('')}
+      </div>
+      <div class="settings-policy-form-list" aria-label="Policy preview forms">
+        <h4>Policy defaults (${policies.length})</h4>
+        ${policies.map((policy) => {
+          const override = policyOverrideFor(policy.policyKey);
+          const focused = selectedKey === policy.policyKey;
+          return `
+            <form class="inbox-draft-form settings-policy-form ${focused ? 'is-selected' : ''}" data-settings-form="policy" aria-label="Policy preview: ${escapeHtml(policy.label)}">
+              <input type="hidden" name="policyKey" value="${escapeHtml(policy.policyKey)}" />
+              <h5>${escapeHtml(policy.label)} <em>fixture: ${escapeHtml(policy.value)}</em></h5>
+              <p class="form-hint">${escapeHtml(policy.summary)}</p>
+              <label for="policy-value-${escapeHtml(policy.policyKey)}">Local preview value</label>
+              <select id="policy-value-${escapeHtml(policy.policyKey)}" name="previewValue">
+                ${SETTINGS_POLICY_VALUES.map((value) => `
+                  <option value="${escapeHtml(value)}" ${(override?.previewValue || policy.value) === value ? 'selected' : ''}>${escapeHtml(label(value))}</option>
+                `).join('')}
+              </select>
+              <label for="policy-notes-${escapeHtml(policy.policyKey)}">Local planning notes</label>
+              <textarea id="policy-notes-${escapeHtml(policy.policyKey)}" name="notes" rows="2">${escapeHtml(override?.notes || '')}</textarea>
+              <div class="inbox-form-actions">
+                <button class="inbox-action-btn is-primary" type="submit" data-settings-action="policy-save">Save policy preview</button>
+                <button class="inbox-action-btn" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}" data-inspector-focus="${escapeHtml(`settings:local:policy:${policy.policyKey}`)}">Inspect</button>
+                <button class="inbox-action-btn is-blocked" type="button" disabled>Apply blocked</button>
+              </div>
+            </form>
+          `;
+        }).join('')}
+      </div>
+      <article class="draft-proposal-panel">
+        <header><strong>Local receipt preview</strong><span class="draft-proposal-state">preview only</span></header>
+        ${renderSettingsLocalReceipts(selectedKey)}
+      </article>
+      <div class="inbox-clear-control">
+        <button class="inbox-action-btn is-danger" type="button" data-settings-action="clear-all">Clear all local Settings preview state</button>
+      </div>
+    </section>
+  `;
+}
+
 function renderExtensionMatrix(section) {
   const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
@@ -2484,6 +2737,7 @@ function renderMainLane() {
         ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
         ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
         ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
+        ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
@@ -2517,6 +2771,48 @@ function activeInspectorModel() {
   const focusItem = activeInspectableItem();
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
+
+  if (focusItem?.id?.startsWith('settings:local:gate:')) {
+    const gateKey = focusItem.id.replace('settings:local:gate:', '');
+    const gate = settingsGateFixtures().find((entry) => entry.gateKey === gateKey);
+    const override = gateOverrideFor(gateKey);
+    const receipts = (state.settings.receipts || []).filter((entry) => entry.key === gateKey);
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `Local gate planning for ${gate?.label || gateKey}. Fixture state: ${label(gate?.state || 'runtime_blocked')}.`,
+      why: override?.notes || gate?.summary || 'Gate planning records intent before any future provider/runtime decision.',
+      evidence: `Fixture control: ${gate?.control || 'n/a'}. Local preview control: ${override?.previewControl || gate?.control || 'n/a'}.`,
+      safeNext: 'Refine planning notes; keep provider connect and credential storage blocked.',
+      blocked: 'Provider connect, OAuth, credential storage, and runtime gate apply remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal proposes keeping gates closed until ARCH-004 resolves.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
+        : 'Gate receipt appears after saving local notes.',
+    };
+  }
+
+  if (focusItem?.id?.startsWith('settings:local:policy:')) {
+    const policyKey = focusItem.id.replace('settings:local:policy:', '');
+    const policy = settingsPolicyFixtures().find((entry) => entry.policyKey === policyKey);
+    const override = policyOverrideFor(policyKey);
+    const receipts = (state.settings.receipts || []).filter((entry) => entry.key === policyKey);
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `Local policy preview for ${policyKey}. Fixture value: ${policy?.value || 'n/a'}.`,
+      why: override?.notes || policy?.summary || 'Policy preview records planning only; runtime apply is blocked.',
+      evidence: `Fixture: ${policy?.value || 'n/a'}. Local preview: ${override?.previewValue || policy?.value || 'n/a'}.`,
+      safeNext: 'Adjust local preview value; do not assume runtime policy changed.',
+      blocked: 'Runtime policy apply, provider mutation, and credential storage remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal may reference policy defaults but cannot apply them.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
+        : 'Policy receipt appears after saving preview value.',
+    };
+  }
 
   if (focusItem?.id?.startsWith('extensions:local:')) {
     const installId = focusItem.id.replace('extensions:local:', '');
@@ -2708,6 +3004,25 @@ function renderShell() {
   `;
 }
 
+function handleSettingsAction(action, settingsKey) {
+  if (action === 'select-gate' || action === 'select-policy') {
+    if (!settingsKey) return;
+    state.settings.selectedKey = settingsKey;
+    state.focusId = action === 'select-gate'
+      ? `settings:local:gate:${settingsKey}`
+      : `settings:local:policy:${settingsKey}`;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all local Settings preview overrides and receipts?')) {
+      clearSettingsPreviewState();
+      renderShell();
+    }
+  }
+}
+
 function handleExtensionsAction(action, installId, fixtureId) {
   if (action === 'preview-install') {
     previewInstallExtension(fixtureId);
@@ -2858,6 +3173,20 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const settingsForm = event.target.closest?.('[data-settings-form]');
+    if (settingsForm) {
+      event.preventDefault();
+      const formData = new FormData(settingsForm);
+      const formKind = settingsForm.dataset.settingsForm;
+      if (formKind === 'gate') {
+        saveSettingsGate(formData, String(formData.get('gateKey') || '').trim());
+      } else if (formKind === 'policy') {
+        saveSettingsPolicy(formData, String(formData.get('policyKey') || '').trim());
+      }
+      renderShell();
+      return;
+    }
+
     const extensionsForm = event.target.closest?.('[data-extensions-form]');
     if (extensionsForm) {
       event.preventDefault();
@@ -2915,6 +3244,13 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const settingsAction = event.target.closest?.('[data-settings-action]');
+    if (settingsAction?.dataset.settingsAction && !['gate-save', 'policy-save'].includes(settingsAction.dataset.settingsAction)) {
+      event.preventDefault();
+      handleSettingsAction(settingsAction.dataset.settingsAction, settingsAction.dataset.settingsKey);
+      return;
+    }
+
     const extensionsAction = event.target.closest?.('[data-extensions-action]');
     if (extensionsAction?.dataset.extensionsAction && extensionsAction.dataset.extensionsAction !== 'provision-save') {
       event.preventDefault();
