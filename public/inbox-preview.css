@@ -190,14 +190,40 @@ input:focus-visible {
   font-size: 0.82rem;
 }
 
+.topbar-command-cluster {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.ibal-concierge-btn {
+  min-height: 2.25rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(105, 210, 255, 0.08);
+  color: var(--cyan);
+  cursor: pointer;
+}
+
+.ibal-concierge-btn.is-open {
+  border-color: var(--cyan);
+  background: rgba(105, 210, 255, 0.16);
+}
+
 .command-box input {
   width: 100%;
   min-height: 2.25rem;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
-  color: var(--muted);
+  color: var(--text);
   padding: 0 0.75rem;
+}
+
+.command-box input:disabled {
+  color: var(--muted);
 }
 
 .app-frame {
@@ -1356,6 +1382,141 @@ input:focus-visible {
   margin: 0.65rem 0 0;
   padding-left: 1rem;
   color: var(--muted);
+}
+
+.ibal-concierge-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.ibal-concierge-root.is-open {
+  pointer-events: auto;
+}
+
+.ibal-concierge-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ibal-concierge-root.is-open .ibal-concierge-backdrop {
+  opacity: 1;
+}
+
+.ibal-concierge-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(28rem, 100vw);
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto auto;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-left: 1px solid var(--line);
+  background: var(--surface-strong);
+  transform: translateX(100%);
+  transition: transform 0.15s ease;
+  overflow: auto;
+}
+
+.ibal-concierge-root.is-open .ibal-concierge-drawer {
+  transform: translateX(0);
+}
+
+.ibal-concierge-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.ibal-concierge-prompt {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.ibal-concierge-prompt label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.ibal-message-list,
+.ibal-receipt-list {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  overflow: auto;
+}
+
+.ibal-message {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ibal-message header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ibal-message.is-ibal {
+  border-color: rgba(105, 210, 255, 0.35);
+}
+
+.ibal-proposal-card {
+  margin-top: 0.55rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(105, 210, 255, 0.05);
+}
+
+.ibal-proposal-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.ibal-proposal-meta {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+}
+
+.ibal-proposal-meta dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.ibal-proposal-criteria {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.inspector-ibal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0 0.85rem 0.85rem;
 }
 
 /* UI-004E Settings / Provider Gates polish */

@@ -6,6 +6,7 @@ const STORAGE_SCHEMA_VERSION = 2;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
+const IBAL_LEGACY_LANE = 'ibal';
 
 const state = {
   payload: null,
@@ -19,6 +20,7 @@ const state = {
   automations: defaultAutomationsOps(),
   extensions: defaultExtensionsOps(),
   settings: defaultSettingsOps(),
+  ibal: defaultIbalOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -75,6 +77,16 @@ function defaultSettingsOps() {
   };
 }
 
+function defaultIbalOps() {
+  return {
+    open: false,
+    prompt: '',
+    messages: [],
+    receipts: [],
+    selectedProposalId: null,
+  };
+}
+
 function previewStateEnvelope() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -87,6 +99,7 @@ function previewStateEnvelope() {
     automations: state.automations,
     extensions: state.extensions,
     settings: state.settings,
+    ibal: state.ibal,
   };
 }
 
@@ -134,6 +147,16 @@ function applyPreviewEnvelope(stored) {
     policyOverrides: stored.settings?.policyOverrides || {},
     receipts: stored.settings?.receipts || [],
   };
+  state.ibal = {
+    ...defaultIbalOps(),
+    ...(stored.ibal || {}),
+    messages: stored.ibal?.messages || [],
+    receipts: stored.ibal?.receipts || [],
+  };
+  if (state.laneId === IBAL_LEGACY_LANE) {
+    state.laneId = DEFAULT_LANE;
+    state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
+  }
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
 }
@@ -155,13 +178,14 @@ function migratePreviewStorage() {
       automations: defaultAutomationsOps(),
       extensions: defaultExtensionsOps(),
       settings: defaultSettingsOps(),
+      ibal: defaultIbalOps(),
     };
   }
 
   const legacy = safeParse(localStorage.getItem(LEGACY_STORAGE_KEY) || '{}', {});
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
-    laneId: legacy.laneId,
+    laneId: legacy.laneId === IBAL_LEGACY_LANE ? DEFAULT_LANE : legacy.laneId,
     threadId: legacy.threadId,
     focusId: legacy.focusId,
     inbox: defaultInboxOps(),
@@ -170,6 +194,7 @@ function migratePreviewStorage() {
     automations: defaultAutomationsOps(),
     extensions: defaultExtensionsOps(),
     settings: defaultSettingsOps(),
+    ibal: defaultIbalOps(),
   };
 }
 
@@ -255,6 +280,10 @@ function getLanes() {
   return getPayload().lanes || [];
 }
 
+function navLanes() {
+  return getLanes().filter((lane) => lane.id !== IBAL_LEGACY_LANE);
+}
+
 function laneIds() {
   return new Set(getLanes().map((lane) => lane.id));
 }
@@ -265,6 +294,7 @@ function routeIdFromHash() {
 
 function laneFromHash() {
   const raw = routeIdFromHash();
+  if (raw === IBAL_LEGACY_LANE) return DEFAULT_LANE;
   return laneIds().has(raw) ? raw : DEFAULT_LANE;
 }
 
@@ -840,6 +870,123 @@ function clearSettingsPreviewState() {
   setStatusMessage('All local Settings preview state cleared. Fixture gates/policies unchanged.', 'settings');
 }
 
+function ibalFixtureCatalog() {
+  const content = getPayload().laneContent?.ibal || {};
+  const board = sectionByType(content, 'ibal-board');
+  const items = [];
+  (board?.groups || []).forEach((group) => {
+    (group.items || []).forEach((item) => {
+      items.push({ ...item, groupLabel: group.label });
+    });
+  });
+  const home = getPayload().laneContent?.home || {};
+  const nextSafe = sectionByType(home, 'next-safe-action');
+  if (nextSafe?.action) {
+    items.push({
+      title: nextSafe.action.title,
+      summary: nextSafe.action.summary,
+      state: 'proposal_only',
+      groupLabel: 'home next safe action',
+      criteria: nextSafe.action.criteria || [],
+    });
+  }
+  return items;
+}
+
+function buildIbalProposalResponse(prompt) {
+  const focus = activeInspectableItem();
+  const catalog = ibalFixtureCatalog();
+  const normalized = String(prompt || '').toLowerCase();
+  let pick = catalog[0] || null;
+  if (normalized.includes('block') || normalized.includes('gate')) {
+    pick = catalog.find((item) => (
+      String(item.title || '').toLowerCase().includes('block')
+      || String(item.groupLabel || '').toLowerCase().includes('blocker')
+    )) || pick;
+  } else if (normalized.includes('receipt') || normalized.includes('proof')) {
+    pick = catalog.find((item) => String(item.title || '').toLowerCase().includes('receipt')
+      || String(item.title || '').toLowerCase().includes('proof')) || pick;
+  } else if (focus?.kind) {
+    const kindToken = String(focus.kind).split(' ')[0].toLowerCase();
+    pick = catalog.find((item) => String(item.summary || '').toLowerCase().includes(kindToken)) || pick;
+  }
+  const proposal = {
+    id: createLocalId('ibal-prop'),
+    title: pick?.title || 'Review current selection',
+    recommendation: pick?.summary || focus?.safeNext || 'Review fixture context before any runtime action.',
+    why: focus?.summary || pick?.summary || 'Context-scoped proposal from preview fixtures.',
+    evidence: `Lane: ${state.laneId}. Focus: ${focus?.title || 'none'}. Source: ${pick?.groupLabel || 'fixture'}.`,
+    blockers: focus?.blocked || 'Send, provider connect, automation execution, and repo mutation remain blocked.',
+    sourceLanes: [state.laneId],
+    safeNext: focus?.safeNext || pick?.title || 'Save as local draft if applicable.',
+    state: 'proposal_only',
+    criteria: pick?.criteria || [],
+  };
+  return proposal;
+}
+
+function addIbalReceipt({ title, summary, proposalId }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type: 'ibal-proposal',
+    title,
+    proposalId: proposalId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No model routing, execution, or provider write occurred.',
+  };
+  state.ibal.receipts = [receipt, ...(state.ibal.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function submitIbalPrompt(promptText) {
+  const prompt = String(promptText || '').trim();
+  if (!prompt) return;
+  const proposal = buildIbalProposalResponse(prompt);
+  const userMsg = { id: createLocalId('ibal-msg'), role: 'user', text: prompt, createdAt: new Date().toISOString() };
+  const ibalMsg = {
+    id: createLocalId('ibal-msg'),
+    role: 'ibal',
+    text: proposal.recommendation,
+    proposal,
+    createdAt: new Date().toISOString(),
+  };
+  state.ibal.messages = [...(state.ibal.messages || []), userMsg, ibalMsg].slice(-20);
+  state.ibal.prompt = '';
+  state.ibal.open = true;
+  state.ibal.selectedProposalId = proposal.id;
+  addIbalReceipt({ title: 'Ibal proposal generated', summary: proposal.title, proposalId: proposal.id });
+  saveState();
+}
+
+function toggleIbalConcierge(forceOpen) {
+  state.ibal.open = typeof forceOpen === 'boolean' ? forceOpen : !state.ibal.open;
+  saveState();
+}
+
+function saveIbalProposalReceipt(proposalId) {
+  const message = (state.ibal.messages || []).find((entry) => entry.proposal?.id === proposalId);
+  if (!message?.proposal) return;
+  addIbalReceipt({
+    title: 'Ibal proposal receipt saved',
+    summary: message.proposal.title,
+    proposalId,
+  });
+  state.ibal.selectedProposalId = proposalId;
+  saveState();
+}
+
+function clearIbalPreviewState() {
+  state.ibal = defaultIbalOps();
+  saveState();
+}
+
+function selectedIbalProposal() {
+  const messages = state.ibal.messages || [];
+  const match = messages.find((entry) => entry.proposal?.id === state.ibal.selectedProposalId);
+  return match?.proposal || messages.filter((entry) => entry.proposal).at(-1)?.proposal || null;
+}
+
 function inboxTriageFor(threadId) {
   return state.inbox.triage[threadId] || { reviewed: false, deferred: false };
 }
@@ -1067,6 +1214,15 @@ async function fetchJson(url, fallback) {
 }
 
 function syncRoute() {
+  const raw = routeIdFromHash();
+  if (raw === IBAL_LEGACY_LANE) {
+    state.ibal.open = true;
+    window.location.hash = `${ROUTE_PREFIX}${DEFAULT_LANE}`;
+    state.laneId = DEFAULT_LANE;
+    state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
+    saveState();
+    return;
+  }
   const nextLane = laneFromHash();
   if (state.laneId !== nextLane) {
     state.laneId = nextLane;
@@ -1084,7 +1240,16 @@ function syncRoute() {
 }
 
 function ensureRoute() {
-  if (!window.location.hash || !laneIds().has(routeIdFromHash())) {
+  const raw = routeIdFromHash();
+  if (raw === IBAL_LEGACY_LANE) {
+    state.ibal.open = true;
+    window.location.hash = `${ROUTE_PREFIX}${DEFAULT_LANE}`;
+    state.laneId = DEFAULT_LANE;
+    state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
+    saveState();
+    return;
+  }
+  if (!window.location.hash || !laneIds().has(raw)) {
     window.location.hash = `${ROUTE_PREFIX}${DEFAULT_LANE}`;
     state.laneId = DEFAULT_LANE;
     saveState();
@@ -1459,10 +1624,15 @@ function renderTopBar() {
         </div>
       </section>
 
-      <label class="command-box" aria-label="Search and command placeholder">
-        <span>Search / command</span>
-        <input type="search" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Preview only')}" disabled />
-      </label>
+      <section class="topbar-command-cluster" aria-label="Ibal command entry">
+        <button class="ibal-concierge-btn ${state.ibal.open ? 'is-open' : ''}" type="button" data-ibal-action="toggle" aria-expanded="${state.ibal.open ? 'true' : 'false'}" aria-controls="ibalConciergeDrawer">
+          Ibal concierge
+        </button>
+        <form class="command-box" data-ibal-form="command" aria-label="Search and command entry">
+          <span>Search / command</span>
+          <input type="search" name="prompt" autocomplete="off" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Ask Ibal (preview only)')}" value="${escapeHtml(state.ibal.prompt || '')}" />
+        </form>
+      </section>
 
       ${renderTrustRail()}
     </header>
@@ -1473,7 +1643,7 @@ function renderNavigation() {
   return `
     <nav class="lane-nav" aria-label="Primary xi-io Inbox lanes">
       <p class="lane-nav-label">Lanes</p>
-      ${getLanes().map((lane) => {
+      ${navLanes().map((lane) => {
         const hint = laneNavHint(lane.status);
         return `
           <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
@@ -2982,9 +3152,92 @@ function renderInspector() {
         <p>${escapeHtml(inspector.blocked || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
         ${renderDisabledActions()}
       </section>
-      ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || 'Ibal proposes only in this preview and cannot execute actions.')}
+      ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || selectedIbalProposal()?.recommendation || 'Ibal proposes only in this preview and cannot execute actions.')}
       ${renderInspectorBlock('Receipt expectation', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.')}
+      <div class="inspector-ibal-actions">
+        <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Execute blocked</button>
+      </div>
     </aside>
+  `;
+}
+
+function renderIbalProposalCard(proposal) {
+  if (!proposal) return '';
+  return `
+    <article class="ibal-proposal-card" aria-label="Ibal proposal">
+      <header>
+        <strong>${escapeHtml(proposal.title)}</strong>
+        <span>${escapeHtml(label(proposal.state))}</span>
+      </header>
+      <p>${escapeHtml(proposal.recommendation)}</p>
+      <dl class="ibal-proposal-meta">
+        <div><dt>Why</dt><dd>${escapeHtml(proposal.why)}</dd></div>
+        <div><dt>Evidence</dt><dd>${escapeHtml(proposal.evidence)}</dd></div>
+        <div><dt>Blockers</dt><dd>${escapeHtml(proposal.blockers)}</dd></div>
+        <div><dt>Safe next</dt><dd>${escapeHtml(proposal.safeNext)}</dd></div>
+      </dl>
+      ${proposal.criteria?.length ? `<ul class="ibal-proposal-criteria">${proposal.criteria.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="button" data-ibal-action="save-receipt" data-proposal-id="${escapeHtml(proposal.id)}">Save proposal receipt</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Auto-execute blocked</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderIbalConciergeDrawer() {
+  const messages = state.ibal.messages || [];
+  const selected = selectedIbalProposal();
+  return `
+    <div class="ibal-concierge-root ${state.ibal.open ? 'is-open' : ''}" aria-hidden="${state.ibal.open ? 'false' : 'true'}">
+      <button class="ibal-concierge-backdrop" type="button" data-ibal-action="close" aria-label="Close Ibal concierge"></button>
+      <aside id="ibalConciergeDrawer" class="ibal-concierge-drawer" role="dialog" aria-modal="true" aria-label="Ibal concierge" tabindex="-1">
+        <header class="ibal-concierge-head">
+          <div>
+            <p class="section-eyebrow">conductor / concierge</p>
+            <h2>Ibal</h2>
+            <p>Proposal-only assistant. Fixture responses; no model routing or execution.</p>
+          </div>
+          <button class="inbox-action-btn" type="button" data-ibal-action="close" aria-label="Close concierge">Close</button>
+        </header>
+        <form class="ibal-concierge-prompt" data-ibal-form="prompt" aria-label="Ask Ibal">
+          <label for="ibal-prompt-input">Ask Ibal</label>
+          <input id="ibal-prompt-input" name="prompt" type="text" autocomplete="off" placeholder="What is blocked? What should I do next?" value="${escapeHtml(state.ibal.prompt || '')}" />
+          <button class="inbox-action-btn is-primary" type="submit" data-ibal-action="submit">Propose</button>
+        </form>
+        <div class="ibal-message-list" aria-label="Concierge conversation">
+          ${messages.length ? messages.map((message) => `
+            <article class="ibal-message is-${escapeHtml(message.role)}">
+              <header><strong>${message.role === 'ibal' ? 'Ibal' : 'You'}</strong><span>${escapeHtml(new Date(message.createdAt).toLocaleString())}</span></header>
+              <p>${escapeHtml(message.text)}</p>
+              ${message.proposal ? renderIbalProposalCard(message.proposal) : ''}
+            </article>
+          `).join('') : '<p class="form-hint">Ask Ibal about the current lane, blockers, or next safe action. Responses are fixture-based previews only.</p>'}
+        </div>
+        ${selected ? `
+          <section class="ibal-selected-proposal" aria-label="Selected proposal context">
+            <h3>Selected proposal</h3>
+            ${renderIbalProposalCard(selected)}
+          </section>
+        ` : ''}
+        <section class="ibal-receipt-list" aria-label="Ibal local receipts">
+          <h3>Local receipts (${(state.ibal.receipts || []).length})</h3>
+          ${(state.ibal.receipts || []).length
+    ? (state.ibal.receipts || []).map((receipt) => `
+              <article class="local-receipt-row">
+                <header><strong>${escapeHtml(receipt.title)}</strong><span>ibal · local receipt</span></header>
+                <p>${escapeHtml(receipt.summary)}</p>
+                <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+              </article>
+            `).join('')
+    : '<p class="form-hint">Proposal receipts appear after you ask Ibal or save a proposal receipt.</p>'}
+        </section>
+        <div class="inbox-clear-control">
+          <button class="inbox-action-btn is-danger" type="button" data-ibal-action="clear-all">Clear Ibal concierge preview state</button>
+        </div>
+      </aside>
+    </div>
   `;
 }
 
@@ -3001,7 +3254,33 @@ function renderShell() {
         ${renderInspector()}
       </section>
     </section>
+    ${renderIbalConciergeDrawer()}
   `;
+}
+
+function handleIbalAction(action, proposalId) {
+  if (action === 'toggle' || action === 'toggle-open') {
+    toggleIbalConcierge(true);
+    renderShell();
+    document.getElementById('ibalConciergeDrawer')?.focus();
+    return;
+  }
+  if (action === 'close') {
+    toggleIbalConcierge(false);
+    renderShell();
+    return;
+  }
+  if (action === 'save-receipt') {
+    saveIbalProposalReceipt(proposalId);
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all Ibal concierge messages and receipts?')) {
+      clearIbalPreviewState();
+      renderShell();
+    }
+  }
 }
 
 function handleSettingsAction(action, settingsKey) {
@@ -3173,6 +3452,16 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const ibalForm = event.target.closest?.('[data-ibal-form]');
+    if (ibalForm) {
+      event.preventDefault();
+      const formData = new FormData(ibalForm);
+      submitIbalPrompt(String(formData.get('prompt') || '').trim());
+      renderShell();
+      document.getElementById('ibalConciergeDrawer')?.focus();
+      return;
+    }
+
     const settingsForm = event.target.closest?.('[data-settings-form]');
     if (settingsForm) {
       event.preventDefault();
@@ -3244,6 +3533,13 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const ibalAction = event.target.closest?.('[data-ibal-action]');
+    if (ibalAction?.dataset.ibalAction && ibalAction.dataset.ibalAction !== 'submit') {
+      event.preventDefault();
+      handleIbalAction(ibalAction.dataset.ibalAction, ibalAction.dataset.proposalId);
+      return;
+    }
+
     const settingsAction = event.target.closest?.('[data-settings-action]');
     if (settingsAction?.dataset.settingsAction && !['gate-save', 'policy-save'].includes(settingsAction.dataset.settingsAction)) {
       event.preventDefault();
@@ -3302,6 +3598,11 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.ibal.open) {
+      toggleIbalConcierge(false);
+      renderShell();
+      return;
+    }
     const focusTarget = event.target.closest?.('[data-inspector-focus]');
     if (!focusTarget) return;
     if (event.key === 'Enter' || event.key === ' ') {
