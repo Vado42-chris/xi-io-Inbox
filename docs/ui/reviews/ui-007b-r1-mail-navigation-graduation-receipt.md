@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-(recorded at commit — see `git rev-parse HEAD` on branch)
+`44817755bdf4ddb566e99861eb16ed9369a84705`
 
 ## Scope
 
