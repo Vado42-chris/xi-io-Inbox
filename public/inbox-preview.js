@@ -28,6 +28,7 @@ const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-previ
 
 function defaultInboxOps() {
   return {
+    mailboxView: 'inbox',
     composeDraft: null,
     replyDrafts: {},
     triage: {},
@@ -366,6 +367,39 @@ function sectionByType(content, type) {
 function inboxThreads() {
   const inbox = getPayload().laneContent?.inbox || {};
   return sectionByType(inbox, 'inbox-layout')?.threads || [];
+}
+
+function inboxLayoutSection() {
+  return sectionByType(activeLaneContent(), 'inbox-layout') || { views: [], accounts: [], threads: [] };
+}
+
+function mailboxViewId(label) {
+  return String(label || '').trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+function threadsForMailboxView() {
+  const threads = inboxThreads();
+  const view = state.inbox.mailboxView || 'inbox';
+  if (view === 'inbox') return threads;
+  if (view === 'priority-inbox') {
+    return threads.filter((thread) => thread.state === 'needs_review'
+      || (thread.labels || []).includes('urgent_thread'));
+  }
+  if (view === 'needs-reply') {
+    return threads.filter((thread) => (thread.labels || []).includes('needs_reply'));
+  }
+  if (view === 'awaiting-evidence') {
+    return threads.filter((thread) => (thread.tags || []).includes('local_verification_required')
+      || thread.state === 'needs_review');
+  }
+  if (view === 'drafts') {
+    return threads.filter((thread) => replyDraftFor(thread.id) || thread.draft);
+  }
+  if (view === 'provider-gates') {
+    return threads.filter((thread) => (thread.labels || []).includes('provider_gate')
+      || thread.state === 'provider_blocked');
+  }
+  return threads;
 }
 
 function selectedInboxThread() {
@@ -1789,9 +1823,38 @@ function renderTopBar() {
   `;
 }
 
+function renderInboxMailNav() {
+  const section = inboxLayoutSection();
+  const activeView = state.inbox.mailboxView || 'inbox';
+  return `
+    <div class="mail-nav-section" aria-label="Mail folders and views">
+      <p class="mail-nav-label">Folders</p>
+      <button class="mail-nav-item ${activeView === 'inbox' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="inbox">
+        <span>All inbox</span>
+        <strong>${inboxThreads().length}</strong>
+      </button>
+      ${(section.views || []).map((view) => {
+        const viewId = mailboxViewId(view.label);
+        return `
+          <button class="mail-nav-item ${activeView === viewId ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}">
+            <span>${escapeHtml(view.label)}</span>
+            <strong>${escapeHtml(view.count)}</strong>
+          </button>
+        `;
+      }).join('')}
+      <details class="mail-nav-accounts">
+        <summary>Accounts (preview)</summary>
+        ${(section.accounts || []).map((account) => `
+          <p class="mail-nav-account">${escapeHtml(account.name)} · ${escapeHtml(label(account.state))}</p>
+        `).join('')}
+      </details>
+    </div>
+  `;
+}
+
 function renderNavigation() {
   return `
-    <nav class="lane-nav" aria-label="Primary xi-io Inbox lanes">
+    <nav class="lane-nav mail-nav-pane" aria-label="Primary navigation">
       <p class="lane-nav-label">Lanes</p>
       ${navLanes().map((lane) => {
         const hint = laneNavHint(lane.status);
@@ -1802,6 +1865,7 @@ function renderNavigation() {
           </a>
         `;
       }).join('')}
+      ${state.laneId === 'inbox' ? renderInboxMailNav() : ''}
     </nav>
   `;
 }
@@ -1967,8 +2031,21 @@ function renderInboxComposeSheet() {
   `;
 }
 
-function renderInboxReadingPane(layoutSection) {
-  const thread = selectedInboxThread();
+function syncMailboxThreadSelection() {
+  if (state.laneId !== 'inbox') return;
+  const visible = threadsForMailboxView();
+  if (!visible.length) {
+    state.threadId = null;
+    return;
+  }
+  if (!visible.some((thread) => thread.id === state.threadId)) {
+    state.threadId = visible[0].id;
+    state.focusId = `inbox-thread:${visible[0].id}`;
+  }
+}
+
+function renderInboxReadingPane(layoutSection, threadOverride) {
+  const thread = threadOverride || selectedInboxThread();
   const threadId = thread?.id || '';
   const reply = replyDraftFor(threadId) || {};
   const messages = thread?.messages || [];
@@ -1982,7 +2059,7 @@ function renderInboxReadingPane(layoutSection) {
     `;
   }
   return `
-    <section class="inbox-reading-pane" aria-label="Message reading pane">
+    <section class="inbox-reading-pane mail-reading-pane" aria-label="Message reading pane">
       <header class="inbox-reading-head">
         <div>
           <h3>${escapeHtml(thread.title)}</h3>
@@ -2000,13 +2077,6 @@ function renderInboxReadingPane(layoutSection) {
             <p>${escapeHtml(message.summary)}</p>
           </article>
         `).join('')}
-      </div>
-      <div class="inbox-action-toolbar" role="toolbar" aria-label="Thread actions">
-        <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" data-thread-id="${escapeHtml(threadId)}" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
-        <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(threadId)}">Mark read</button>
-        <button class="inbox-action-btn" type="button" data-inbox-action="defer-thread" data-thread-id="${escapeHtml(threadId)}">Defer</button>
-        <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(threadId)}">Add task</button>
-        <button class="inbox-action-btn" type="button" data-inbox-action="calendar-proposal" data-thread-id="${escapeHtml(threadId)}">Schedule</button>
       </div>
       ${state.inbox.replyOpen ? `
         <form class="inbox-draft-form inbox-reply-sheet" data-inbox-form="reply" aria-label="Reply draft">
@@ -2044,33 +2114,17 @@ function renderInboxReadingPane(layoutSection) {
 }
 
 function renderInboxWorkspace() {
-  const content = activeLaneContent();
-  const layoutSection = sectionByType(content, 'inbox-layout') || { threads: inboxThreads(), accounts: [], views: [] };
-  const selected = selectedInboxThread();
+  const layoutSection = inboxLayoutSection();
+  const visibleThreads = threadsForMailboxView();
+  const selected = visibleThreads.find((thread) => thread.id === state.threadId)
+    || visibleThreads[0]
+    || null;
   return `
-    <div class="inbox-workspace">
+    <div class="inbox-workspace is-mail-workbench">
       ${renderInboxToolbar()}
-      <div class="inbox-workspace-grid">
-        <aside class="mailbox-panel" aria-label="Folders">
-          <h4 class="mailbox-panel-title">Folders</h4>
-          ${(layoutSection.views || []).map((view) => `
-            <div class="folder-row">
-              <span>${escapeHtml(view.label)}</span>
-              <strong>${escapeHtml(view.count)}</strong>
-            </div>
-          `).join('')}
-          <details class="inbox-mailbox-details">
-            <summary>Accounts (preview)</summary>
-            ${(layoutSection.accounts || []).map((account) => `
-              <article class="account-gate-row">
-                <strong>${escapeHtml(account.name)}</strong>
-                <span class="account-gate-state">${escapeHtml(label(account.state || 'provider_blocked'))}</span>
-              </article>
-            `).join('')}
-          </details>
-        </aside>
-        <div class="thread-list-panel" aria-label="Conversations">
-          ${(layoutSection.threads || []).map((thread) => `
+      <div class="inbox-workspace-grid mail-workbench-center">
+        <div class="thread-list-panel mail-list-pane" aria-label="Conversations">
+          ${visibleThreads.length ? visibleThreads.map((thread) => `
             <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <div class="thread-row-main">
                 <div class="thread-row-top">
@@ -2084,9 +2138,9 @@ function renderInboxWorkspace() {
                 ${renderLocalTriageChip(thread.id)}
               </div>
             </button>
-          `).join('')}
+          `).join('') : '<p class="lane-empty-state">No threads in this view.</p>'}
         </div>
-        ${renderInboxReadingPane(layoutSection)}
+        ${renderInboxReadingPane({ ...layoutSection, threads: visibleThreads }, selected)}
       </div>
       ${renderInboxComposeSheet()}
     </div>
@@ -3835,12 +3889,29 @@ function renderInspector() {
   const lane = activeLane();
   const inspector = activeInspectorModel();
   return `
-    <aside class="right-inspector" aria-label="Selected object intelligence">
+    <aside class="right-inspector context-command-rail" aria-label="Contextual command rail">
       <header class="inspector-title">
         <p class="inspector-object-kind">${escapeHtml(inspector.kind || 'lane')}</p>
         <h2 class="inspector-selected-title">${escapeHtml(inspector.title || lane.label)}</h2>
         <p>${escapeHtml(inspector.summary || '')}</p>
       </header>
+      <section class="inspector-block inspector-commands">
+        <h3>Available actions</h3>
+        <p>${escapeHtml(inspector.safeNext || 'Review context and keep actions in draft or proposal mode.')}</p>
+        ${state.laneId === 'inbox' && state.threadId ? `
+          <div class="inbox-action-toolbar" role="toolbar" aria-label="Thread actions">
+            <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" data-thread-id="${escapeHtml(state.threadId)}" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(state.threadId)}">Mark read</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="defer-thread" data-thread-id="${escapeHtml(state.threadId)}">Defer</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(state.threadId)}">Add task</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="calendar-proposal" data-thread-id="${escapeHtml(state.threadId)}">Schedule</button>
+          </div>
+        ` : ''}
+        <div class="inspector-ibal-actions">
+          <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Execute blocked</button>
+        </div>
+      </section>
       ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
       ${renderInspectorBlock('Why it matters', inspector.why || 'Context helps determine the next safe action without runtime writes.')}
       ${renderInspectorBlock('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.')}
@@ -3852,10 +3923,6 @@ function renderInspector() {
       </section>
       ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || selectedIbalProposal()?.recommendation || 'Ibal proposes only in this preview and cannot execute actions.')}
       ${renderInspectorBlock('Receipt expectation', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.')}
-      <div class="inspector-ibal-actions">
-        <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
-        <button class="inbox-action-btn is-blocked" type="button" disabled>Execute blocked</button>
-      </div>
     </aside>
   `;
 }
@@ -4013,11 +4080,12 @@ function renderIbalConciergeDrawer() {
 function renderShell() {
   const mount = document.getElementById('inboxPreviewMount');
   if (!mount) return;
+  syncMailboxThreadSelection();
 
   mount.innerHTML = `
     <section class="app-shell" aria-label="xi-io Inbox unified app shell">
       ${renderTopBar()}
-      <section class="app-frame">
+      <section class="app-frame ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
         ${renderNavigation()}
         ${renderMainLane()}
         ${renderInspector()}
@@ -4337,7 +4405,15 @@ function handleCalendarAction(action, proposalId, focusId) {
   }
 }
 
-function handleInboxAction(action, threadId) {
+function handleInboxAction(action, threadId, mailboxView) {
+  if (action === 'select-mailbox-view') {
+    if (!mailboxView) return;
+    state.inbox.mailboxView = mailboxView;
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'toggle-compose') {
     state.inbox.composeOpen = !state.inbox.composeOpen;
     if (state.inbox.composeOpen) state.inbox.replyOpen = false;
@@ -4564,7 +4640,7 @@ function bindEvents() {
     const inboxAction = event.target.closest?.('[data-inbox-action]');
     if (inboxAction?.dataset.inboxAction && !['compose-save', 'reply-save'].includes(inboxAction.dataset.inboxAction)) {
       event.preventDefault();
-      handleInboxAction(inboxAction.dataset.inboxAction, inboxAction.dataset.threadId);
+      handleInboxAction(inboxAction.dataset.inboxAction, inboxAction.dataset.threadId, inboxAction.dataset.mailboxView);
       return;
     }
 

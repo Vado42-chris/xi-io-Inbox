@@ -160,7 +160,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-007A state reconciliation + draft workbench architecture (docs only).
 - [ ] Operator push UI-006 commits (6 ahead of remote) + PR #12 body sync.
 - [ ] Owner completes UI-003E visual checklist in proof packet (post UI-006 sign-off).
-- [ ] UI-007B Drafts / Approval Queue workbench (blocked until push + GATE-DRAFT-WORKBENCH-001).
+- [x] UI-007B-R1 four-column mail shell (folders in left nav, list|reading center, context rail).
+- [ ] UI-007B-R2 Drafts / Approval Queue workbench (real draft objects).
 - [ ] `xi-io.net#239` framework freshness after UI-007B patterns stable.
 - [ ] Merge-prep final after owner UI-003E PASS.
 
