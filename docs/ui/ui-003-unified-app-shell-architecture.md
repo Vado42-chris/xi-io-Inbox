@@ -484,6 +484,38 @@ Next slice:
 UI-003E: owner/framework visual proof recording and merge-readiness decision.
 ```
 
+## Post-UI-003D Owner Visual Review
+
+Owner screenshot review on 2026-06-10 found that the shell is structurally useful but not visually competitive.
+
+Result:
+
+```text
+UI-003D readiness smoke: pass
+Owner visual polish review: fail
+UI-003E visual proof recording: blocked
+UI-004 polish planning: required
+```
+
+Required UI-004 planning docs:
+
+- `docs/ui/polish/ui-004-polish-standards.md`
+- `docs/ui/polish/home.md`
+- `docs/ui/polish/inbox.md`
+- `docs/ui/polish/calendar.md`
+- `docs/ui/polish/tasks.md`
+- `docs/ui/polish/automations.md`
+- `docs/ui/polish/extensions.md`
+- `docs/ui/polish/receipts.md`
+- `docs/ui/polish/ibal.md`
+- `docs/ui/polish/settings-provider-gates.md`
+
+Next slice:
+
+```text
+UI-004A: shared visual system implementation.
+```
+
 ## Decision value
 
 `UI_003_UNIFIED_APP_SHELL_ARCHITECTURE_REQUIRED_BEFORE_UI_002_CAN_PASS`

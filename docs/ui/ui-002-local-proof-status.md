@@ -9,11 +9,14 @@ Track the local browser smoke proof and owner/framework UX review status for PR 
 ```text
 Technical render smoke proof: PASSED by local owner/Codex/Zed preview
 Owner/framework UX review: FAILED on 2026-06-09
+Owner visual polish review: FAILED on 2026-06-10
 Local visual proof complete: NO
 PR #12 merge readiness: BLOCKED
 ```
 
 UI-003D readiness triage passed on 2026-06-10. This means the redesigned shell is ready for owner/framework visual proof recording, not that visual proof is complete.
+
+Owner screenshot review on 2026-06-10 found that the redesigned shell is still not competitive with Microsoft, Google, Samsung, and other high-polish product surfaces. UI-004 page polish planning is required before visual proof can pass.
 
 ## Scope correction
 
@@ -56,7 +59,7 @@ Do not mark UI-002 visual proof complete.
 
 Keep PR #12 draft.
 
-The next UI work must replace the current preview with a framework-compliant unified app shell or consume real framework exports once `xi-io.net#239` is resolved.
+The next UI work must follow the UI-004 polish standards and page plans before owner/framework visual proof can pass.
 
 ## Required future UI acceptance criteria
 

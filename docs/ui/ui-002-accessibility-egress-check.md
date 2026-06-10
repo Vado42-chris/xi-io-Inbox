@@ -9,6 +9,7 @@ Record the accessibility and controlled-egress status for the first static Inbox
 ```text
 Technical render smoke proof: passed locally
 Owner/framework UX review: failed on 2026-06-09
+Owner visual polish review: failed on 2026-06-10
 Merge readiness: blocked
 ```
 
@@ -75,7 +76,7 @@ xi-io.net#239
 - [x] UI-003D keyboard smoke preserves focus after Inbox thread selection with Enter and Space.
 - [ ] Framework visual language/product quality owner review for the redesigned shell is not complete.
 
-UI-003D establishes readiness for owner/framework visual review only. It does not complete final product polish or owner/framework UX proof.
+UI-003D established technical readiness for owner/framework visual review only. Owner screenshot review on 2026-06-10 failed the visual polish standard, so UI-004 polish work is required before visual proof can pass.
 
 ## Egress checks
 
@@ -106,6 +107,7 @@ A replacement preview must preserve all egress checks and additionally show:
 - UI-003D readiness smoke passed across 18 route/viewport checks at 1440x950 and 390x844, with no horizontal overflow detected.
 - Static check only validates file presence.
 - Previous visual/product review failed for the old shell.
+- Current redesigned shell visual polish review failed on 2026-06-10.
 - Local proof must not be marked complete until the redesigned shell passes owner/framework UX review.
 - Direct framework package import is not available yet.
 - `xi-io.net#239` must be treated as a real framework export blocker.

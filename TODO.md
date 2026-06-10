@@ -112,7 +112,10 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Add UI-003B lane detail fixtures and first-pass lane content density.
 - [x] Add UI-003C Inbox lane refinement so Inbox feels like email/message triage without provider integration.
 - [x] Run UI-003D redesigned shell review and visual-proof readiness triage.
-- [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision.
+- [x] Record 2026-06-10 owner screenshot review failure for visual polish.
+- [x] Add UI-004 shared polish standards and per-page polish plan docs.
+- [ ] Implement UI-004A shared visual system polish before per-page polish.
+- [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
@@ -131,4 +134,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 1 to 4 remaining passes after UI-003D, because owner/framework visual proof, merge-readiness decision, and framework freshness follow-up remain.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 8 remaining passes after UI-004 planning, because shared visual system polish, per-page polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain.
