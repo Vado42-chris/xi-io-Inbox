@@ -1519,6 +1519,96 @@ input:focus-visible {
   padding: 0 0.85rem 0.85rem;
 }
 
+.account-session-trigger {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-session-trigger:hover,
+.account-session-trigger.is-open {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.account-session-root {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+}
+
+.account-session-root.is-open {
+  pointer-events: auto;
+}
+
+.account-session-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+}
+
+.account-session-root.is-open .account-session-backdrop {
+  opacity: 1;
+}
+
+.account-session-panel {
+  position: absolute;
+  top: 4.5rem;
+  left: 1.25rem;
+  width: min(24rem, calc(100vw - 2.5rem));
+  max-height: calc(100vh - 6rem);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-strong);
+  box-shadow: 0 12px 40px var(--shadow);
+  overflow: auto;
+  transform: translateY(-0.5rem);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.account-session-root.is-open .account-session-panel {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.account-session-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.account-switch-list,
+.account-receipt-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.account-switch-row {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.account-switch-row.is-active {
+  border-color: rgba(133, 217, 155, 0.45);
+}
+
 /* UI-004E Settings / Provider Gates polish */
 .is-settings-lane .metric-card {
   box-shadow: none;

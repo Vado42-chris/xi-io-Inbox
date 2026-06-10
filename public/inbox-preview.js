@@ -21,6 +21,7 @@ const state = {
   extensions: defaultExtensionsOps(),
   settings: defaultSettingsOps(),
   ibal: defaultIbalOps(),
+  account: defaultAccountOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -87,6 +88,17 @@ function defaultIbalOps() {
   };
 }
 
+function defaultAccountOps() {
+  return {
+    open: false,
+    activeAccountId: null,
+    workspaceId: null,
+    sessionDisplayName: '',
+    sessionNotes: '',
+    receipts: [],
+  };
+}
+
 function previewStateEnvelope() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -100,6 +112,7 @@ function previewStateEnvelope() {
     extensions: state.extensions,
     settings: state.settings,
     ibal: state.ibal,
+    account: state.account,
   };
 }
 
@@ -153,6 +166,11 @@ function applyPreviewEnvelope(stored) {
     messages: stored.ibal?.messages || [],
     receipts: stored.ibal?.receipts || [],
   };
+  state.account = {
+    ...defaultAccountOps(),
+    ...(stored.account || {}),
+    receipts: stored.account?.receipts || [],
+  };
   if (state.laneId === IBAL_LEGACY_LANE) {
     state.laneId = DEFAULT_LANE;
     state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
@@ -179,6 +197,7 @@ function migratePreviewStorage() {
       extensions: defaultExtensionsOps(),
       settings: defaultSettingsOps(),
       ibal: defaultIbalOps(),
+      account: defaultAccountOps(),
     };
   }
 
@@ -195,6 +214,7 @@ function migratePreviewStorage() {
     extensions: defaultExtensionsOps(),
     settings: defaultSettingsOps(),
     ibal: defaultIbalOps(),
+    account: defaultAccountOps(),
   };
 }
 
@@ -961,6 +981,7 @@ function submitIbalPrompt(promptText) {
 
 function toggleIbalConcierge(forceOpen) {
   state.ibal.open = typeof forceOpen === 'boolean' ? forceOpen : !state.ibal.open;
+  if (state.ibal.open) state.account.open = false;
   saveState();
 }
 
@@ -979,6 +1000,98 @@ function saveIbalProposalReceipt(proposalId) {
 function clearIbalPreviewState() {
   state.ibal = defaultIbalOps();
   saveState();
+}
+
+function accountFixtures() {
+  return getPayload().accounts || [];
+}
+
+function workspaceOptions() {
+  const workspace = getPayload().workspace || {};
+  return [
+    { id: workspace.workspaceId || 'xiio-inbox-preview', label: workspace.displayName || 'Personal operations preview' },
+    { id: 'project-ops-preview', label: 'Project operations preview' },
+  ];
+}
+
+function selectedAccountFixture() {
+  const accounts = accountFixtures();
+  const activeId = state.account.activeAccountId || accounts[0]?.accountId || null;
+  return accounts.find((entry) => entry.accountId === activeId) || accounts[0] || null;
+}
+
+function activeWorkspaceLabel() {
+  const options = workspaceOptions();
+  const activeId = state.account.workspaceId || options[0]?.id || null;
+  return options.find((entry) => entry.id === activeId)?.label || options[0]?.label || 'Preview workspace';
+}
+
+function activeSessionDisplayName() {
+  return state.account.sessionDisplayName
+    || selectedAccountFixture()?.displayName
+    || getPayload().workspace?.activeAccount
+    || 'Preview account';
+}
+
+function addAccountReceipt({ type, title, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No OAuth, credentials, or real auth backend involved.',
+  };
+  state.account.receipts = [receipt, ...(state.account.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function switchPreviewAccount(accountId) {
+  const account = accountFixtures().find((entry) => entry.accountId === accountId);
+  if (!account) return;
+  state.account.activeAccountId = accountId;
+  addAccountReceipt({
+    type: 'switch',
+    title: 'Preview account switched',
+    summary: `${account.displayName} (${account.providerId}) — preview session only.`,
+  });
+  saveState();
+}
+
+function savePreviewSession(formData) {
+  const workspaceId = String(formData.get('workspaceId') || '').trim();
+  const sessionDisplayName = String(formData.get('sessionDisplayName') || '').trim();
+  const sessionNotes = String(formData.get('sessionNotes') || '').trim();
+  state.account.workspaceId = workspaceId || state.account.workspaceId;
+  state.account.sessionDisplayName = sessionDisplayName;
+  state.account.sessionNotes = sessionNotes;
+  addAccountReceipt({
+    type: 'session',
+    title: 'Preview session saved',
+    summary: `${activeWorkspaceLabel()} · ${sessionDisplayName || activeSessionDisplayName()}`,
+  });
+  saveState();
+}
+
+function toggleAccountSession(forceOpen) {
+  state.account.open = typeof forceOpen === 'boolean' ? forceOpen : !state.account.open;
+  if (state.account.open) state.ibal.open = false;
+  saveState();
+}
+
+function clearAccountPreviewState() {
+  state.account = defaultAccountOps();
+  saveState();
+}
+
+function ensureAccountDefaults() {
+  const accounts = accountFixtures();
+  if (!state.account.activeAccountId && accounts[0]) {
+    state.account.activeAccountId = accounts[0].accountId;
+  }
+  if (!state.account.workspaceId) {
+    state.account.workspaceId = workspaceOptions()[0]?.id || null;
+  }
 }
 
 function selectedIbalProposal() {
@@ -1613,10 +1726,12 @@ function renderTopBar() {
       </section>
 
       <section class="topbar-context trust-cluster" aria-label="Active workspace and trust state">
-        <div class="trust-cluster-line">
-          <span><strong>${escapeHtml(workspace.displayName || 'Preview workspace')}</strong></span>
-          <span>${escapeHtml(workspace.activeAccount || 'Preview account')}</span>
-        </div>
+        <button class="account-session-trigger ${state.account.open ? 'is-open' : ''}" type="button" data-account-action="toggle" aria-expanded="${state.account.open ? 'true' : 'false'}" aria-controls="accountSessionPanel">
+          <span class="trust-cluster-line">
+            <strong>${escapeHtml(activeWorkspaceLabel())}</strong>
+            <span>${escapeHtml(activeSessionDisplayName())}</span>
+          </span>
+        </button>
         <div class="trust-cluster-line" aria-label="Global trust tokens">
           ${renderTrustToken('provider gated', workspace.providerStatus || 'provider_blocked')}
           ${renderTrustToken('privacy local only', workspace.privacyMode || 'local_only')}
@@ -3186,6 +3301,77 @@ function renderIbalProposalCard(proposal) {
   `;
 }
 
+function renderAccountSessionPanel() {
+  const accounts = accountFixtures();
+  const workspaces = workspaceOptions();
+  const activeAccount = selectedAccountFixture();
+  const activeAccountId = activeAccount?.accountId || '';
+  const activeWorkspaceId = state.account.workspaceId || workspaces[0]?.id || '';
+  return `
+    <div class="account-session-root ${state.account.open ? 'is-open' : ''}" aria-hidden="${state.account.open ? 'false' : 'true'}">
+      <button class="account-session-backdrop" type="button" data-account-action="close" aria-label="Close account session panel"></button>
+      <aside id="accountSessionPanel" class="account-session-panel" role="dialog" aria-modal="true" aria-label="Account and session preview" tabindex="-1">
+        <header class="account-session-head">
+          <div>
+            <p class="section-eyebrow">account / session</p>
+            <h2>Preview session</h2>
+            <p>Switch workspace and account fixtures locally. No OAuth or credentials.</p>
+          </div>
+          <button class="inbox-action-btn" type="button" data-account-action="close">Close</button>
+        </header>
+        <form class="inbox-draft-form" data-account-form="session" aria-label="Preview session shell">
+          <label for="account-workspace">Workspace (preview)</label>
+          <select id="account-workspace" name="workspaceId">
+            ${workspaces.map((entry) => `
+              <option value="${escapeHtml(entry.id)}" ${entry.id === activeWorkspaceId ? 'selected' : ''}>${escapeHtml(entry.label)}</option>
+            `).join('')}
+          </select>
+          <label for="account-display-name">Session display name (preview)</label>
+          <input id="account-display-name" name="sessionDisplayName" type="text" autocomplete="off" value="${escapeHtml(state.account.sessionDisplayName || '')}" placeholder="${escapeHtml(activeAccount?.displayName || 'Preview user')}" />
+          <label for="account-session-notes">Session notes (local)</label>
+          <textarea id="account-session-notes" name="sessionNotes" rows="2">${escapeHtml(state.account.sessionNotes || '')}</textarea>
+          <p class="form-hint">Planning labels only. No passwords, tokens, or OAuth secrets stored.</p>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit" data-account-action="session-save">Save preview session</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Sign in blocked</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>OAuth blocked</button>
+          </div>
+        </form>
+        <section class="account-switch-list" aria-label="Preview account fixtures">
+          <h3>Account fixtures (${accounts.length})</h3>
+          ${accounts.map((account) => `
+            <article class="account-switch-row ${account.accountId === activeAccountId ? 'is-active' : ''}">
+              <div>
+                <strong>${escapeHtml(account.displayName)}</strong>
+                <p>${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))} · ${escapeHtml(account.privacyProfile)}</p>
+                <span class="form-hint">unread ${account.counts?.unread ?? 0} · needs reply ${account.counts?.needsReply ?? 0}</span>
+              </div>
+              <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
+                ${account.accountId === activeAccountId ? 'Active preview' : 'Switch preview account'}
+              </button>
+            </article>
+          `).join('')}
+        </section>
+        <section class="account-receipt-list" aria-label="Account session receipts">
+          <h3>Local receipts (${(state.account.receipts || []).length})</h3>
+          ${(state.account.receipts || []).length
+    ? (state.account.receipts || []).map((receipt) => `
+              <article class="local-receipt-row">
+                <header><strong>${escapeHtml(receipt.title)}</strong><span>${escapeHtml(label(receipt.type))} · local receipt</span></header>
+                <p>${escapeHtml(receipt.summary)}</p>
+                <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+              </article>
+            `).join('')
+    : '<p class="form-hint">Session and account-switch receipts appear after you save or switch.</p>'}
+        </section>
+        <div class="inbox-clear-control">
+          <button class="inbox-action-btn is-danger" type="button" data-account-action="clear-all">Clear account session preview state</button>
+        </div>
+      </aside>
+    </div>
+  `;
+}
+
 function renderIbalConciergeDrawer() {
   const messages = state.ibal.messages || [];
   const selected = selectedIbalProposal();
@@ -3254,12 +3440,41 @@ function renderShell() {
         ${renderInspector()}
       </section>
     </section>
+    ${renderAccountSessionPanel()}
     ${renderIbalConciergeDrawer()}
   `;
 }
 
+function handleAccountAction(action, accountId) {
+  if (action === 'toggle') {
+    toggleAccountSession();
+    renderShell();
+    if (state.account.open) document.getElementById('accountSessionPanel')?.focus();
+    return;
+  }
+  if (action === 'close') {
+    toggleAccountSession(false);
+    renderShell();
+    return;
+  }
+  if (action === 'switch-account') {
+    switchPreviewAccount(accountId);
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all account session preview state? Lane operability data is preserved.')) {
+      clearAccountPreviewState();
+      ensureAccountDefaults();
+      saveState();
+      renderShell();
+    }
+  }
+}
+
 function handleIbalAction(action, proposalId) {
   if (action === 'toggle' || action === 'toggle-open') {
+    state.account.open = false;
     toggleIbalConcierge(true);
     renderShell();
     document.getElementById('ibalConciergeDrawer')?.focus();
@@ -3452,6 +3667,14 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const accountForm = event.target.closest?.('[data-account-form]');
+    if (accountForm) {
+      event.preventDefault();
+      savePreviewSession(new FormData(accountForm));
+      renderShell();
+      return;
+    }
+
     const ibalForm = event.target.closest?.('[data-ibal-form]');
     if (ibalForm) {
       event.preventDefault();
@@ -3533,6 +3756,13 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const accountAction = event.target.closest?.('[data-account-action]');
+    if (accountAction?.dataset.accountAction && accountAction.dataset.accountAction !== 'session-save') {
+      event.preventDefault();
+      handleAccountAction(accountAction.dataset.accountAction, accountAction.dataset.accountId);
+      return;
+    }
+
     const ibalAction = event.target.closest?.('[data-ibal-action]');
     if (ibalAction?.dataset.ibalAction && ibalAction.dataset.ibalAction !== 'submit') {
       event.preventDefault();
@@ -3598,6 +3828,11 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.account.open) {
+      toggleAccountSession(false);
+      renderShell();
+      return;
+    }
     if (event.key === 'Escape' && state.ibal.open) {
       toggleIbalConcierge(false);
       renderShell();
@@ -3615,6 +3850,8 @@ function bindEvents() {
 async function init() {
   loadState();
   state.payload = await fetchJson(DATA_URL, {});
+  ensureAccountDefaults();
+  saveState();
   state.threadId = selectedInboxThread()?.id || state.threadId;
   state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);
   ensureRoute();
