@@ -37,7 +37,9 @@ Map mature `xi-io.net` framework UI patterns to future `xi-io Inbox` runtime sur
 | --- | --- | --- |
 | `inbox` | default incoming stream | Workbench stream view |
 | `needs_reply` | user action required | quick filter / lifecycle state |
-| `drafts` | AI/user drafts awaiting review | event cards + action panel |
+| `drafts` | First-class draft objects (schema v3) | XiDraftObject + mail workbench list/editor |
+| `approval_queue` | Human approve-before-send | XiApprovalQueue + batch rail mode |
+| `sent_events` | Simulated send ledger (Tier 1) | XiSendEventDryRun + receipt ledger rows |
 | `tasks` | task proposals from messages | event chain / closure panel |
 | `calendar` | deadlines and schedule proposals | event stream + future Calendar shell |
 | `exports` | archive/export packets | evidence/context panel |

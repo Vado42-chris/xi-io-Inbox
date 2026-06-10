@@ -206,6 +206,17 @@ Report after page polish:
 - source evidence,
 - cross-lane links.
 
+Report after UI-007 draft workbench (2026-06-10, local Tier 1):
+
+- XiMailWorkbench — 4-column mail shell with independent scroll panes,
+- XiDraftObject — schema v3 `drafts` namespace with status model,
+- XiApprovalQueue — submit/approve/dequeue with send blocked,
+- XiContextCommandRail — thread/draft/batch/sent modes; evidence collapsed,
+- XiSendEventDryRun — `sentEvents` namespace + simulate-send receipts,
+- XiPostSendPlan — pre-send checks and post-send consequence preview.
+
+Backfeed recorded: `xi-io.net` `docs/framework/inbox-ui-consumer-freshness-note.md`, issue `xi-io.net#239`.
+
 ## Acceptance
 
 This plan is valid when:
