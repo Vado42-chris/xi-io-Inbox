@@ -1069,12 +1069,13 @@ input:focus-visible {
 }
 
 @media (max-width: 1100px) {
-  .inbox-workspace-grid {
-    grid-template-columns: 10rem minmax(0, 1fr);
+  .inbox-workspace-grid,
+  .mail-workbench-center {
+    grid-template-columns: 1fr;
   }
 
-  .inbox-reading-pane {
-    grid-column: 1 / -1;
+  .inbox-reading-pane,
+  .mail-reading-pane {
     max-height: none;
   }
 }
