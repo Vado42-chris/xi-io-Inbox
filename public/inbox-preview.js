@@ -43,6 +43,7 @@ function defaultCalendarOps() {
     selectedProposalId: null,
     proposals: [],
     receipts: [],
+    formOpen: false,
   };
 }
 
@@ -459,6 +460,7 @@ function saveCalendarProposal(formData, proposalId) {
     state.focusId = `calendar:local:${id}`;
     setStatusMessage('Local calendar proposal created. Provider calendar write remains blocked.', 'calendar');
   }
+  state.calendar.formOpen = false;
   saveState();
 }
 
@@ -2289,68 +2291,155 @@ function renderCalendarLocalReceipts(proposalId) {
   `).join('');
 }
 
-function renderCalendarOperabilityPanel() {
-  const selected = selectedCalendarProposal();
-  const proposals = allCalendarProposals();
-  const proposalId = selected?.id || '';
+function calendarAgendaFixtures() {
+  const content = activeLaneContent();
+  const section = sectionByType(content, 'agenda');
+  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
+  return (section?.items || []).map((item, index) => ({
+    focusId: `calendar:agenda:${sectionIndex}:${index}`,
+    time: item.time,
+    title: item.title,
+    summary: item.summary,
+    tags: item.tags || [],
+  }));
+}
+
+function calendarConflictFixtures() {
+  return sectionByType(activeLaneContent(), 'conflict-panel')?.items || [];
+}
+
+function renderCalendarProposalForm(proposalId) {
+  const selected = proposalId
+    ? allCalendarProposals().find((entry) => entry.id === proposalId)
+    : selectedCalendarProposal();
+  const id = proposalId || selected?.id || '';
   return `
-    <section class="lane-section calendar-operability-panel" aria-label="Calendar local operability">
-      <header class="section-head">
-        <div>
-          <p class="section-eyebrow">local operability</p>
-          <h3>Event proposal controls</h3>
-          <p>Create and edit local preview proposals only. No provider calendar write.</p>
-        </div>
-        <span class="draft-proposal-state">local preview proposal</span>
-      </header>
-      <div id="calendarStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'calendar' ? state.statusMessage : 'Ready for local Calendar operability.')}</div>
-      <form class="inbox-draft-form" data-calendar-form="proposal" aria-label="Local calendar event proposal">
-        <input type="hidden" name="proposalId" value="${escapeHtml(proposalId)}" />
-        <h4 id="calendar-proposal-label">${proposalId ? 'Edit local calendar proposal' : 'New local calendar proposal'}</h4>
-        <label for="calendar-title">Event title (preview)</label>
-        <input id="calendar-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
-        <label for="calendar-datetime">Date/time text (preview)</label>
-        <input id="calendar-datetime" name="dateTime" type="text" autocomplete="off" value="${escapeHtml(selected?.dateTime || '')}" placeholder="e.g. Jun 10, 2:00 PM" />
-        <label for="calendar-notes">Notes (local preview only)</label>
-        <textarea id="calendar-notes" name="notes" rows="3" aria-describedby="calendar-proposal-hint">${escapeHtml(selected?.notes || '')}</textarea>
-        <label for="calendar-source-ref">Source reference (preview)</label>
-        <input id="calendar-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" placeholder="fixture ref or inbox-thread:id" />
-        <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'calendar_local')}" />
-        <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
-        <p id="calendar-proposal-hint" class="form-hint">Local preview proposal. Not scheduled on provider. Source may be fixture or inbox-local.</p>
-        <div class="inbox-form-actions">
-          <button class="inbox-action-btn is-primary" type="submit" data-calendar-action="proposal-save">${proposalId ? 'Update local proposal' : 'Save local proposal'}</button>
-          ${proposalId ? `<button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(proposalId)}">Clear selected proposal</button>` : ''}
-          <button class="inbox-action-btn is-blocked" type="button" disabled aria-describedby="calendar-write-blocked">Provider calendar write blocked</button>
-        </div>
-        <p id="calendar-write-blocked" class="form-hint">Invite send, provider sync, and runtime scheduling remain blocked.</p>
-      </form>
-      <div class="calendar-local-proposal-list" aria-label="Local calendar proposals">
-        <h4>Local proposals (${proposals.length})</h4>
-        ${proposals.length ? proposals.map((proposal) => `
-          <button class="calendar-proposal-row is-inspector-focusable ${proposal.id === proposalId ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(`calendar:local:${proposal.id}`)}" data-calendar-action="select-proposal" data-proposal-id="${escapeHtml(proposal.id)}" aria-pressed="${proposal.id === proposalId ? 'true' : 'false'}">
-            <div>
-              <strong>${escapeHtml(proposal.title)}</strong>
-              <p>${escapeHtml(proposal.notes || '')}</p>
-            </div>
-            <div class="calendar-proposal-meta">
-              <span>${escapeHtml(proposal.sourceRef || 'no source ref')}</span>
-              <em>${escapeHtml(label(proposal.sourceType || 'calendar_local'))}</em>
-            </div>
-          </button>
-        `).join('') : '<p class="form-hint">No local proposals yet. Create one or use Inbox triage to add inbox-linked proposals.</p>'}
+    <form class="inbox-draft-form" data-calendar-form="proposal" aria-label="Event proposal">
+      <input type="hidden" name="proposalId" value="${escapeHtml(id)}" />
+      <label for="calendar-title">Title</label>
+      <input id="calendar-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
+      <label for="calendar-datetime">When</label>
+      <input id="calendar-datetime" name="dateTime" type="text" autocomplete="off" value="${escapeHtml(selected?.dateTime || '')}" placeholder="e.g. Jun 10, 2:00 PM" />
+      <label for="calendar-notes">Notes</label>
+      <textarea id="calendar-notes" name="notes" rows="3">${escapeHtml(selected?.notes || '')}</textarea>
+      <label for="calendar-source-ref">Source</label>
+      <input id="calendar-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" />
+      <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'calendar_local')}" />
+      <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
+      <p class="form-hint">Preview only — not scheduled on a provider calendar.</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-calendar-action="proposal-save">${id ? 'Save changes' : 'Save event'}</button>
+        ${id ? `<button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(id)}">Delete</button>` : ''}
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Invite blocked</button>
       </div>
-      <article class="draft-proposal-panel">
-        <header>
-          <strong>Local receipt preview</strong>
-          <span class="draft-proposal-state">preview only</span>
+    </form>
+  `;
+}
+
+function renderCalendarEventSheet() {
+  const proposalId = state.calendar.selectedProposalId || '';
+  return `
+    <div class="lane-compose-root calendar-compose-root ${state.calendar.formOpen ? 'is-open' : ''}" aria-hidden="${state.calendar.formOpen ? 'false' : 'true'}">
+      <button class="lane-compose-backdrop" type="button" data-calendar-action="close-form" aria-label="Close"></button>
+      <section class="lane-compose-sheet" role="dialog" aria-modal="true" aria-label="New or edit event">
+        <header class="lane-compose-head">
+          <h3>${proposalId ? 'Edit event' : 'New event'}</h3>
+          <button class="inbox-action-btn" type="button" data-calendar-action="close-form">Close</button>
         </header>
-        ${renderCalendarLocalReceipts(proposalId)}
-      </article>
-      <div class="inbox-clear-control">
-        <button class="inbox-action-btn is-danger" type="button" data-calendar-action="clear-all">Clear all local Calendar preview state</button>
+        ${renderCalendarProposalForm(proposalId)}
+      </section>
+    </div>
+  `;
+}
+
+function renderCalendarReadingPane() {
+  const proposals = allCalendarProposals();
+  const proposal = proposals.find((entry) => entry.id === state.calendar.selectedProposalId)
+    || (state.focusId?.startsWith('calendar:local:')
+      ? proposals.find((entry) => `calendar:local:${entry.id}` === state.focusId)
+      : null);
+  const agenda = calendarAgendaFixtures().find((entry) => entry.focusId === state.focusId);
+  const conflicts = calendarConflictFixtures();
+  if (proposal) {
+    return `
+      <section class="lane-reading-pane" aria-label="Event details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(proposal.title)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(proposal.dateTime || 'No time set')} · local proposal</p>
+          </div>
+        </header>
+        <p>${escapeHtml(proposal.notes || 'No notes.')}</p>
+        <p class="form-hint">Source: ${escapeHtml(proposal.sourceRef || 'none')}</p>
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-calendar-action="edit-event" data-proposal-id="${escapeHtml(proposal.id)}">Edit</button>
+          <button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(proposal.id)}">Delete</button>
+        </div>
+        ${(state.calendar.receipts || []).filter((r) => r.proposalId === proposal.id).length ? `
+          <details class="lane-reading-details">
+            <summary>Receipts</summary>
+            ${renderCalendarLocalReceipts(proposal.id)}
+          </details>
+        ` : ''}
+      </section>
+    `;
+  }
+  if (agenda) {
+    return `
+      <section class="lane-reading-pane" aria-label="Event details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(agenda.title)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(agenda.time)} · preview fixture</p>
+          </div>
+        </header>
+        <p>${escapeHtml(agenda.summary)}</p>
+        ${agenda.tags.length ? `<p class="form-hint">${agenda.tags.map((tag) => escapeHtml(label(tag))).join(' · ')}</p>` : ''}
+        ${conflicts.length ? `
+          <details class="lane-reading-details">
+            <summary>Scheduling notes</summary>
+            ${conflicts.map((item) => `<p><strong>${escapeHtml(item.title)}</strong> — ${escapeHtml(item.summary)}</p>`).join('')}
+          </details>
+        ` : ''}
+      </section>
+    `;
+  }
+  return `<section class="lane-reading-pane is-empty" aria-label="Event details"><p class="lane-empty-state">Select an event or create one.</p></section>`;
+}
+
+function renderCalendarWorkspace() {
+  const proposals = allCalendarProposals();
+  const agenda = calendarAgendaFixtures();
+  const selectedId = state.calendar.selectedProposalId;
+  return `
+    <div class="lane-workspace calendar-workspace">
+      <div class="lane-toolbar" role="toolbar" aria-label="Calendar actions">
+        <button class="inbox-action-btn is-primary" type="button" data-calendar-action="new-event">New event</button>
+        <div id="calendarStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'calendar' ? state.statusMessage : '')}</div>
+        <details class="lane-toolbar-overflow">
+          <summary>More</summary>
+          <button class="inbox-action-btn is-danger" type="button" data-calendar-action="clear-all">Clear local calendar state</button>
+        </details>
       </div>
-    </section>
+      <div class="lane-workspace-grid calendar-workspace-grid">
+        <div class="calendar-event-list" aria-label="Agenda">
+          ${proposals.map((proposal) => `
+            <button class="calendar-agenda-row ${proposal.id === selectedId ? 'is-selected' : ''}" type="button" data-calendar-action="select-proposal" data-proposal-id="${escapeHtml(proposal.id)}" data-inspector-focus="${escapeHtml(`calendar:local:${proposal.id}`)}">
+              <time>${escapeHtml(proposal.dateTime || '—')}</time>
+              <div><strong>${escapeHtml(proposal.title)}</strong><p>${escapeHtml(proposal.notes || '')}</p></div>
+            </button>
+          `).join('')}
+          ${agenda.map((item) => `
+            <button class="calendar-agenda-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-calendar-action="select-agenda" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
+              <time>${escapeHtml(item.time)}</time>
+              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.summary)}</p></div>
+            </button>
+          `).join('')}
+        </div>
+        ${renderCalendarReadingPane()}
+      </div>
+      ${renderCalendarEventSheet()}
+    </div>
   `;
 }
 
@@ -3136,32 +3225,32 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${lane.id === 'inbox' ? ' is-compact' : ''}">
+      <header class="lane-header${['inbox', 'calendar'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
-          ${lane.id === 'inbox' ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
-          <h2>${escapeHtml(lane.id === 'inbox' ? 'Inbox' : (content.title || lane.label))}</h2>
-          ${lane.id === 'inbox' ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
+          ${['inbox', 'calendar'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml(lane.id === 'inbox' ? 'Inbox' : lane.id === 'calendar' ? 'Calendar' : (content.title || lane.label))}</h2>
+          ${['inbox', 'calendar'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${lane.id === 'inbox' ? '' : `
+        ${['inbox', 'calendar'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>`}
       </header>
 
-      ${lane.id === 'inbox' ? '' : `
+      ${['inbox', 'calendar'].includes(lane.id) ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>`}
 
       <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
         ${lane.id === 'inbox' ? renderInboxWorkspace() : ''}
-        ${lane.id === 'calendar' ? renderCalendarOperabilityPanel() : ''}
+        ${lane.id === 'calendar' ? renderCalendarWorkspace() : ''}
         ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
         ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
         ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
         ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
-        ${lane.id === 'inbox' ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${['inbox', 'calendar'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -3736,9 +3825,39 @@ function handleTasksAction(action, taskId, status) {
   }
 }
 
-function handleCalendarAction(action, proposalId) {
+function handleCalendarAction(action, proposalId, focusId) {
+  if (action === 'new-event') {
+    state.calendar.selectedProposalId = null;
+    state.calendar.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'edit-event') {
+    if (proposalId) state.calendar.selectedProposalId = proposalId;
+    state.calendar.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-form') {
+    state.calendar.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-agenda') {
+    if (!focusId) return;
+    state.focusId = focusId;
+    state.calendar.selectedProposalId = null;
+    state.calendar.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'proposal-clear') {
     clearCalendarProposal(proposalId);
+    state.calendar.formOpen = false;
     renderShell();
     return;
   }
@@ -3746,6 +3865,7 @@ function handleCalendarAction(action, proposalId) {
     if (!proposalId) return;
     state.calendar.selectedProposalId = proposalId;
     state.focusId = `calendar:local:${proposalId}`;
+    state.calendar.formOpen = false;
     saveState();
     renderShell();
     return;
@@ -3965,7 +4085,11 @@ function bindEvents() {
     const calendarAction = event.target.closest?.('[data-calendar-action]');
     if (calendarAction?.dataset.calendarAction && calendarAction.dataset.calendarAction !== 'proposal-save') {
       event.preventDefault();
-      handleCalendarAction(calendarAction.dataset.calendarAction, calendarAction.dataset.proposalId);
+      handleCalendarAction(
+        calendarAction.dataset.calendarAction,
+        calendarAction.dataset.proposalId,
+        calendarAction.dataset.focusId,
+      );
       return;
     }
 
@@ -3988,6 +4112,12 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.calendar.formOpen) {
+      state.calendar.formOpen = false;
+      saveState();
+      renderShell();
+      return;
+    }
     if (event.key === 'Escape' && state.inbox.composeOpen) {
       state.inbox.composeOpen = false;
       saveState();

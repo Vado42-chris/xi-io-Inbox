@@ -526,13 +526,16 @@ input:focus-visible {
   grid-template-columns: 15rem minmax(0, 1fr);
 }
 
-.inbox-workspace {
+.inbox-workspace,
+.lane-workspace,
+.calendar-workspace {
   display: grid;
   gap: 0.65rem;
   min-height: 28rem;
 }
 
-.inbox-toolbar {
+.inbox-toolbar,
+.lane-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -558,7 +561,9 @@ input:focus-visible {
   font-size: 0.82rem;
 }
 
-.inbox-workspace-grid {
+.inbox-workspace-grid,
+.lane-workspace-grid,
+.calendar-workspace-grid {
   display: grid;
   grid-template-columns: 11rem minmax(14rem, 0.9fr) minmax(0, 1.4fr);
   gap: 0.65rem;
@@ -566,7 +571,8 @@ input:focus-visible {
   align-items: stretch;
 }
 
-.inbox-reading-pane {
+.inbox-reading-pane,
+.lane-reading-pane {
   display: grid;
   gap: 0.65rem;
   align-content: start;
@@ -578,17 +584,20 @@ input:focus-visible {
   max-height: calc(100vh - 14rem);
 }
 
-.inbox-reading-pane.is-empty {
+.inbox-reading-pane.is-empty,
+.lane-reading-pane.is-empty {
   place-content: center;
   color: var(--muted);
 }
 
-.inbox-empty-state {
+.inbox-empty-state,
+.lane-empty-state {
   margin: 0;
   text-align: center;
 }
 
-.inbox-reading-head {
+.inbox-reading-head,
+.lane-reading-head {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
@@ -602,7 +611,8 @@ input:focus-visible {
   font-size: 1.05rem;
 }
 
-.inbox-reading-meta {
+.inbox-reading-meta,
+.lane-reading-meta {
   margin: 0.25rem 0 0;
   color: var(--muted);
   font-size: 0.82rem;
@@ -621,7 +631,8 @@ input:focus-visible {
   background: rgba(255, 255, 255, 0.02);
 }
 
-.inbox-reading-details {
+.inbox-reading-details,
+.lane-reading-details {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.45rem 0.65rem;
@@ -645,25 +656,29 @@ input:focus-visible {
   margin: 0 0 0.35rem;
 }
 
-.inbox-compose-root {
+.inbox-compose-root,
+.lane-compose-root {
   position: fixed;
   inset: 0;
   z-index: 45;
   pointer-events: none;
 }
 
-.inbox-compose-root.is-open {
+.inbox-compose-root.is-open,
+.lane-compose-root.is-open {
   pointer-events: auto;
 }
 
-.inbox-compose-backdrop {
+.inbox-compose-backdrop,
+.lane-compose-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
   background: rgba(0, 0, 0, 0.5);
 }
 
-.inbox-compose-sheet {
+.inbox-compose-sheet,
+.lane-compose-sheet {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -678,7 +693,8 @@ input:focus-visible {
   box-shadow: 0 16px 48px var(--shadow);
 }
 
-.inbox-compose-head {
+.inbox-compose-head,
+.lane-compose-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -699,8 +715,57 @@ input:focus-visible {
   font-size: 1.15rem;
 }
 
-.is-inbox-lane.lane-content {
+.is-inbox-lane.lane-content,
+.is-calendar-lane.lane-content {
   padding-top: 0.35rem;
+}
+
+.calendar-workspace-grid {
+  grid-template-columns: minmax(14rem, 0.95fr) minmax(0, 1.4fr);
+}
+
+.calendar-event-list {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  overflow: auto;
+  max-height: calc(100vh - 14rem);
+}
+
+.calendar-agenda-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-agenda-row.is-selected {
+  border-color: rgba(105, 210, 255, 0.7);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.calendar-agenda-row time {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.calendar-agenda-row p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.lane-toolbar-overflow,
+.inbox-toolbar-overflow {
+  margin-left: auto;
 }
 
 .thread-list-panel {
