@@ -11,7 +11,7 @@ UI-002 technical render smoke proof: passed
 UI-002 owner/framework UX review: failed on 2026-06-09
 UI-003 tracker: xi-io-Inbox#14
 Direct framework export blocker: xi-io.net#239
-Implementation status: UI-003C Inbox lane refinement implemented
+Implementation status: UI-003D redesigned shell readiness triage complete
 ```
 
 ## Decision
@@ -438,6 +438,50 @@ Next slice:
 
 ```text
 UI-003D: redesigned shell review and visual-proof readiness triage.
+```
+
+## UI-003D Readiness Triage
+
+UI-003D reviews the redesigned shell for readiness to enter owner/framework visual proof. It does not mark visual proof complete.
+
+Readiness findings:
+
+- redesigned shell is ready for owner/framework visual review,
+- old rail / stream / context-only preview should not be revived,
+- PR #12 must remain draft until owner/framework visual proof passes,
+- direct framework export/package reuse remains blocked by `xi-io.net#239`,
+- platform/runtime work remains blocked by `ARCH-004`,
+- focus preservation was fixed for Inbox thread selection after keyboard smoke found focus loss on re-render.
+
+Validation recorded during UI-003D:
+
+```text
+npm run check: pass
+desktop/mobile route readiness smoke: pass
+routes checked: 18
+desktop viewport: 1440x950
+mobile viewport: 390x844
+navigation count per route: 9
+active navigation item per route: 1
+minimum sections per route: 2
+right inspector visible per route: yes
+minimum disabled egress controls per route: 8
+Inbox disabled controls: 16
+horizontal overflow: none detected
+external requests during readiness smoke: 0
+Inbox keyboard selection with Enter/Space: pass
+Inbox focus preservation after selection: pass
+```
+
+Framework freshness note for `xi-io.net#239`:
+
+- candidate reusable primitives observed: app top bar, lane navigation, safety banner, route-aware lane surface, right inspector, disabled egress action list, status pills, and focus-preserving selectable list behavior,
+- direct import remains blocked; continue adapted-copy path until stable framework exports exist.
+
+Next slice:
+
+```text
+UI-003E: owner/framework visual proof recording and merge-readiness decision.
 ```
 
 ## Decision value

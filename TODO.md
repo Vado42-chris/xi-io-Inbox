@@ -111,7 +111,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Implement UI-003A unified app shell skeleton with lane navigation, hash routes, right inspector, and safety banner.
 - [x] Add UI-003B lane detail fixtures and first-pass lane content density.
 - [x] Add UI-003C Inbox lane refinement so Inbox feels like email/message triage without provider integration.
-- [ ] Run UI-003D redesigned shell review and visual-proof readiness triage.
+- [x] Run UI-003D redesigned shell review and visual-proof readiness triage.
+- [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
@@ -130,4 +131,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 2 to 5 remaining passes after UI-003C, because redesigned shell review, visual proof, and framework freshness remain.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 1 to 4 remaining passes after UI-003D, because owner/framework visual proof, merge-readiness decision, and framework freshness follow-up remain.

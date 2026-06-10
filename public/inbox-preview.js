@@ -158,6 +158,7 @@ function selectInboxThread(threadId) {
   state.threadId = threadId;
   saveState();
   renderShell();
+  document.querySelector(`[data-thread-id="${CSS.escape(threadId)}"]`)?.focus({ preventScroll: true });
 }
 
 function renderTopBar() {

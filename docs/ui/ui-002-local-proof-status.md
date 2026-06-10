@@ -13,6 +13,8 @@ Local visual proof complete: NO
 PR #12 merge readiness: BLOCKED
 ```
 
+UI-003D readiness triage passed on 2026-06-10. This means the redesigned shell is ready for owner/framework visual proof recording, not that visual proof is complete.
+
 ## Scope correction
 
 This receipt is not a product-quality pass.
@@ -80,6 +82,20 @@ PR #12 remains draft.
 After redesign, a new local proof may be recorded only if the redesigned preview satisfies both technical smoke proof and owner/framework UX review.
 
 Product/runtime testing remains blocked by `ARCH-004`.
+
+## UI-003D readiness receipt
+
+```text
+npm run check: pass
+desktop/mobile route readiness smoke: pass
+routes checked: 18
+viewports checked: 1440x950 and 390x844
+horizontal overflow: none detected
+external requests: 0
+Inbox keyboard selection: pass
+Inbox focus preservation: pass
+owner/framework visual proof complete: NO
+```
 
 ## Decision value
 
