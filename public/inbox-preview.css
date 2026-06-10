@@ -662,11 +662,20 @@ input:focus-visible {
   inset: 0;
   z-index: 45;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .inbox-compose-root.is-open,
 .lane-compose-root.is-open {
   pointer-events: auto;
+  visibility: visible;
+}
+
+.inbox-compose-root:not(.is-open) .inbox-compose-backdrop,
+.inbox-compose-root:not(.is-open) .inbox-compose-sheet,
+.lane-compose-root:not(.is-open) .lane-compose-backdrop,
+.lane-compose-root:not(.is-open) .lane-compose-sheet {
+  display: none;
 }
 
 .inbox-compose-backdrop,

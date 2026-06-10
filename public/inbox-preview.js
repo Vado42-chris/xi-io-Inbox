@@ -107,17 +107,23 @@ function defaultAccountOps() {
 }
 
 function previewStateEnvelope() {
+  const { composeOpen, replyOpen, ...inboxPersist } = state.inbox;
+  const { formOpen: calendarFormOpen, ...calendarPersist } = state.calendar;
+  const { formOpen: tasksFormOpen, ...tasksPersist } = state.tasks;
+  const { formOpen: automationsFormOpen, ...automationsPersist } = state.automations;
+  const { formOpen: extensionsFormOpen, ...extensionsPersist } = state.extensions;
+  const { formOpen: settingsFormOpen, ...settingsPersist } = state.settings;
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
     laneId: state.laneId,
     threadId: state.threadId,
     focusId: state.focusId,
-    inbox: state.inbox,
-    calendar: state.calendar,
-    tasks: state.tasks,
-    automations: state.automations,
-    extensions: state.extensions,
-    settings: state.settings,
+    inbox: inboxPersist,
+    calendar: calendarPersist,
+    tasks: tasksPersist,
+    automations: automationsPersist,
+    extensions: extensionsPersist,
+    settings: settingsPersist,
     ibal: state.ibal,
     account: state.account,
   };
@@ -182,6 +188,14 @@ function applyPreviewEnvelope(stored) {
     state.laneId = DEFAULT_LANE;
     state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
   }
+  // Ephemeral UI chrome — do not restore open modals/sheets from storage.
+  state.inbox.composeOpen = false;
+  state.inbox.replyOpen = false;
+  state.calendar.formOpen = false;
+  state.tasks.formOpen = false;
+  state.automations.formOpen = false;
+  state.extensions.formOpen = false;
+  state.settings.formOpen = false;
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
 }
