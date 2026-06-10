@@ -12,7 +12,8 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 | --- | --- | --- | --- |
 | GATE-UI-WARGAME-001 | UI-004A.6 simulated wargame | complete | `docs/ui/reviews/ui-004a6-wargame-review.md` |
 | GATE-UI-IMPLEMENT-001 | UI-004B shell polish | ready for bounded repair scope | `docs/product/04-build-readiness-gates.md` |
-| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | blocked | `docs/ui/ui-002-local-proof-status.md` |
+| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | partial (post UI-006 re-review pending) | `docs/ui/ui-002-local-proof-status.md` |
+| GATE-DRAFT-WORKBENCH-001 | Draft workbench architecture | partial (docs complete; UI-007B blocked) | `docs/ui/ui-007-draft-workbench-architecture.md` |
 | GATE-RUNTIME-001 | Pass 4 runtime skeleton | blocked | `docs/architecture/platform-runtime-decision-matrix.md` |
 | GATE-ANDROID-001 | Android mail spine build proof | pending | `docs/operations/cursor-arch-002-build-proof-prompt.md` |
 | GATE-FRAMEWORK-001 | Direct framework UI import | blocked by `xi-io.net#239` | `docs/ui/polish/16-white-label-framework-feedback-plan.md` |
@@ -56,8 +57,9 @@ Sprint/slice work executes inside this larger phase map.
 | PHASE-02 | Android mail spine proof plan | establish candidate mail spine and build proof path | partially complete, proof pending |
 | PHASE-03 | Product delivery governance | normalize requirements, stories, gates, compliance, hydration | PLAN-001A complete |
 | PHASE-04 | UI design governance | define visual standards, wargame, and framework hooks | UI-004A.5 complete |
-| PHASE-05 | UI polish implementation | implement shell, then page-specific polish | UI-004B ready; page-specific polish blocked |
-| PHASE-06 | Owner/framework visual proof | record visual proof and merge-readiness decision | blocked |
+| PHASE-05 | UI polish implementation | implement shell, then page-specific polish | UI-004B–G, UI-005, UI-006 complete locally |
+| PHASE-05B | Draft workbench spine | re-center on draft lifecycle + approval queue | UI-007A docs complete; UI-007B pending |
+| PHASE-06 | Owner/framework visual proof | record visual proof and merge-readiness decision | partial — owner re-review pending |
 | PHASE-07 | Runtime/platform decision | decide platform, storage, secret, sync, backup, local-cloud boundaries | blocked by ARCH-004 |
 | PHASE-08 | Runtime skeleton | introduce buildable runtime code | blocked |
 | PHASE-09 | Provider/runtime integrations | connect providers and execution paths | blocked |

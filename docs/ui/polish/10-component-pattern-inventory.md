@@ -454,8 +454,30 @@ Reuse component behavior and hierarchy. Do not reuse visual templates when a lan
 - Safety/egress: Tier 1 only; runtime actions gated.
 - Polish: tool-like, not dashboard KPI row.
 
+### XiDraftWorkbench
+
+- Purpose: mail-centric shell housing inbox, drafts, approval queue, sent events.
+- Reuse UI-006 `lane-workspace` list/detail/modal inside workbench views.
+
+### XiDraftList / XiDraftEditor / XiApprovalQueue
+
+- Draft list, editor pane, and approval queue with batch selection.
+
+### XiSendConsequencePreview / XiPreSendCheckList / XiPostSendPlan
+
+- Pre-approve downstream outcome preview; checklists; post-send dry-run plan.
+
+### XiContextCommandRail
+
+- Replaces evidence-first inspector as primary right rail; modes: thread, draft, batch, sent, file, project.
+
+### XiBatchApprovalPanel / XiDraftReceiptPreview / XiProjectFilePicker
+
+- Batch risk summary, per-draft receipts, gated file picker (Tier 1 fixture refs only).
+
 ## Decision
 
 ```text
 UI_005A_COMPONENT_PATTERN_INVENTORY_EXTENDED_FOR_OPERABILITY
+UI_007A_COMPONENT_PATTERN_INVENTORY_DRAFT_WORKBENCH_ADDENDUM
 ```

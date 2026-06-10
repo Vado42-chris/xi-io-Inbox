@@ -108,7 +108,7 @@ Cognitive overload; no progressive disclosure; compose/reply/forms always visibl
 technical jargon and redundant blocked-action stacks. Other lanes likely same pattern.
 ```
 
-Follow-up: UI-006 inbox IA refactor started (3-pane workspace, compose modal, reply on demand).
+Follow-up: UI-006A–F complete (2026-06-10, commit `197f25d`). All operable lanes use compact header + list/detail workspace + modal forms. Inbox: 3-pane folders/threads/reading + compose/reply modals. Re-review required before PASS.
 
 If PASS:
 

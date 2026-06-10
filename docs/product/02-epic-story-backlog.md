@@ -163,6 +163,21 @@ Stories:
 | STORY-OPER-004 | As a user, I need local receipt preview when I save a draft or proposal, so that I can audit preview actions. | REQ-RECEIPTS-001 | receipt appended with preview provenance | no execution from receipt | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-human-operable-shell-architecture.md` |
 | STORY-OPER-005 | As a user attempting a runtime action, I need blocked escalation with gate reason, so that I understand Tier 1 vs Tier 2 boundary. | REQ-EGRESS-001, REQ-REPAIR-001 | disabled control + gate explanation | no silent fail | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-local-operability-contract.md` |
 
+### EPIC-DRAFT-001: Draft Workbench And Send-Event Spine
+
+- Goal: re-center product on draft email lifecycle, approval queue, and send-triggered downstream events.
+- User value: create/edit/save/reuse drafts; approve one or many; preview send consequences before Tier 2.
+- Out of scope: real send, provider sync, cloud file contents in Tier 1.
+- Dependencies: UI-005B drafts, UI-006 workspace IA, UI-007A architecture, REQ-INBOX-001, REQ-EGRESS-001, REQ-RECEIPTS-001.
+- Blocked by: GATE-DRAFT-WORKBENCH-001 for UI-007B; GATE-PROVIDER-001 for Tier 2.
+- Acceptance criteria: Drafts and Approval Queue first-class; right rail command modes; send dry-run only in Tier 1.
+
+| ID | Story | Status | Blocked By | Related Docs |
+| --- | --- | --- | --- | --- |
+| STORY-DRAFT-001 | As a user, I need a Drafts view listing all draft emails, so that draft work is not buried in Inbox modals. | planned | UI-007B | `docs/ui/ui-007-draft-workbench-architecture.md` |
+| STORY-DRAFT-002 | As a user, I need an approval queue with batch risk summary, so that I can approve sends deliberately. | planned | UI-007B | `docs/ui/ui-007-send-event-automation-model.md` |
+| STORY-DRAFT-003 | As a user, I need send-consequence preview before approve, so that I see calendar/task/automation outcomes. | planned | UI-007B | `docs/ui/ui-007-send-event-automation-model.md` |
+
 ### EPIC-COMPLIANCE-001: Accessibility, Privacy, Security, Egress Safety
 
 - Goal: centralize safety, privacy, accessibility, and no-silent-failure requirements.

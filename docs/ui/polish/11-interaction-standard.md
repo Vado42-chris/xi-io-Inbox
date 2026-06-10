@@ -205,8 +205,22 @@ The following remain absent or disabled:
 - Route and selection behavior can be smoke-tested without provider access.
 - Keyboard operation remains deterministic.
 
+## Draft Workbench Interactions (UI-007)
+
+- Select draft: updates main pane and right-rail `draft` mode.
+- Edit draft: save produces local receipt; send remains blocked with gate reason.
+- Approve one draft: `approval_state` → approved; show send-consequence preview (dry-run).
+- Approve batch: require shared risk summary and per-draft risk visibility.
+- Review send consequences: list calendar/task/automation/receipt outcomes before approve.
+- Apply labels/tags/folders/projects: proposal until accepted; no silent provider write.
+- Attach/link files: show provider gate; no credential storage.
+- Clear local draft state: confirm + status message.
+- Pre-send checks: checklist in rail; failures block approve proposal.
+- Post-send plan: dry-run only in Tier 1; label as simulation.
+
 ## Decision
 
 ```text
 UI_005A_INTERACTION_STANDARD_EXTENDED_FOR_LOCAL_OPERABILITY
+UI_007A_INTERACTION_STANDARD_DRAFT_WORKBENCH_ADDENDUM
 ```

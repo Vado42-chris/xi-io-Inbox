@@ -55,6 +55,35 @@ PR #12 remains draft. GATE-LOCAL-OPERABILITY-001 → pass. GATE-UI-VISUAL-001 �
 UI_003E_STRUCTURAL_VERIFICATION_PASS_OWNER_VISUAL_REVIEW_PENDING
 ```
 
+## UI-006 Merge-Prep Addendum (2026-06-10)
+
+Commit SHA: `197f25d3ff69ec6c1d597f406f2586ba7c3a9f89`
+
+| Slice | Decision |
+| --- | --- |
+| UI-006A Inbox | `UI_006A_PASS` — 3-pane workspace |
+| UI-006B Calendar | `UI_006B_PASS` |
+| UI-006C Tasks | `UI_006C_PASS` |
+| UI-006D Automations | `UI_006D_PASS` |
+| UI-006E Extensions | `UI_006E_PASS` |
+| UI-006F Settings | `UI_006F_PASS` — UI-006 lane IA complete |
+
+Validation: `npm run check` pass on each UI-006 commit chain (`dbbff67`→`197f25d`).
+
+PR #12 remains draft. GATE-UI-VISUAL-001 remains partial. Owner must re-review post UI-006.
+
+```text
+UI_006_MERGE_PREP_DOCS_SYNC_COMPLETE_OWNER_REVIEW_PENDING
+```
+
+## UI-007A Addendum (2026-06-10)
+
+Draft-centered product spine documented. See `ui-007-draft-workbench-architecture.md`, `ui-007-send-event-automation-model.md`, `ui-007a-state-reconciliation-receipt.md`.
+
+```text
+UI_007A_DRAFT_WORKBENCH_ARCHITECTURE_COMPLETE
+```
+
 ## Next Pass
 
-Owner completes visual checklist; then merge-prep and `xi-io.net#239` framework freshness.
+Operator push UI-006 (6 commits); owner visual checklist; UI-007B draft workbench; `xi-io.net#239` framework freshness.

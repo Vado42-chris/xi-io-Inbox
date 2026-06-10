@@ -40,16 +40,22 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 | SLICE-ARCH-002 | Android build proof | prove Thunderbird Android upstream build or classify failure | local upstream build proof, evidence comment | runtime import, fork identity implementation | existing ARCH-002 packet | build success or classified failure recorded | build proof receipt | `docs/reports/arch-002-build-proof-receipt.md` | if build cannot run, classify failure | planned | not started | 1 to 3 passes |
 | SLICE-ARCH-004 | platform/runtime decision | decide runtime/platform envelope before Pass 4 | decision receipt covering storage, secrets, sync, local cloud, surfaces | implementation | UI proof, Android proof inputs where relevant | ARCH-004 decision receipt complete | architecture review | `docs/reports/arch-004-runtime-decision-receipt.md` | unresolved platform/security boundary blocks runtime | blocked | not started | 1 to 2 passes |
 | SLICE-PASS-004 | Pass 4 runtime skeleton | create minimal buildable runtime skeleton after gates clear | skeleton, schema validation, example events/proposals, tests, CI | provider credentials, real sends, automation execution | ARCH-002, ARCH-004, UI visual proof | build/test/CI evidence complete | build/test receipt | `docs/reports/pass-4-runtime-skeleton-receipt.md` | if any build gate fails, do not start | blocked | not started | unknown until gates clear |
+| SLICE-UI-006 | progressive disclosure IA | list/detail workspace per operable lane | `public/inbox-preview.*` | discard UI-005 | UI-005 complete | UI-006A–F commits | npm check | commit chain `dbbff67`→`197f25d` | lane dump regression | complete | local; push pending | 6 passes |
+| SLICE-UI-007A | draft workbench architecture | state reconciliation + draft spine docs | `docs/ui/ui-007-*` | product UI code | owner clarification | architecture + send-event docs | doc review | `ui-007a-draft-workbench-architecture-receipt.md` | runtime claims in docs | complete | this pass | 1 pass |
+| SLICE-UI-007B | drafts / approval queue workbench | Drafts view, approval queue, draft object in storage | Inbox/workbench UI | send execution | UI-007A, GATE-DRAFT-WORKBENCH-001 | WG draft queue scenarios | route smoke | future `ui-007b-receipt.md` | send enabled in Tier 1 | blocked | not started | 2 to 3 passes |
 
 ## Near-Term Order
 
-1. SLICE-PLAN-001A — complete
-2. SLICE-UI-004A6 through SLICE-UI-004G — complete
-3. SLICE-UI-005A — operability architecture (docs only)
-4. SLICE-UI-005B through SLICE-UI-005I — human-operable shell implementation
-5. UI-003E owner visual proof re-run
-6. SLICE-ARCH-002 and SLICE-ARCH-004 as separate architecture tracks
-7. SLICE-PASS-004 only after gates clear
+1. SLICE-PLAN-001A through SLICE-UI-006 — complete locally
+2. SLICE-UI-007A — complete (docs)
+3. Operator push UI-006 commits + PR body sync
+4. UI-003E owner visual proof re-run (post UI-006)
+5. SLICE-UI-007B — draft workbench implementation
+6. `xi-io.net#239` framework freshness
+7. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
+8. SLICE-PASS-004 only after gates clear
+
+**Product-spine correction (2026-06-10):** lane operability slices remain valid history; draft workbench is the forward spine.
 
 ## Slice Rules
 

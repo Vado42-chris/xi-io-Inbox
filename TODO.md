@@ -157,8 +157,12 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-006D Automations progressive disclosure IA.
 - [x] UI-006E Extensions progressive disclosure IA.
 - [x] UI-006F Settings progressive disclosure IA.
-- [ ] Owner completes UI-003E visual checklist in proof packet (sign-off required).
-- [ ] Merge-prep and `xi-io.net#239` framework freshness after owner UI-003E PASS.
+- [x] UI-007A state reconciliation + draft workbench architecture (docs only).
+- [ ] Operator push UI-006 commits (6 ahead of remote) + PR #12 body sync.
+- [ ] Owner completes UI-003E visual checklist in proof packet (post UI-006 sign-off).
+- [ ] UI-007B Drafts / Approval Queue workbench (blocked until push + GATE-DRAFT-WORKBENCH-001).
+- [ ] `xi-io.net#239` framework freshness after UI-007B patterns stable.
+- [ ] Merge-prep final after owner UI-003E PASS.
 
 ## Pass 4: runtime skeleton
 
@@ -176,4 +180,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-005 complete; UI-006A–F complete (all operable lanes use workspace IA). Remaining: owner UI-003E re-review (~1 owner action), merge-prep (~1 pass), `xi-io.net#239` freshness (~1–2 passes). ARCH-002/ARCH-004 separate. **~3 passes** agent work + owner sign-off.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and draft workbench MVP: UI-005/006/007A complete locally. Remaining: operator push (~0 agent), owner UI-003E re-review (~1 owner), UI-007B workbench (~2–3 passes), framework `#239` (~1–2 passes), merge-prep after visual PASS (~1 pass). ARCH-002/ARCH-004 separate. **~5–6 agent passes** + owner sign-off + operator push.
