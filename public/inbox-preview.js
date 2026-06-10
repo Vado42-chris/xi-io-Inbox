@@ -15,7 +15,10 @@ const state = {
   statusMessage: '',
   inbox: defaultInboxOps(),
   calendar: defaultCalendarOps(),
+  tasks: defaultTasksOps(),
 };
+
+const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
 
 function defaultInboxOps() {
   return {
@@ -35,6 +38,14 @@ function defaultCalendarOps() {
   };
 }
 
+function defaultTasksOps() {
+  return {
+    selectedTaskId: null,
+    tasks: [],
+    receipts: [],
+  };
+}
+
 function previewStateEnvelope() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -43,6 +54,7 @@ function previewStateEnvelope() {
     focusId: state.focusId,
     inbox: state.inbox,
     calendar: state.calendar,
+    tasks: state.tasks,
   };
 }
 
@@ -64,7 +76,14 @@ function applyPreviewEnvelope(stored) {
     proposals: stored.calendar?.proposals || [],
     receipts: stored.calendar?.receipts || [],
   };
+  state.tasks = {
+    ...defaultTasksOps(),
+    ...(stored.tasks || {}),
+    tasks: stored.tasks?.tasks || [],
+    receipts: stored.tasks?.receipts || [],
+  };
   syncInboxCalendarProposals();
+  syncInboxTaskProposals();
 }
 
 function migratePreviewStorage() {
@@ -80,6 +99,7 @@ function migratePreviewStorage() {
       focusId: ui005b.focusId,
       inbox: ui005b.inbox || defaultInboxOps(),
       calendar: defaultCalendarOps(),
+      tasks: defaultTasksOps(),
     };
   }
 
@@ -91,6 +111,7 @@ function migratePreviewStorage() {
     focusId: legacy.focusId,
     inbox: defaultInboxOps(),
     calendar: defaultCalendarOps(),
+    tasks: defaultTasksOps(),
   };
 }
 
@@ -235,7 +256,11 @@ function loadState() {
 
 function setStatusMessage(message, laneId = state.laneId) {
   state.statusMessage = message;
-  const regionId = laneId === 'calendar' ? 'calendarStatusRegion' : 'inboxStatusRegion';
+  const regionId = {
+    calendar: 'calendarStatusRegion',
+    tasks: 'tasksStatusRegion',
+    inbox: 'inboxStatusRegion',
+  }[laneId] || 'inboxStatusRegion';
   const region = document.getElementById(regionId);
   if (region) region.textContent = message;
 }
@@ -338,6 +363,126 @@ function clearCalendarPreviewState() {
   state.calendar = defaultCalendarOps();
   saveState();
   setStatusMessage('All local Calendar preview state cleared. Fixture agenda unchanged.', 'calendar');
+}
+
+function syncInboxTaskProposals() {
+  const inboxTasks = (state.inbox.proposals || []).filter((entry) => entry.type === 'task');
+  const existing = new Set((state.tasks.tasks || []).map((entry) => entry.id));
+  inboxTasks.forEach((proposal) => {
+    if (existing.has(proposal.id)) return;
+    state.tasks.tasks = [{
+      id: proposal.id,
+      title: proposal.title,
+      status: 'proposed',
+      dueDate: '',
+      notes: proposal.summary || '',
+      sourceRef: proposal.threadId ? `inbox-thread:${proposal.threadId}` : '',
+      sourceType: 'inbox_local',
+      threadId: proposal.threadId || null,
+      calendarId: null,
+      createdAt: proposal.createdAt,
+      updatedAt: proposal.createdAt,
+      state: 'local_preview_task',
+    }, ...(state.tasks.tasks || [])];
+  });
+}
+
+function allLocalTasks() {
+  syncInboxTaskProposals();
+  return state.tasks.tasks || [];
+}
+
+function selectedLocalTask() {
+  const tasks = allLocalTasks();
+  return tasks.find((entry) => entry.id === state.tasks.selectedTaskId) || tasks[0] || null;
+}
+
+function addTaskReceipt({ type, title, taskId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    taskId: taskId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No provider task write, send, calendar write, or runtime action occurred.',
+  };
+  state.tasks.receipts = [receipt, ...(state.tasks.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function saveLocalTask(formData, taskId) {
+  const payload = {
+    title: String(formData.get('title') || '').trim(),
+    status: String(formData.get('status') || 'proposed').trim(),
+    dueDate: String(formData.get('dueDate') || '').trim(),
+    notes: String(formData.get('notes') || '').trim(),
+    sourceRef: String(formData.get('sourceRef') || '').trim(),
+    sourceType: String(formData.get('sourceType') || 'tasks_local').trim(),
+    threadId: String(formData.get('threadId') || '').trim() || null,
+    calendarId: String(formData.get('calendarId') || '').trim() || null,
+    state: 'local_preview_task',
+  };
+  const now = new Date().toISOString();
+  if (taskId) {
+    state.tasks.tasks = (state.tasks.tasks || []).map((entry) => (
+      entry.id === taskId ? { ...entry, ...payload, updatedAt: now } : entry
+    ));
+    addTaskReceipt({
+      type: 'task',
+      title: 'Local task updated',
+      taskId,
+      summary: `${payload.title || '(untitled)'} · status ${label(payload.status)}`,
+    });
+    state.tasks.selectedTaskId = taskId;
+    setStatusMessage(`Local task updated (${label(payload.status)}). Provider task write remains blocked.`, 'tasks');
+  } else {
+    const id = createLocalId('task');
+    const task = { id, ...payload, createdAt: now, updatedAt: now };
+    state.tasks.tasks = [task, ...(state.tasks.tasks || [])];
+    addTaskReceipt({
+      type: 'task',
+      title: 'Local task created',
+      taskId: id,
+      summary: payload.title || '(untitled)',
+    });
+    state.tasks.selectedTaskId = id;
+    state.focusId = `tasks:local:${id}`;
+    setStatusMessage('Local task created. Provider task write remains blocked.', 'tasks');
+  }
+  saveState();
+}
+
+function changeTaskStatus(taskId, status) {
+  if (!taskId || !TASK_STATUSES.includes(status)) return;
+  state.tasks.tasks = (state.tasks.tasks || []).map((entry) => (
+    entry.id === taskId ? { ...entry, status, updatedAt: new Date().toISOString() } : entry
+  ));
+  addTaskReceipt({
+    type: 'status',
+    title: 'Local task status changed',
+    taskId,
+    summary: `Status set to ${label(status)} (preview only).`,
+  });
+  state.tasks.selectedTaskId = taskId;
+  saveState();
+  setStatusMessage(`Task status changed to ${label(status)} locally.`, 'tasks');
+}
+
+function clearLocalTask(taskId) {
+  if (!taskId) return;
+  state.tasks.tasks = (state.tasks.tasks || []).filter((entry) => entry.id !== taskId);
+  if (state.tasks.selectedTaskId === taskId) {
+    state.tasks.selectedTaskId = state.tasks.tasks[0]?.id || null;
+  }
+  saveState();
+  setStatusMessage('Local task cleared.', 'tasks');
+}
+
+function clearTasksPreviewState() {
+  state.tasks = defaultTasksOps();
+  saveState();
+  setStatusMessage('All local Tasks preview state cleared. Fixture board unchanged.', 'tasks');
 }
 
 function inboxTriageFor(threadId) {
@@ -463,21 +608,44 @@ function deferThread(threadId) {
 function createLocalTaskProposal(threadId) {
   const thread = inboxThreads().find((entry) => entry.id === threadId);
   if (!thread) return;
+  const id = createLocalId('task');
+  const createdAt = new Date().toISOString();
   const proposal = {
-    id: createLocalId('task'),
+    id,
     type: 'task',
     threadId,
     title: `Task from ${thread.title}`,
     summary: thread.summary,
-    createdAt: new Date().toISOString(),
+    createdAt,
     state: 'local_proposal',
   };
   state.inbox.proposals = [proposal, ...state.inbox.proposals].slice(0, 20);
+  state.tasks.tasks = [{
+    id,
+    title: proposal.title,
+    status: 'proposed',
+    dueDate: '',
+    notes: proposal.summary,
+    sourceRef: `inbox-thread:${threadId}`,
+    sourceType: 'inbox_local',
+    threadId,
+    calendarId: null,
+    createdAt,
+    updatedAt: createdAt,
+    state: 'local_preview_task',
+  }, ...(state.tasks.tasks || [])];
+  state.tasks.selectedTaskId = id;
   addLocalReceipt({
     type: 'proposal',
     title: 'Local task proposal created',
     threadId,
     summary: proposal.title,
+  });
+  addTaskReceipt({
+    type: 'task',
+    title: 'Inbox-linked task created',
+    taskId: id,
+    summary: `Source inbox-thread:${threadId}`,
   });
   saveState();
   setStatusMessage('Local task proposal created. Provider task write remains blocked.');
@@ -604,6 +772,10 @@ function defaultFocusIdForLane(laneId) {
     const proposal = selectedCalendarProposal();
     return proposal ? `calendar:local:${proposal.id}` : 'lane:calendar';
   }
+  if (laneId === 'tasks') {
+    const task = selectedLocalTask();
+    return task ? `tasks:local:${task.id}` : 'lane:tasks';
+  }
   return `lane:${laneId}`;
 }
 
@@ -640,6 +812,22 @@ function inspectableItemsForLane(laneId) {
         safeNext: 'Edit local proposal; provider calendar write remains blocked.',
         blocked: 'Provider calendar write, invite send, and runtime scheduling remain blocked.',
         receipt: 'Local calendar proposal receipt preview available.',
+      });
+    });
+  }
+
+  if (laneId === 'tasks') {
+    allLocalTasks().forEach((task) => {
+      items.push({
+        id: `tasks:local:${task.id}`,
+        kind: 'local preview task',
+        title: task.title,
+        summary: task.notes || 'Local preview task only.',
+        meta: task.sourceRef,
+        state: task.status,
+        safeNext: 'Edit local task or change status; provider task write remains blocked.',
+        blocked: 'Provider task write, send, and runtime sync remain blocked.',
+        receipt: 'Local task receipt preview available.',
       });
     });
   }
@@ -775,6 +963,9 @@ function selectInspectorFocus(focusId) {
   }
   if (focusId.startsWith('calendar:local:')) {
     state.calendar.selectedProposalId = focusId.replace('calendar:local:', '');
+  }
+  if (focusId.startsWith('tasks:local:')) {
+    state.tasks.selectedTaskId = focusId.replace('tasks:local:', '');
   }
   saveState();
   renderShell();
@@ -1295,6 +1486,105 @@ function renderCalendarOperabilityPanel() {
   `;
 }
 
+function renderTasksLocalReceipts(taskId) {
+  const receipts = (state.tasks.receipts || []).filter((entry) => !taskId || entry.taskId === taskId);
+  if (!receipts.length) return '<p class="form-hint">No local task receipts yet.</p>';
+  return receipts.map((receipt) => `
+    <article class="local-receipt-row">
+      <header>
+        <strong>${escapeHtml(receipt.title)}</strong>
+        <span>${escapeHtml(label(receipt.type))} · local receipt</span>
+      </header>
+      <p>${escapeHtml(receipt.summary)}</p>
+      <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+    </article>
+  `).join('');
+}
+
+function renderTaskStatusButtons(taskId, currentStatus) {
+  if (!taskId) return '';
+  return `
+    <div class="tasks-status-bar" aria-label="Local task status changes">
+      <span class="form-hint">Local status:</span>
+      ${TASK_STATUSES.map((status) => `
+        <button class="inbox-action-btn ${currentStatus === status ? 'is-primary' : ''}" type="button" data-tasks-action="set-status" data-task-id="${escapeHtml(taskId)}" data-task-status="${escapeHtml(status)}" aria-pressed="${currentStatus === status ? 'true' : 'false'}">${escapeHtml(label(status))}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderTasksOperabilityPanel() {
+  const selected = selectedLocalTask();
+  const tasks = allLocalTasks();
+  const taskId = selected?.id || '';
+  const calendarSources = allCalendarProposals().map((p) => `calendar:local:${p.id}`).join(', ') || 'none yet';
+  return `
+    <section class="lane-section tasks-operability-panel" aria-label="Tasks local operability">
+      <header class="section-head">
+        <div>
+          <p class="section-eyebrow">local operability</p>
+          <h3>Task create and edit controls</h3>
+          <p>Create and edit local preview tasks only. No provider task write.</p>
+        </div>
+        <span class="draft-proposal-state">local preview task</span>
+      </header>
+      <div id="tasksStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'tasks' ? state.statusMessage : 'Ready for local Tasks operability.')}</div>
+      <form class="inbox-draft-form" data-tasks-form="task" aria-label="Local task create/edit">
+        <input type="hidden" name="taskId" value="${escapeHtml(taskId)}" />
+        <h4 id="tasks-form-label">${taskId ? 'Edit local task' : 'New local task'}</h4>
+        <label for="task-title">Task title (preview)</label>
+        <input id="task-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
+        <label for="task-status">Status (preview)</label>
+        <select id="task-status" name="status" aria-describedby="tasks-form-hint">
+          ${TASK_STATUSES.map((status) => `<option value="${escapeHtml(status)}" ${selected?.status === status ? 'selected' : ''}>${escapeHtml(label(status))}</option>`).join('')}
+        </select>
+        <label for="task-due">Due date text (preview)</label>
+        <input id="task-due" name="dueDate" type="text" autocomplete="off" value="${escapeHtml(selected?.dueDate || '')}" placeholder="e.g. Jun 12" />
+        <label for="task-notes">Notes (local preview only)</label>
+        <textarea id="task-notes" name="notes" rows="3">${escapeHtml(selected?.notes || '')}</textarea>
+        <label for="task-source-ref">Source reference (preview)</label>
+        <input id="task-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" placeholder="inbox-thread:id or calendar:local:id" />
+        <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'tasks_local')}" />
+        <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
+        <input type="hidden" name="calendarId" value="${escapeHtml(selected?.calendarId || '')}" />
+        <p id="tasks-form-hint" class="form-hint">Local preview task. Available calendar sources: ${escapeHtml(calendarSources)}. No provider sync.</p>
+        ${taskId ? renderTaskStatusButtons(taskId, selected?.status || 'proposed') : ''}
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="submit" data-tasks-action="task-save">${taskId ? 'Update local task' : 'Save local task'}</button>
+          ${taskId ? `<button class="inbox-action-btn" type="button" data-tasks-action="task-clear" data-task-id="${escapeHtml(taskId)}">Clear selected task</button>` : ''}
+          <button class="inbox-action-btn is-blocked" type="button" disabled aria-describedby="tasks-write-blocked">Provider task write blocked</button>
+        </div>
+        <p id="tasks-write-blocked" class="form-hint">Provider task sync, send, and runtime writes remain blocked.</p>
+      </form>
+      <div class="tasks-local-list" aria-label="Local tasks">
+        <h4>Local tasks (${tasks.length})</h4>
+        ${tasks.length ? tasks.map((task) => `
+          <button class="calendar-proposal-row is-inspector-focusable ${task.id === taskId ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(`tasks:local:${task.id}`)}" data-tasks-action="select-task" data-task-id="${escapeHtml(task.id)}" aria-pressed="${task.id === taskId ? 'true' : 'false'}">
+            <div>
+              <strong>${escapeHtml(task.title)}</strong>
+              <p>${escapeHtml(task.notes || '')}</p>
+            </div>
+            <div class="calendar-proposal-meta">
+              <span>${escapeHtml(label(task.status))} · ${escapeHtml(task.sourceRef || 'no source')}</span>
+              <em>${escapeHtml(label(task.sourceType || 'tasks_local'))}</em>
+            </div>
+          </button>
+        `).join('') : '<p class="form-hint">No local tasks yet. Create one or use Inbox triage to add inbox-linked tasks.</p>'}
+      </div>
+      <article class="draft-proposal-panel">
+        <header>
+          <strong>Local receipt preview</strong>
+          <span class="draft-proposal-state">preview only</span>
+        </header>
+        ${renderTasksLocalReceipts(taskId)}
+      </article>
+      <div class="inbox-clear-control">
+        <button class="inbox-action-btn is-danger" type="button" data-tasks-action="clear-all">Clear all local Tasks preview state</button>
+      </div>
+    </section>
+  `;
+}
+
 function renderAgenda(section) {
   const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
@@ -1735,6 +2025,7 @@ function renderMainLane() {
       <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
         ${lane.id === 'inbox' ? renderInboxOperabilityPanel() : ''}
         ${lane.id === 'calendar' ? renderCalendarOperabilityPanel() : ''}
+        ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
@@ -1768,6 +2059,29 @@ function activeInspectorModel() {
   const focusItem = activeInspectableItem();
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
+
+  if (focusItem?.id?.startsWith('tasks:local:')) {
+    const taskId = focusItem.id.replace('tasks:local:', '');
+    const task = allLocalTasks().find((entry) => entry.id === taskId);
+    const receipts = (state.tasks.receipts || []).filter((entry) => entry.taskId === taskId);
+    const sourceLabel = task?.sourceType === 'inbox_local'
+      ? `Inbox-local source: ${task.sourceRef}`
+      : (task?.sourceRef ? `Source: ${task.sourceRef}` : 'No source ref');
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `Local preview task selected. Status: ${label(task?.status || 'proposed')}. ${sourceLabel}.`,
+      why: task?.notes || 'Work item requires human review before any provider task write.',
+      evidence: `${sourceLabel}. Due: ${task?.dueDate || 'not set'}. Preview metadata only.`,
+      safeNext: 'Edit task or change local status; keep provider task write blocked.',
+      blocked: 'Provider task write, send, calendar provider write, and runtime sync remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal may propose task follow-up but cannot sync tasks.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary} (${entry.limitations})`).join(' ')
+        : 'Local task receipt will appear after save.',
+    };
+  }
 
   if (focusItem?.id?.startsWith('calendar:local:')) {
     const proposalId = focusItem.id.replace('calendar:local:', '');
@@ -1895,6 +2209,33 @@ function renderShell() {
   `;
 }
 
+function handleTasksAction(action, taskId, status) {
+  if (action === 'task-clear') {
+    clearLocalTask(taskId);
+    renderShell();
+    return;
+  }
+  if (action === 'select-task') {
+    if (!taskId) return;
+    state.tasks.selectedTaskId = taskId;
+    state.focusId = `tasks:local:${taskId}`;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'set-status') {
+    changeTaskStatus(taskId, status);
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all local Tasks preview tasks and receipts?')) {
+      clearTasksPreviewState();
+      renderShell();
+    }
+  }
+}
+
 function handleCalendarAction(action, proposalId) {
   if (action === 'proposal-clear') {
     clearCalendarProposal(proposalId);
@@ -1964,6 +2305,16 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const tasksForm = event.target.closest?.('[data-tasks-form]');
+    if (tasksForm) {
+      event.preventDefault();
+      const formData = new FormData(tasksForm);
+      const taskId = String(formData.get('taskId') || '').trim() || null;
+      saveLocalTask(formData, taskId);
+      renderShell();
+      return;
+    }
+
     const calendarForm = event.target.closest?.('[data-calendar-form]');
     if (calendarForm) {
       event.preventDefault();
@@ -1991,6 +2342,13 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const tasksAction = event.target.closest?.('[data-tasks-action]');
+    if (tasksAction?.dataset.tasksAction && tasksAction.dataset.tasksAction !== 'task-save') {
+      event.preventDefault();
+      handleTasksAction(tasksAction.dataset.tasksAction, tasksAction.dataset.taskId, tasksAction.dataset.taskStatus);
+      return;
+    }
+
     const calendarAction = event.target.closest?.('[data-calendar-action]');
     if (calendarAction?.dataset.calendarAction && calendarAction.dataset.calendarAction !== 'proposal-save') {
       event.preventDefault();

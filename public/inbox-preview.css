@@ -1678,12 +1678,37 @@ input:focus-visible {
 
 .inbox-operability-panel,
 .calendar-operability-panel,
+.tasks-operability-panel,
 .inbox-draft-form,
 .inbox-triage-bar,
 .inbox-local-receipts,
-.calendar-local-proposal-list {
+.calendar-local-proposal-list,
+.tasks-local-list,
+.tasks-status-bar {
   display: grid;
   gap: 0.75rem;
+}
+
+.tasks-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inbox-draft-form select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(8, 10, 14, 0.75);
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.inbox-draft-form select:focus-visible {
+  outline: 2px solid rgba(105, 210, 255, 0.8);
+  outline-offset: 2px;
 }
 
 .inbox-status-region {
