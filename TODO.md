@@ -139,7 +139,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Implement UI-004E Settings and Provider Gates polish next.
 - [x] Implement UI-004F Calendar and Tasks polish next.
 - [x] Implement UI-004G Automations and Extensions polish next.
-- [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
+- [x] Record preliminary UI-003E owner review failure (one-way reporting; not human-operable; Ibal model wrong).
+- [ ] Run UI-005 human-operable interactive shell phase before next UI-003E visual proof attempt.
+- [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-005 operability work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
 ## Pass 4: runtime skeleton
@@ -158,4 +160,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-004 page polish complete (UI-004B–G). Remaining: 1 owner visual proof pass (UI-003E), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks. Next bounded step is UI-003E owner/framework visual proof recording.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-004 page polish complete, but preliminary UI-003E owner review failed. Remaining: UI-005 human-operable shell (~8–10 passes: architecture, inbox/calendar/tasks/automations/extensions/settings/Ibal concierge/account shell, then UI-003E re-review), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks.
