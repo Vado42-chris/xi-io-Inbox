@@ -145,8 +145,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Run UI-005B Inbox operability (compose, reply draft, triage, local state) (`docs/ui/reviews/ui-005b-inbox-operability-receipt.md`).
 - [x] Run UI-005C Calendar operability (`docs/ui/reviews/ui-005c-calendar-operability-receipt.md`).
 - [x] Run UI-005D Tasks operability (`docs/ui/reviews/ui-005d-tasks-operability-receipt.md`).
-- [ ] Run UI-005E Automations dry-run operability — next slice.
-- [ ] Run UI-005F through UI-005I human-operable shell slices before next UI-003E visual proof attempt.
+- [x] Run UI-005E Automations dry-run operability (`docs/ui/reviews/ui-005e-automations-operability-receipt.md`).
+- [ ] Run UI-005F Extensions / Provider Gates operability — next slice.
+- [ ] Run UI-005G through UI-005I human-operable shell slices before next UI-003E visual proof attempt.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-005 operability work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
@@ -166,4 +167,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-004 page polish complete; UI-005A–D operability complete (`xiioInbox.preview.state` v2: inbox/calendar/tasks); preliminary UI-003E owner review failed. Remaining: UI-005E–I (~7–9 passes: automations, extensions, receipts, settings, Ibal concierge, account/global cleanup, UI-003E re-review), 1 merge-prep, 1 `xi-io.net#239` freshness pass. ARCH-002/ARCH-004 separate.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-005A–E operability complete (`xiioInbox.preview.state` v2: inbox/calendar/tasks/automations); preliminary UI-003E failed. Remaining: UI-005F–I (~6–8 passes), UI-003E re-review, merge-prep, `xi-io.net#239` freshness. ARCH-002/ARCH-004 separate.

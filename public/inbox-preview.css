@@ -1679,6 +1679,8 @@ input:focus-visible {
 .inbox-operability-panel,
 .calendar-operability-panel,
 .tasks-operability-panel,
+.automations-operability-panel,
+.automations-local-list,
 .inbox-draft-form,
 .inbox-triage-bar,
 .inbox-local-receipts,

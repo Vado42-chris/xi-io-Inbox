@@ -16,6 +16,7 @@ const state = {
   inbox: defaultInboxOps(),
   calendar: defaultCalendarOps(),
   tasks: defaultTasksOps(),
+  automations: defaultAutomationsOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -46,6 +47,15 @@ function defaultTasksOps() {
   };
 }
 
+function defaultAutomationsOps() {
+  return {
+    selectedRuleId: null,
+    rules: [],
+    receipts: [],
+    lastDryRun: null,
+  };
+}
+
 function previewStateEnvelope() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -55,6 +65,7 @@ function previewStateEnvelope() {
     inbox: state.inbox,
     calendar: state.calendar,
     tasks: state.tasks,
+    automations: state.automations,
   };
 }
 
@@ -82,6 +93,13 @@ function applyPreviewEnvelope(stored) {
     tasks: stored.tasks?.tasks || [],
     receipts: stored.tasks?.receipts || [],
   };
+  state.automations = {
+    ...defaultAutomationsOps(),
+    ...(stored.automations || {}),
+    rules: stored.automations?.rules || [],
+    receipts: stored.automations?.receipts || [],
+    lastDryRun: stored.automations?.lastDryRun || null,
+  };
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
 }
@@ -100,6 +118,7 @@ function migratePreviewStorage() {
       inbox: ui005b.inbox || defaultInboxOps(),
       calendar: defaultCalendarOps(),
       tasks: defaultTasksOps(),
+      automations: defaultAutomationsOps(),
     };
   }
 
@@ -112,6 +131,7 @@ function migratePreviewStorage() {
     inbox: defaultInboxOps(),
     calendar: defaultCalendarOps(),
     tasks: defaultTasksOps(),
+    automations: defaultAutomationsOps(),
   };
 }
 
@@ -259,6 +279,7 @@ function setStatusMessage(message, laneId = state.laneId) {
   const regionId = {
     calendar: 'calendarStatusRegion',
     tasks: 'tasksStatusRegion',
+    automations: 'automationsStatusRegion',
     inbox: 'inboxStatusRegion',
   }[laneId] || 'inboxStatusRegion';
   const region = document.getElementById(regionId);
@@ -483,6 +504,102 @@ function clearTasksPreviewState() {
   state.tasks = defaultTasksOps();
   saveState();
   setStatusMessage('All local Tasks preview state cleared. Fixture board unchanged.', 'tasks');
+}
+
+function allLocalAutomationRules() {
+  return state.automations.rules || [];
+}
+
+function selectedAutomationRule() {
+  const rules = allLocalAutomationRules();
+  return rules.find((entry) => entry.id === state.automations.selectedRuleId) || rules[0] || null;
+}
+
+function addAutomationReceipt({ type, title, ruleId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    ruleId: ruleId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No automation execution, provider write, or runtime action occurred.',
+  };
+  state.automations.receipts = [receipt, ...(state.automations.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function saveLocalAutomationRule(formData, ruleId) {
+  const payload = {
+    title: String(formData.get('title') || '').trim(),
+    trigger: String(formData.get('trigger') || '').trim(),
+    condition: String(formData.get('condition') || '').trim(),
+    proposal: String(formData.get('proposal') || '').trim(),
+    gate: String(formData.get('gate') || '').trim(),
+    state: 'dry_run_only',
+    enabled: false,
+  };
+  const now = new Date().toISOString();
+  if (ruleId) {
+    state.automations.rules = (state.automations.rules || []).map((entry) => (
+      entry.id === ruleId ? { ...entry, ...payload, updatedAt: now } : entry
+    ));
+    addAutomationReceipt({ type: 'rule', title: 'Local automation rule updated', ruleId, summary: payload.title || '(untitled)' });
+    state.automations.selectedRuleId = ruleId;
+    setStatusMessage('Local automation rule updated. Execution remains blocked.', 'automations');
+  } else {
+    const id = createLocalId('auto');
+    const rule = { id, ...payload, createdAt: now, updatedAt: now };
+    state.automations.rules = [rule, ...(state.automations.rules || [])];
+    addAutomationReceipt({ type: 'rule', title: 'Local automation rule created', ruleId: id, summary: payload.title || '(untitled)' });
+    state.automations.selectedRuleId = id;
+    state.focusId = `automations:local:${id}`;
+    setStatusMessage('Local automation rule created. Execution remains blocked.', 'automations');
+  }
+  saveState();
+}
+
+function runAutomationDryRun(ruleId) {
+  const rule = allLocalAutomationRules().find((entry) => entry.id === ruleId);
+  if (!rule) return;
+  state.automations.lastDryRun = {
+    ruleId,
+    ranAt: new Date().toISOString(),
+    steps: [
+      { title: 'Trigger matched (simulated)', summary: rule.trigger || 'No trigger text', state: 'dry_run_only' },
+      { title: 'Condition evaluated (simulated)', summary: rule.condition || 'No condition text', state: 'preview_only' },
+      { title: 'Proposal prepared (not executed)', summary: rule.proposal || 'No proposal text', state: 'proposal_only' },
+      { title: 'Approval gate required', summary: rule.gate || 'Human approval required before any runtime enablement', state: 'blocked' },
+      { title: 'Execution blocked', summary: 'Automation execution, provider mutation, and repo writes remain disabled in Tier 1 preview.', state: 'action_blocked' },
+    ],
+  };
+  addAutomationReceipt({
+    type: 'dry-run',
+    title: 'Automation dry-run simulated',
+    ruleId,
+    summary: `Dry-run for ${rule.title}. Execution not enabled.`,
+  });
+  state.automations.selectedRuleId = ruleId;
+  state.focusId = `automations:local:${ruleId}`;
+  saveState();
+  setStatusMessage('Dry-run complete. Rule not enabled; execution blocked.', 'automations');
+}
+
+function clearLocalAutomationRule(ruleId) {
+  if (!ruleId) return;
+  state.automations.rules = (state.automations.rules || []).filter((entry) => entry.id !== ruleId);
+  if (state.automations.selectedRuleId === ruleId) {
+    state.automations.selectedRuleId = state.automations.rules[0]?.id || null;
+    if (state.automations.lastDryRun?.ruleId === ruleId) state.automations.lastDryRun = null;
+  }
+  saveState();
+  setStatusMessage('Local automation rule cleared.', 'automations');
+}
+
+function clearAutomationsPreviewState() {
+  state.automations = defaultAutomationsOps();
+  saveState();
+  setStatusMessage('All local Automations preview state cleared. Fixture templates unchanged.', 'automations');
 }
 
 function inboxTriageFor(threadId) {
@@ -776,6 +893,10 @@ function defaultFocusIdForLane(laneId) {
     const task = selectedLocalTask();
     return task ? `tasks:local:${task.id}` : 'lane:tasks';
   }
+  if (laneId === 'automations') {
+    const rule = selectedAutomationRule();
+    return rule ? `automations:local:${rule.id}` : 'lane:automations';
+  }
   return `lane:${laneId}`;
 }
 
@@ -828,6 +949,22 @@ function inspectableItemsForLane(laneId) {
         safeNext: 'Edit local task or change status; provider task write remains blocked.',
         blocked: 'Provider task write, send, and runtime sync remain blocked.',
         receipt: 'Local task receipt preview available.',
+      });
+    });
+  }
+
+  if (laneId === 'automations') {
+    allLocalAutomationRules().forEach((rule) => {
+      items.push({
+        id: `automations:local:${rule.id}`,
+        kind: 'local automation rule',
+        title: rule.title,
+        summary: rule.proposal || 'Dry-run rule only.',
+        meta: `trigger: ${rule.trigger || 'unset'}`,
+        state: rule.state,
+        safeNext: 'Run dry-run simulation; enable/execute remains blocked.',
+        blocked: 'Automation execution, enablement, provider/repo mutation remain blocked.',
+        receipt: 'Dry-run receipt preview available.',
       });
     });
   }
@@ -966,6 +1103,9 @@ function selectInspectorFocus(focusId) {
   }
   if (focusId.startsWith('tasks:local:')) {
     state.tasks.selectedTaskId = focusId.replace('tasks:local:', '');
+  }
+  if (focusId.startsWith('automations:local:')) {
+    state.automations.selectedRuleId = focusId.replace('automations:local:', '');
   }
   saveState();
   renderShell();
@@ -1714,6 +1854,100 @@ function renderTaskLinks(section) {
   `;
 }
 
+function renderAutomationsLocalReceipts(ruleId) {
+  const receipts = (state.automations.receipts || []).filter((entry) => !ruleId || entry.ruleId === ruleId);
+  if (!receipts.length) return '<p class="form-hint">No local automation receipts yet.</p>';
+  return receipts.map((receipt) => `
+    <article class="local-receipt-row">
+      <header><strong>${escapeHtml(receipt.title)}</strong><span>${escapeHtml(label(receipt.type))} · local receipt</span></header>
+      <p>${escapeHtml(receipt.summary)}</p>
+      <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+    </article>
+  `).join('');
+}
+
+function renderAutomationsDryRunOutput(ruleId) {
+  const dryRun = state.automations.lastDryRun;
+  if (!dryRun || dryRun.ruleId !== ruleId) {
+    return '<p class="form-hint">Run dry-run to simulate trigger → condition → proposal → gate → blocked execution.</p>';
+  }
+  return `
+    <ol class="dry-run-pipeline" aria-label="Local dry-run simulation result">
+      ${dryRun.steps.map((step, index) => `
+        <li class="dry-run-step">
+          <span class="dry-run-step-index">${index + 1}</span>
+          <div><strong>${escapeHtml(step.title)}</strong><p>${escapeHtml(step.summary)}</p></div>
+          <em>${escapeHtml(label(step.state))}</em>
+        </li>
+      `).join('')}
+    </ol>
+  `;
+}
+
+function renderAutomationsOperabilityPanel() {
+  const selected = selectedAutomationRule();
+  const rules = allLocalAutomationRules();
+  const ruleId = selected?.id || '';
+  return `
+    <section class="lane-section automations-operability-panel" aria-label="Automations local operability">
+      <header class="section-head">
+        <div>
+          <p class="section-eyebrow">local operability</p>
+          <h3>Rule builder and dry-run</h3>
+          <p>Build local preview rules and simulate dry-run only. No execution.</p>
+        </div>
+        <span class="draft-proposal-state">dry-run only</span>
+      </header>
+      <div id="automationsStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'automations' ? state.statusMessage : 'Ready for local Automations operability.')}</div>
+      <form class="inbox-draft-form" data-automations-form="rule" aria-label="Local automation rule">
+        <input type="hidden" name="ruleId" value="${escapeHtml(ruleId)}" />
+        <h4>${ruleId ? 'Edit local rule' : 'New local rule'}</h4>
+        <label for="auto-title">Rule title (preview)</label>
+        <input id="auto-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
+        <label for="auto-trigger">Trigger (preview)</label>
+        <input id="auto-trigger" name="trigger" type="text" autocomplete="off" value="${escapeHtml(selected?.trigger || '')}" placeholder="e.g. urgent inbox thread" />
+        <label for="auto-condition">Condition (preview)</label>
+        <input id="auto-condition" name="condition" type="text" autocomplete="off" value="${escapeHtml(selected?.condition || '')}" />
+        <label for="auto-proposal">Proposed action (preview)</label>
+        <textarea id="auto-proposal" name="proposal" rows="2">${escapeHtml(selected?.proposal || '')}</textarea>
+        <label for="auto-gate">Approval gate (preview)</label>
+        <input id="auto-gate" name="gate" type="text" autocomplete="off" value="${escapeHtml(selected?.gate || 'human approval required')}" />
+        <p class="form-hint">Local preview rule. Execution and enablement blocked.</p>
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="submit" data-automations-action="rule-save">${ruleId ? 'Update local rule' : 'Save local rule'}</button>
+          ${ruleId ? `<button class="inbox-action-btn" type="button" data-automations-action="dry-run" data-rule-id="${escapeHtml(ruleId)}">Run dry-run</button>` : ''}
+          ${ruleId ? `<button class="inbox-action-btn" type="button" data-automations-action="rule-clear" data-rule-id="${escapeHtml(ruleId)}">Clear selected rule</button>` : ''}
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Enable/run blocked</button>
+        </div>
+      </form>
+      <div class="automations-local-list" aria-label="Local automation rules">
+        <h4>Local rules (${rules.length})</h4>
+        ${rules.length ? rules.map((rule) => `
+          <button class="automation-rule-row is-inspector-focusable ${rule.id === ruleId ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(`automations:local:${rule.id}`)}" data-automations-action="select-rule" data-rule-id="${escapeHtml(rule.id)}" aria-pressed="${rule.id === ruleId ? 'true' : 'false'}">
+            <div class="automation-rule-copy">
+              <strong>${escapeHtml(rule.title)}</strong>
+              <p>${escapeHtml(rule.proposal || '')}</p>
+              <span class="automation-rule-meta">trigger: ${escapeHtml(rule.trigger || 'unset')} · ${escapeHtml(label(rule.state))}</span>
+            </div>
+            <em>dry run only</em>
+          </button>
+        `).join('') : '<p class="form-hint">No local rules yet. Create a rule above.</p>'}
+      </div>
+      <article class="draft-proposal-panel">
+        <header><strong>Dry-run output</strong><span class="draft-proposal-state">simulation only</span></header>
+        ${renderAutomationsDryRunOutput(ruleId)}
+      </article>
+      <article class="draft-proposal-panel">
+        <header><strong>Local receipt preview</strong><span class="draft-proposal-state">preview only</span></header>
+        ${renderAutomationsLocalReceipts(ruleId)}
+      </article>
+      <div class="inbox-clear-control">
+        <button class="inbox-action-btn is-danger" type="button" data-automations-action="clear-all">Clear all local Automations preview state</button>
+      </div>
+    </section>
+  `;
+}
+
 function renderAutomationStudio(section) {
   const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
@@ -2026,6 +2260,7 @@ function renderMainLane() {
         ${lane.id === 'inbox' ? renderInboxOperabilityPanel() : ''}
         ${lane.id === 'calendar' ? renderCalendarOperabilityPanel() : ''}
         ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
+        ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
@@ -2059,6 +2294,27 @@ function activeInspectorModel() {
   const focusItem = activeInspectableItem();
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
+
+  if (focusItem?.id?.startsWith('automations:local:')) {
+    const ruleId = focusItem.id.replace('automations:local:', '');
+    const rule = allLocalAutomationRules().find((entry) => entry.id === ruleId);
+    const receipts = (state.automations.receipts || []).filter((entry) => entry.ruleId === ruleId);
+    const dryRun = state.automations.lastDryRun?.ruleId === ruleId ? state.automations.lastDryRun : null;
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `Local automation rule selected. State: ${label(rule?.state || 'dry_run_only')}. Enabled: no.`,
+      why: rule?.proposal || 'Rule shows what would happen in a future gated runtime.',
+      evidence: `Trigger: ${rule?.trigger || 'unset'}. Condition: ${rule?.condition || 'unset'}. Gate: ${rule?.gate || 'unset'}.`,
+      safeNext: dryRun ? 'Review dry-run steps; do not enable rule.' : 'Save rule and run dry-run simulation.',
+      blocked: 'Enable, run, provider mutation, repo mutation, and automation execution remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal may review rules but cannot enable them.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
+        : 'Dry-run receipt appears after simulation.',
+    };
+  }
 
   if (focusItem?.id?.startsWith('tasks:local:')) {
     const taskId = focusItem.id.replace('tasks:local:', '');
@@ -2209,6 +2465,33 @@ function renderShell() {
   `;
 }
 
+function handleAutomationsAction(action, ruleId) {
+  if (action === 'rule-clear') {
+    clearLocalAutomationRule(ruleId);
+    renderShell();
+    return;
+  }
+  if (action === 'select-rule') {
+    if (!ruleId) return;
+    state.automations.selectedRuleId = ruleId;
+    state.focusId = `automations:local:${ruleId}`;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'dry-run') {
+    runAutomationDryRun(ruleId);
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all local Automations rules, dry-runs, and receipts?')) {
+      clearAutomationsPreviewState();
+      renderShell();
+    }
+  }
+}
+
 function handleTasksAction(action, taskId, status) {
   if (action === 'task-clear') {
     clearLocalTask(taskId);
@@ -2305,6 +2588,16 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const automationsForm = event.target.closest?.('[data-automations-form]');
+    if (automationsForm) {
+      event.preventDefault();
+      const formData = new FormData(automationsForm);
+      const ruleId = String(formData.get('ruleId') || '').trim() || null;
+      saveLocalAutomationRule(formData, ruleId);
+      renderShell();
+      return;
+    }
+
     const tasksForm = event.target.closest?.('[data-tasks-form]');
     if (tasksForm) {
       event.preventDefault();
@@ -2342,6 +2635,13 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const automationsAction = event.target.closest?.('[data-automations-action]');
+    if (automationsAction?.dataset.automationsAction && automationsAction.dataset.automationsAction !== 'rule-save') {
+      event.preventDefault();
+      handleAutomationsAction(automationsAction.dataset.automationsAction, automationsAction.dataset.ruleId);
+      return;
+    }
+
     const tasksAction = event.target.closest?.('[data-tasks-action]');
     if (tasksAction?.dataset.tasksAction && tasksAction.dataset.tasksAction !== 'task-save') {
       event.preventDefault();
