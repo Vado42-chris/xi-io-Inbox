@@ -1437,6 +1437,54 @@ function deleteDraft(draftId) {
   setStatusMessage('Draft deleted locally.');
 }
 
+function preSendChecksForDraft(draft) {
+  if (!draft) return [];
+  const checks = [];
+  checks.push(draft.recipients?.length ? 'Recipients present' : 'Missing recipients');
+  checks.push(draft.subject?.trim() ? 'Subject present' : 'Missing subject');
+  checks.push(draft.body?.trim() ? 'Body present' : 'Missing body');
+  checks.push('Provider send blocked (Tier 1)');
+  return checks;
+}
+
+function queuedDrafts() {
+  return allDraftItems().filter((draft) => draft.approval_state === 'queued');
+}
+
+function approvedDrafts() {
+  return allDraftItems().filter((draft) => draft.approval_state === 'approved');
+}
+
+function approveAllQueuedDrafts() {
+  const queued = queuedDrafts();
+  if (!queued.length) {
+    setStatusMessage('No queued drafts to approve.');
+    return;
+  }
+  const sharedRisks = [];
+  if (queued.some((draft) => !draft.recipients?.length)) sharedRisks.push('Some drafts missing recipients');
+  if (queued.some((draft) => !draft.subject?.trim())) sharedRisks.push('Some drafts missing subject');
+  queued.forEach((draft) => approveDraftForSend(draft.id));
+  addDraftReceipt({
+    type: 'approval',
+    title: 'Batch approve (preview)',
+    draftId: null,
+    summary: `Approved ${queued.length} draft(s). Shared risks: ${sharedRisks.join('; ') || 'none noted'}. Send remains blocked.`,
+  });
+  saveState();
+  setStatusMessage(`Batch approved ${queued.length} draft(s). Send remains blocked.`, 'inbox');
+}
+
+function inboxCommandRailMode() {
+  if (state.laneId === 'receipts') return 'sent';
+  if (state.laneId !== 'inbox') return null;
+  const view = state.inbox.mailboxView || 'inbox';
+  if (view === 'approval-queue') return 'batch';
+  if (state.drafts.selectedDraftId) return 'draft';
+  if (state.threadId) return 'thread';
+  return 'lane';
+}
+
 function localReceiptsForThread(threadId) {
   return (state.inbox.receipts || []).filter((receipt) => !threadId || receipt.threadId === threadId);
 }
@@ -1706,6 +1754,7 @@ function ensureRoute() {
 function selectInboxThread(threadId) {
   if (!threadId || !inboxThreads().some((thread) => thread.id === threadId)) return;
   state.threadId = threadId;
+  state.drafts.selectedDraftId = null;
   state.focusId = `inbox-thread:${threadId}`;
   state.inbox.replyOpen = false;
   saveState();
@@ -1733,6 +1782,11 @@ function renderTrustToken(labelText, status) {
 
 function defaultFocusIdForLane(laneId) {
   if (laneId === 'inbox') {
+    const view = state.inbox.mailboxView || 'inbox';
+    if (view === 'drafts' || view === 'approval-queue') {
+      const draft = selectedDraft();
+      return draft ? `inbox-draft:${draft.id}` : 'lane:inbox';
+    }
     const thread = selectedInboxThread();
     return thread ? `inbox-thread:${thread.id}` : 'lane:inbox';
   }
@@ -1778,6 +1832,20 @@ function inspectableItemsForLane(laneId) {
         safeNext: thread.draft?.title || 'Review thread metadata and draft proposal only.',
         blocked: 'Send, forward, delete, archive, disclose, publish, provider mutation, and repository mutation remain blocked.',
         receipt: 'A future confirmed draft or triage action would require a receipt.',
+      });
+    });
+    allDraftItems().forEach((draft) => {
+      items.push({
+        id: `inbox-draft:${draft.id}`,
+        kind: 'draft',
+        title: draft.subject || '(no subject)',
+        summary: `${draft.kind} draft · ${label(draft.status || 'drafting')}`,
+        meta: draft.approval_state !== 'none' ? `Approval: ${draft.approval_state}` : 'Not queued',
+        safeNext: draft.approval_state === 'approved'
+          ? 'Send blocked in Tier 1; post-send plan preview ships in UI-007C.'
+          : 'Edit draft or submit for approval queue.',
+        blocked: 'Send, forward, provider write, and runtime execution remain blocked.',
+        receipt: 'Draft receipts stored in drafts namespace.',
       });
     });
     return items;
@@ -2008,6 +2076,11 @@ function selectInspectorFocus(focusId) {
   state.focusId = focusId;
   if (focusId.startsWith('inbox-thread:')) {
     state.threadId = focusId.replace('inbox-thread:', '');
+    state.drafts.selectedDraftId = null;
+  }
+  if (focusId.startsWith('inbox-draft:')) {
+    state.drafts.selectedDraftId = focusId.replace('inbox-draft:', '');
+    state.threadId = null;
   }
   if (focusId.startsWith('calendar:local:')) {
     state.calendar.selectedProposalId = focusId.replace('calendar:local:', '');
@@ -4083,6 +4156,79 @@ function activeInspectorModel() {
   const focusItem = activeInspectableItem();
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
+  const railMode = inboxCommandRailMode();
+
+  if (state.laneId === 'inbox' && railMode === 'batch') {
+    const queued = queuedDrafts();
+    const approved = approvedDrafts();
+    const selected = selectedDraft();
+    const sharedRisks = [];
+    if (queued.some((draft) => !draft.recipients?.length)) sharedRisks.push('Missing recipients on one or more drafts');
+    if (queued.some((draft) => !draft.subject?.trim())) sharedRisks.push('Missing subject on one or more drafts');
+    return {
+      kind: 'batch',
+      mode: 'batch',
+      title: 'Approval queue',
+      summary: `${queued.length} awaiting approval · ${approved.length} approved (send blocked).`,
+      context: selected
+        ? `Selected: ${selected.subject || '(no subject)'} (${label(selected.approval_state)}).`
+        : 'Select a queued draft to review before batch approve.',
+      why: 'Batch approve is high-risk egress; shared risks must be visible before human approval.',
+      evidence: `Queue: ${queued.map((d) => d.subject || d.id).join('; ') || 'empty'}.`,
+      safeNext: queued.length
+        ? `Review ${queued.length} queued draft(s), then batch approve or approve individually. Send stays blocked.`
+        : 'Queue empty — submit drafts from Drafts view.',
+      blocked: 'Send, provider write, and runtime execution remain blocked in Tier 1.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal may flag shared risks but cannot send.',
+      receipts: (state.drafts.receipts || []).slice(0, 3).map((entry) => `${entry.title}: ${entry.summary}`).join(' ') || 'Approval receipts appear after approve actions.',
+      sharedRisks,
+      queuedCount: queued.length,
+    };
+  }
+
+  if (focusItem?.id?.startsWith('inbox-draft:')) {
+    const draftId = focusItem.id.replace('inbox-draft:', '');
+    const draft = draftById(draftId);
+    const receipts = (state.drafts.receipts || []).filter((entry) => entry.draftId === draftId);
+    const checks = preSendChecksForDraft(draft);
+    return {
+      kind: 'draft',
+      mode: 'draft',
+      title: draft?.subject || '(no subject)',
+      summary: `${draft?.kind || 'draft'} · ${label(draft?.status || 'drafting')} · ${label(draft?.approval_state || 'none')}`,
+      context: `Draft object ${draftId}. ${draft?.source_thread_id ? `Source thread: ${draft.source_thread_id}.` : 'Compose draft (no source thread).'}`,
+      why: 'Draft is the controllable work artifact; send is the event boundary (blocked in Tier 1).',
+      evidence: `Pre-send checks: ${checks.join('; ')}.`,
+      safeNext: draft?.approval_state === 'approved'
+        ? 'Approved for send — provider send blocked until Tier 2 gates clear.'
+        : (draft?.approval_state === 'queued'
+          ? 'Approve for send or return to drafts.'
+          : 'Edit draft, then submit for approval.'),
+      blocked: 'Send, forward, provider write, and automation execution remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal may propose pre-send checks but cannot send.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
+        : 'Draft receipt appears after save or approval action.',
+      preSendChecks: checks,
+      sendConsequences: 'If sent (Tier 2): local receipt, post-send task/calendar proposals, automation dry-run plan.',
+    };
+  }
+
+  if (state.laneId === 'receipts') {
+    return {
+      kind: 'sent',
+      mode: 'sent',
+      title: activeLaneContent().title || 'Receipts',
+      summary: 'Sent-event and receipt ledger preview (fixture + local receipts).',
+      context: 'Post-send outcomes and audit trail. No provider delivery confirmed in Tier 1.',
+      why: 'Receipts prove controlled egress boundaries; sent events fan out downstream proposals.',
+      evidence: 'Local receipts in lane namespaces; fixture receipt samples in payload.',
+      safeNext: 'Review receipt ledger; follow-up automations remain dry-run only.',
+      blocked: 'Provider send replay, disclose, and runtime mutation remain blocked.',
+      ibalProposal: laneInspector.ibalProposal,
+      receipts: laneInspector.receipts || 'Receipt expectation documented per action.',
+    };
+  }
 
   if (focusItem?.id?.startsWith('settings:local:gate:')) {
     const gateKey = focusItem.id.replace('settings:local:gate:', '');
@@ -4229,7 +4375,8 @@ function activeInspectorModel() {
       ? `${focusInspector.context || focusItem.summary} Local state: ${localParts.join(' ')}`
       : (focusInspector.context || focusItem.summary);
     return {
-      kind: focusItem.kind,
+      kind: 'thread',
+      mode: 'thread',
       title: focusItem.title,
       summary: focusItem.summary,
       context: localContext,
@@ -4275,58 +4422,80 @@ function activeInspectorModel() {
   };
 }
 
+function renderInboxCommandRail(mode, inspector) {
+  if (mode === 'batch') {
+    const queued = queuedDrafts();
+    const selected = selectedDraft();
+    return `
+      <div class="inbox-action-toolbar" role="toolbar" aria-label="Batch approval actions">
+        ${queued.length ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-batch-approve-all">Approve all queued (${queued.length})</button>` : ''}
+        ${selected?.approval_state === 'queued' ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(selected.id)}">Approve selected</button>` : ''}
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked (Tier 1)</button>
+      </div>
+      ${inspector.sharedRisks?.length ? `<ul class="rail-risk-list">${inspector.sharedRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>` : ''}
+    `;
+  }
+  if (mode === 'draft') {
+    const draft = selectedDraft();
+    if (!draft) return '';
+    return `
+      <div class="inbox-action-toolbar" role="toolbar" aria-label="Draft actions">
+        ${draft.approval_state === 'none' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-queue" data-draft-id="${escapeHtml(draft.id)}">Submit for approval</button>` : ''}
+        ${draft.approval_state === 'queued' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(draft.id)}">Approve for send</button>` : ''}
+        ${draft.approval_state === 'approved' ? `<button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>` : ''}
+        ${['queued', 'approved'].includes(draft.approval_state) ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>` : ''}
+      </div>
+      ${inspector.preSendChecks?.length ? `<ul class="rail-check-list">${inspector.preSendChecks.map((check) => `<li>${escapeHtml(check)}</li>`).join('')}</ul>` : ''}
+    `;
+  }
+  if (mode === 'thread' && state.threadId) {
+    return `
+      <div class="inbox-action-toolbar" role="toolbar" aria-label="Thread actions">
+        <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" data-thread-id="${escapeHtml(state.threadId)}" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(state.threadId)}">Mark read</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="defer-thread" data-thread-id="${escapeHtml(state.threadId)}">Defer</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(state.threadId)}">Add task</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="calendar-proposal" data-thread-id="${escapeHtml(state.threadId)}">Schedule</button>
+      </div>
+    `;
+  }
+  return '';
+}
+
 function renderInspector() {
   const lane = activeLane();
   const inspector = activeInspectorModel();
+  const railMode = inspector.mode || inboxCommandRailMode() || inspector.kind || 'lane';
+  const inboxRail = state.laneId === 'inbox' ? renderInboxCommandRail(railMode, inspector) : '';
   return `
-    <aside class="right-inspector context-command-rail" aria-label="Contextual command rail">
+    <aside class="right-inspector context-command-rail" aria-label="Contextual command rail" data-rail-mode="${escapeHtml(railMode)}">
       <header class="inspector-title">
-        <p class="inspector-object-kind">${escapeHtml(inspector.kind || 'lane')}</p>
+        <p class="inspector-rail-mode">${escapeHtml(String(railMode))} mode</p>
         <h2 class="inspector-selected-title">${escapeHtml(inspector.title || lane.label)}</h2>
-        <p>${escapeHtml(inspector.summary || '')}</p>
+        <p class="inspector-command-hint">${escapeHtml(inspector.safeNext || 'Review context and keep actions in draft or proposal mode.')}</p>
       </header>
       <section class="inspector-block inspector-commands">
-        <h3>Available actions</h3>
-        <p>${escapeHtml(inspector.safeNext || 'Review context and keep actions in draft or proposal mode.')}</p>
-        ${state.laneId === 'inbox' && state.drafts.selectedDraftId ? `
-          <div class="inbox-action-toolbar" role="toolbar" aria-label="Draft actions">
-            ${(() => {
-              const draft = selectedDraft();
-              if (!draft) return '';
-              return `
-                ${draft.approval_state === 'none' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-queue" data-draft-id="${escapeHtml(draft.id)}">Submit for approval</button>` : ''}
-                ${draft.approval_state === 'queued' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(draft.id)}">Approve for send</button>` : ''}
-                ${draft.approval_state === 'approved' ? `<button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>` : ''}
-                ${['queued', 'approved'].includes(draft.approval_state) ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>` : ''}
-              `;
-            })()}
-          </div>
-        ` : ''}
-        ${state.laneId === 'inbox' && state.threadId && !state.drafts.selectedDraftId ? `
-          <div class="inbox-action-toolbar" role="toolbar" aria-label="Thread actions">
-            <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" data-thread-id="${escapeHtml(state.threadId)}" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
-            <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(state.threadId)}">Mark read</button>
-            <button class="inbox-action-btn" type="button" data-inbox-action="defer-thread" data-thread-id="${escapeHtml(state.threadId)}">Defer</button>
-            <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(state.threadId)}">Add task</button>
-            <button class="inbox-action-btn" type="button" data-inbox-action="calendar-proposal" data-thread-id="${escapeHtml(state.threadId)}">Schedule</button>
-          </div>
-        ` : ''}
+        <h3>Commands</h3>
+        ${inboxRail}
         <div class="inspector-ibal-actions">
           <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
           <button class="inbox-action-btn is-blocked" type="button" disabled>Execute blocked</button>
         </div>
       </section>
-      ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
-      ${renderInspectorBlock('Why it matters', inspector.why || 'Context helps determine the next safe action without runtime writes.')}
-      ${renderInspectorBlock('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.')}
-      ${renderInspectorBlock('Safe next action', inspector.safeNext || 'Review fixture context and keep actions in draft or proposal mode.')}
-      <section class="inspector-block">
-        <h3>Blocked actions</h3>
-        <p>${escapeHtml(inspector.blocked || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
-        ${renderDisabledActions()}
-      </section>
-      ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || selectedIbalProposal()?.recommendation || 'Ibal proposes only in this preview and cannot execute actions.')}
-      ${renderInspectorBlock('Receipt expectation', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.')}
+      <details class="inspector-meta-collapsed">
+        <summary>Context and evidence</summary>
+        ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
+        ${renderInspectorBlock('Why it matters', inspector.why || 'Context helps determine the next safe action without runtime writes.')}
+        ${renderInspectorBlock('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.')}
+        ${inspector.sendConsequences ? renderInspectorBlock('Send consequences (preview)', inspector.sendConsequences) : ''}
+        <section class="inspector-block">
+          <h3>Blocked actions</h3>
+          <p>${escapeHtml(inspector.blocked || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
+          ${renderDisabledActions()}
+        </section>
+        ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || selectedIbalProposal()?.recommendation || 'Ibal proposes only in this preview and cannot execute actions.')}
+        ${renderInspectorBlock('Receipt expectation', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.')}
+      </details>
     </aside>
   `;
 }
@@ -4892,6 +5061,13 @@ function handleInboxAction(action, threadId, mailboxView, draftId) {
     if (window.confirm('Delete this local draft?')) {
       deleteDraft(draftId || state.drafts.selectedDraftId);
       syncMailboxThreadSelection();
+      renderShell();
+    }
+    return;
+  }
+  if (action === 'draft-batch-approve-all') {
+    if (window.confirm('Approve all queued drafts locally? Send remains blocked in Tier 1.')) {
+      approveAllQueuedDrafts();
       renderShell();
     }
     return;

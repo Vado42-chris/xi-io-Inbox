@@ -398,6 +398,42 @@ input:focus-visible {
   background: color-mix(in srgb, var(--warn, #c9a227) 18%, transparent);
 }
 
+.inspector-rail-mode {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent, #5b9fd4);
+}
+
+.inspector-command-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.inspector-meta-collapsed {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.35rem;
+}
+
+.inspector-meta-collapsed summary {
+  cursor: pointer;
+  padding: 0.35rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.rail-check-list,
+.rail-risk-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .lane-header {
   display: flex;
   justify-content: space-between;
