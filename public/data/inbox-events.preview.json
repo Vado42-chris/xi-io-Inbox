@@ -138,78 +138,202 @@
     "inbox": {
       "eyebrow": "inbox",
       "title": "Email and message triage",
-      "summary": "Email-like preview lane with account gates, smart views, a thread list, selected thread context, draft proposal, evidence, and blocked egress.",
+      "summary": "Email-like preview lane with account gates, smart views, selectable threads, selected-thread detail, sanitized timeline summaries, evidence refs, draft proposal, and blocked egress.",
       "proofState": "preview_only",
       "layout": "email-triage-layout",
       "metrics": [
         { "label": "Accounts", "value": "2 preview", "note": "No OAuth/provider connection." },
-        { "label": "Needs reply", "value": "3", "note": "Static count from fixture." },
+        { "label": "Selectable threads", "value": "3", "note": "Static fixture selection only." },
         { "label": "Blocked actions", "value": "8", "note": "Dangerous egress disabled." }
       ],
       "sections": [
         {
           "type": "inbox-layout",
-          "eyebrow": "account lens",
-          "title": "Accounts, smart views, and threads",
+          "eyebrow": "mailbox",
+          "title": "Accounts, smart views, and thread list",
           "state": "provider_blocked",
           "accounts": [
             { "name": "Personal Gmail preview", "meta": "gmail / private mail / no connection", "state": "provider_blocked" },
             { "name": "GitHub notifications preview", "meta": "github / project ops / no mutation", "state": "provider_blocked" }
           ],
           "views": [
-            { "label": "Inbox", "count": "5" },
+            { "label": "Priority inbox", "count": "3" },
             { "label": "Needs reply", "count": "3" },
+            { "label": "Awaiting evidence", "count": "2" },
             { "label": "Drafts", "count": "2" },
             { "label": "Provider gates", "count": "4" }
           ],
           "threads": [
-            { "title": "Urgent family transport thread", "summary": "Sensitive logistics preview with draft-only response path.", "meta": "gmail preview / high urgency / selected", "state": "needs_review", "selected": true },
-            { "title": "GitHub review reminder", "summary": "Project notification preview that may produce a task proposal.", "meta": "github preview / project ops", "state": "preview_only" },
-            { "title": "Provider terms notice", "summary": "Provider gate decision preview before any account connection.", "meta": "settings source", "state": "provider_blocked" }
+            {
+              "id": "thread-family-safety-preview",
+              "sender": "Personal Gmail preview",
+              "receivedAt": "Jun 8, 8:00 AM",
+              "title": "Urgent family transport thread",
+              "summary": "Sensitive logistics preview with draft-only response path and calendar proposal source.",
+              "state": "needs_review",
+              "selected": true,
+              "labels": ["urgent_thread", "privacy_sensitive", "needs_reply"],
+              "tags": ["urgent_thread", "privacy_sensitive", "local_verification_required"],
+              "detailFields": [
+                { "label": "Provider", "value": "gmail preview" },
+                { "label": "Privacy", "value": "sensitive" },
+                { "label": "Source", "value": "thread ref only" },
+                { "label": "Next action", "value": "draft proposal" }
+              ],
+              "messages": [
+                { "from": "Family sender fixture", "meta": "message 1 / body not loaded", "summary": "Preview summary indicates a transport timing problem that may affect family logistics.", "state": "preview_only" },
+                { "from": "You fixture", "meta": "message 2 / prior reply ref", "summary": "Prior reply reference exists as metadata only; no private body is present.", "state": "preview_only" },
+                { "from": "Family sender fixture", "meta": "message 3 / latest", "summary": "Latest preview summary requires human review before any response draft is trusted.", "state": "needs_review" }
+              ],
+              "evidence": [
+                { "label": "Thread ref", "summary": "provider:gmail/thread-family-safety-preview" },
+                { "label": "Claim", "summary": "Appears time-sensitive; caveat: preview data only" },
+                { "label": "Calendar source", "summary": "Transport pickup proposal source" }
+              ],
+              "attachments": [
+                { "label": "No attachment body", "state": "provider_blocked" },
+                { "label": "No inline image", "state": "provider_blocked" }
+              ],
+              "draft": {
+                "title": "Draft transport reply proposal",
+                "summary": "Draft may be prepared for human review later. It is not sent, forwarded, deleted, disclosed, archived, or synced in this preview.",
+                "state": "draft_only",
+                "details": [
+                  "Ask for confirmation of the pickup window.",
+                  "Avoid exposing private context externally.",
+                  "Require receipt before any future confirmed egress."
+                ]
+              },
+              "inspector": {
+                "context": "Selected thread: Urgent family transport thread. Fixture metadata only; no message body is loaded.",
+                "evidence": "Evidence refs: thread ref, time-sensitivity claim, and calendar proposal source. All are preview-only.",
+                "egressState": "Draft response path is visible. Send, forward, delete, archive, disclose, publish, provider mutation, and repo mutation remain blocked.",
+                "ibalProposal": "Ibal proposes summarize -> draft -> human review -> receipt, with no external action.",
+                "receipts": "A future confirmed draft would require a receipt; current state is preview-only."
+              }
+            },
+            {
+              "id": "thread-github-review-preview",
+              "sender": "GitHub notifications preview",
+              "receivedAt": "Jun 8, 10:15 AM",
+              "title": "GitHub review reminder",
+              "summary": "Project notification preview that may become a task, not a repository mutation.",
+              "state": "preview_only",
+              "labels": ["project_ops", "task_candidate"],
+              "tags": ["project_ops", "repo_mutation_blocked"],
+              "detailFields": [
+                { "label": "Provider", "value": "github preview" },
+                { "label": "Privacy", "value": "project ops" },
+                { "label": "Source", "value": "notification ref only" },
+                { "label": "Next action", "value": "task proposal" }
+              ],
+              "messages": [
+                { "from": "GitHub fixture", "meta": "notification ref", "summary": "Preview notification suggests a review reminder without exposing repository content.", "state": "preview_only" },
+                { "from": "Ibal fixture", "meta": "proposal", "summary": "Create a local task proposal; do not comment, close, merge, or mutate GitHub.", "state": "proposal_only" }
+              ],
+              "evidence": [
+                { "label": "Notification ref", "summary": "provider:github/review-reminder-preview" },
+                { "label": "Task source", "summary": "Tasks lane can link back to this preview ref" }
+              ],
+              "attachments": [
+                { "label": "Repository patch", "state": "not_loaded" }
+              ],
+              "draft": {
+                "title": "Task proposal from GitHub notice",
+                "summary": "Create a local task proposal only. No GitHub comment, status change, merge, close, or push is available from this preview.",
+                "state": "proposal_only",
+                "details": [
+                  "Link to task lane as a static source reference.",
+                  "Keep repository mutation blocked.",
+                  "Receipt required before any future confirmed GitHub action."
+                ]
+              },
+              "inspector": {
+                "context": "Selected thread: GitHub review reminder. It is a notification fixture, not a live GitHub action surface.",
+                "evidence": "Evidence ref: provider:github/review-reminder-preview. No repository data is mutated.",
+                "egressState": "Task proposal only. GitHub comment, close, merge, push, and repository mutation remain blocked.",
+                "ibalProposal": "Ibal proposes creating a local task and preserving source evidence.",
+                "receipts": "Future GitHub/provider actions would require receipts; none exist here."
+              }
+            },
+            {
+              "id": "thread-provider-terms-preview",
+              "sender": "Provider gate notice preview",
+              "receivedAt": "Jun 8, 1:40 PM",
+              "title": "Provider terms notice",
+              "summary": "Provider gate decision preview before any account connection or OAuth credential exists.",
+              "state": "provider_blocked",
+              "labels": ["provider_gate", "settings_required"],
+              "tags": ["provider_blocked", "credentials_absent"],
+              "detailFields": [
+                { "label": "Provider", "value": "policy preview" },
+                { "label": "Privacy", "value": "gate decision" },
+                { "label": "Source", "value": "settings fixture" },
+                { "label": "Next action", "value": "review gates" }
+              ],
+              "messages": [
+                { "from": "Settings fixture", "meta": "gate notice", "summary": "Preview notice says provider permissions must be defined before connection.", "state": "provider_blocked" },
+                { "from": "Ibal fixture", "meta": "proposal", "summary": "Review account connection, permissions, and data boundary before any provider setup.", "state": "proposal_only" }
+              ],
+              "evidence": [
+                { "label": "Settings ref", "summary": "settings/provider-gates-preview" },
+                { "label": "Blocker", "summary": "ARCH-004 and provider identity plan remain open" }
+              ],
+              "attachments": [
+                { "label": "OAuth token", "state": "credentials_absent" }
+              ],
+              "draft": {
+                "title": "Provider gate review proposal",
+                "summary": "Prepare a local checklist for provider permission review. No connection, token, or credential is created.",
+                "state": "provider_blocked",
+                "details": [
+                  "Confirm account identity plan.",
+                  "Confirm permission scopes.",
+                  "Confirm receipt requirements for any future provider change."
+                ]
+              },
+              "inspector": {
+                "context": "Selected thread: Provider terms notice. This is a settings/gate fixture only.",
+                "evidence": "Evidence refs: settings/provider-gates-preview and ARCH-004/provider identity blockers.",
+                "egressState": "Provider connection and credential creation remain blocked.",
+                "ibalProposal": "Ibal proposes reviewing gates before any provider connection work.",
+                "receipts": "Future provider gate changes require receipts; no gate change has occurred."
+              }
+            }
           ]
         },
         {
           "type": "thread-detail",
           "eyebrow": "selected thread",
-          "title": "Thread context preview",
-          "state": "needs_review",
-          "thread": {
-            "title": "Urgent family transport thread",
-            "summary": "Inbox would summarize context, identify a next safe action, and keep external egress blocked by default.",
-            "state": "human_required",
-            "fields": [
-              { "label": "Provider", "value": "gmail preview" },
-              { "label": "Privacy", "value": "sensitive" },
-              { "label": "Source", "value": "thread ref only" },
-              { "label": "Next action", "value": "draft proposal" }
-            ],
-            "tags": ["urgent_thread", "privacy_sensitive", "local_verification_required"]
-          }
+          "title": "Selected thread context",
+          "state": "needs_review"
+        },
+        {
+          "type": "message-timeline",
+          "eyebrow": "sanitized timeline",
+          "title": "Message summaries",
+          "state": "preview_only"
+        },
+        {
+          "type": "evidence-tray",
+          "eyebrow": "evidence and attachments",
+          "title": "Evidence refs and blocked attachments",
+          "state": "provider_blocked"
         },
         {
           "type": "draft-egress",
           "eyebrow": "draft proposal",
           "title": "Draft-only response path",
           "state": "draft_only",
-          "draft": {
-            "title": "Proposed draft response",
-            "summary": "Draft may be generated for human review later. It is not sent, forwarded, deleted, disclosed, archived, or synced in this preview.",
-            "state": "draft_only",
-            "details": [
-              "No message body is loaded from a provider.",
-              "Human confirmation would be required in any future runtime.",
-              "Receipt required before any confirmed egress."
-            ]
-          },
           "blockedActions": ["send", "forward", "delete", "archive", "disclose", "publish", "mutate_provider", "mutate_repository"]
         }
       ],
       "inspector": {
-        "context": "Selected thread: Urgent family transport thread. This is fixture metadata only and contains no real message body.",
-        "evidence": "Evidence reference: provider:gmail/thread-family-safety-preview. State: preview_only.",
-        "egressState": "Draft response path is visible. Send, forward, delete, archive, disclose, publish, and provider mutation remain blocked.",
-        "ibalProposal": "Ibal proposes summarizing and drafting only after provider gates and local verification are satisfied.",
-        "receipts": "Future draft confirmation would require a receipt; current lane contains preview receipt text only."
+        "context": "Selected Inbox thread context is fixture metadata only. No real message body is loaded.",
+        "evidence": "Evidence references are preview-only thread, notification, or settings refs.",
+        "egressState": "Draft and task proposals are visible. Dangerous egress and provider/repo mutation remain blocked.",
+        "ibalProposal": "Ibal can propose triage steps but cannot execute them.",
+        "receipts": "Future confirmed actions require receipts; current lane contains preview-only receipt text."
       }
     },
     "calendar": {

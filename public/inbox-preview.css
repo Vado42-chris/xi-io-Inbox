@@ -341,6 +341,7 @@ input:focus-visible {
 .preview-group,
 .mailbox-panel,
 .thread-row,
+.message-row,
 .detail-panel,
 .board-column,
 .automation-template,
@@ -423,9 +424,59 @@ input:focus-visible {
   gap: 0.6rem;
 }
 
+.thread-row {
+  width: 100%;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.thread-row:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+}
+
+.thread-row header span {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.thread-subject {
+  display: block;
+  margin: 0.55rem 0 0.25rem;
+  font-weight: 800;
+}
+
 .thread-row.is-selected {
   border-color: rgba(105, 210, 255, 0.7);
   box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.message-stack {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.message-row {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.message-row header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.message-row header div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.evidence-list,
+.attachment-list {
+  background: var(--surface-strong);
 }
 
 .detail-grid {

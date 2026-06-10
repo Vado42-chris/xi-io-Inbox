@@ -7,6 +7,7 @@ const DEFAULT_LANE = 'home';
 const state = {
   payload: null,
   laneId: DEFAULT_LANE,
+  threadId: null,
 };
 
 function escapeHtml(value) {
@@ -98,13 +99,28 @@ function activeLaneContent() {
   };
 }
 
+function sectionByType(content, type) {
+  return (content.sections || []).find((section) => section.type === type);
+}
+
+function inboxThreads() {
+  const inbox = getPayload().laneContent?.inbox || {};
+  return sectionByType(inbox, 'inbox-layout')?.threads || [];
+}
+
+function selectedInboxThread() {
+  const threads = inboxThreads();
+  return threads.find((thread) => thread.id === state.threadId) || threads.find((thread) => thread.selected) || threads[0] || null;
+}
+
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ laneId: state.laneId }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ laneId: state.laneId, threadId: state.threadId }));
 }
 
 function loadState() {
   const stored = safeParse(localStorage.getItem(STORAGE_KEY) || '{}', {});
   if (stored.laneId) state.laneId = stored.laneId;
+  if (stored.threadId) state.threadId = stored.threadId;
 }
 
 async function fetchJson(url, fallback) {
@@ -123,6 +139,10 @@ function syncRoute() {
     state.laneId = nextLane;
     saveState();
   }
+  if (!state.threadId && inboxThreads().length) {
+    state.threadId = selectedInboxThread()?.id || null;
+    saveState();
+  }
 }
 
 function ensureRoute() {
@@ -131,6 +151,13 @@ function ensureRoute() {
     state.laneId = DEFAULT_LANE;
     saveState();
   }
+}
+
+function selectInboxThread(threadId) {
+  if (!threadId || !inboxThreads().some((thread) => thread.id === threadId)) return;
+  state.threadId = threadId;
+  saveState();
+  renderShell();
 }
 
 function renderTopBar() {
@@ -300,6 +327,7 @@ function renderNextSafeAction(section) {
 }
 
 function renderInboxLayout(section) {
+  const selected = selectedInboxThread();
   return `
     <section class="lane-section inbox-layout" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
@@ -323,14 +351,18 @@ function renderInboxLayout(section) {
         </aside>
         <div class="thread-list">
           ${(section.threads || []).map((thread) => `
-            <article class="thread-row ${thread.selected ? 'is-selected' : ''}">
+            <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <header>
-                <strong>${escapeHtml(thread.title)}</strong>
+                <span>
+                  <strong>${escapeHtml(thread.sender || thread.title)}</strong>
+                  <small>${escapeHtml(thread.receivedAt || '')}</small>
+                </span>
                 ${renderPill(thread.state || 'preview_only')}
               </header>
+              <span class="thread-subject">${escapeHtml(thread.title)}</span>
               <p>${escapeHtml(thread.summary)}</p>
-              <small>${escapeHtml(thread.meta || '')}</small>
-            </article>
+              ${renderPillRow(thread.labels || [])}
+            </button>
           `).join('')}
         </div>
       </div>
@@ -339,7 +371,7 @@ function renderInboxLayout(section) {
 }
 
 function renderThreadDetail(section) {
-  const thread = section.thread || {};
+  const thread = section.thread || selectedInboxThread() || {};
   return `
     <section class="lane-section thread-detail-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
@@ -352,7 +384,7 @@ function renderThreadDetail(section) {
           ${renderPill(thread.state || 'needs_review')}
         </header>
         <dl class="detail-grid">
-          ${(thread.fields || []).map((field) => `
+          ${(thread.fields || thread.detailFields || []).map((field) => `
             <div>
               <dt>${escapeHtml(field.label)}</dt>
               <dd>${escapeHtml(field.value)}</dd>
@@ -365,12 +397,65 @@ function renderThreadDetail(section) {
   `;
 }
 
+function renderMessageTimeline(section) {
+  const thread = selectedInboxThread() || {};
+  const messages = thread.messages || section.messages || [];
+  return `
+    <section class="lane-section message-timeline-panel" aria-label="${escapeHtml(section.title)}">
+      ${renderSectionHeader(section)}
+      <div class="message-stack">
+        ${messages.map((message) => `
+          <article class="message-row">
+            <header>
+              <div>
+                <strong>${escapeHtml(message.from)}</strong>
+                <small>${escapeHtml(message.meta)}</small>
+              </div>
+              ${renderPill(message.state || 'preview_only')}
+            </header>
+            <p>${escapeHtml(message.summary)}</p>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderEvidenceTray(section) {
+  const thread = selectedInboxThread() || {};
+  const evidence = thread.evidence || section.evidence || [];
+  const attachments = thread.attachments || section.attachments || [];
+  return `
+    <section class="lane-section evidence-tray-panel" aria-label="${escapeHtml(section.title)}">
+      ${renderSectionHeader(section)}
+      <div class="split-panel">
+        <article class="lane-item evidence-list">
+          <header>
+            <strong>Evidence refs</strong>
+            ${renderPill('preview_only')}
+          </header>
+          ${renderDetailList(evidence.map((item) => `${item.label}: ${item.summary}`))}
+        </article>
+        <article class="lane-item attachment-list">
+          <header>
+            <strong>Attachments</strong>
+            ${renderPill('provider_blocked')}
+          </header>
+          ${renderDetailList(attachments.map((item) => `${item.label}: ${item.state}`))}
+        </article>
+      </div>
+    </section>
+  `;
+}
+
 function renderDraftEgress(section) {
+  const thread = selectedInboxThread() || {};
+  const draft = thread.draft || section.draft || {};
   return `
     <section class="lane-section draft-egress-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
       <div class="split-panel">
-        ${renderLaneItem(section.draft || {}, 'lane-item draft-preview')}
+        ${renderLaneItem(draft, 'lane-item draft-preview')}
         <article class="lane-item">
           <header>
             <strong>Blocked gates</strong>
@@ -666,6 +751,8 @@ function renderLaneSection(section) {
     'next-safe-action': renderNextSafeAction,
     'inbox-layout': renderInboxLayout,
     'thread-detail': renderThreadDetail,
+    'message-timeline': renderMessageTimeline,
+    'evidence-tray': renderEvidenceTray,
     'draft-egress': renderDraftEgress,
     'agenda': renderAgenda,
     'calendar-proposals': renderProposalList,
@@ -740,6 +827,10 @@ function renderDisabledActions() {
 }
 
 function activeInspector() {
+  if (state.laneId === 'inbox') {
+    const thread = selectedInboxThread();
+    if (thread?.inspector) return thread.inspector;
+  }
   return activeLaneContent().inspector || getPayload().inspector || {};
 }
 
@@ -790,11 +881,18 @@ function bindEvents() {
     syncRoute();
     renderShell();
   });
+
+  document.addEventListener('click', (event) => {
+    const threadButton = event.target.closest?.('[data-thread-id]');
+    if (!threadButton) return;
+    selectInboxThread(threadButton.dataset.threadId);
+  });
 }
 
 async function init() {
   loadState();
   state.payload = await fetchJson(DATA_URL, {});
+  state.threadId = selectedInboxThread()?.id || state.threadId;
   ensureRoute();
   syncRoute();
   renderShell();

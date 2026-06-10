@@ -71,9 +71,10 @@ xi-io.net#239
 - [x] Provider gates are explicit before real data/actions.
 - [x] Automations proposal/dry-run lane has first-pass template, trigger, approval, dry-run, disabled-status, and receipt-requirement content.
 - [x] Navigation creates clear lanes and workpaths.
+- [x] UI-003C Inbox lane has selectable static threads, selected-thread context, sanitized timeline summaries, evidence refs, blocked attachments, draft proposal content, and lane-aware inspector updates.
 - [ ] Framework visual language/product quality owner review for the redesigned shell is not complete.
 
-UI-003B establishes first-pass lane density only. It does not complete UI-003C Inbox refinement, final product polish, or owner/framework UX proof.
+UI-003C establishes Inbox lane refinement only. It does not complete final product polish or owner/framework UX proof.
 
 ## Egress checks
 
@@ -83,6 +84,7 @@ UI-003B establishes first-pass lane density only. It does not complete UI-003C I
 - [x] Blocked action buttons are disabled.
 - [x] Draft-only language appears in the context action panel.
 - [x] External send, forward, delete, and disclosure remain blocked in copy.
+- [x] UI-003C Inbox smoke confirmed 16 disabled controls, disabled search/command placeholder, and 0 external requests.
 
 ## Egress acceptance criteria for redesign
 
@@ -98,6 +100,7 @@ A replacement preview must preserve all egress checks and additionally show:
 
 - UI-003A route switching smoke proof passed.
 - UI-003B route switching smoke proof passed with 9 lanes, 2 or more sections per lane, lane-aware inspector state, 8 or more disabled egress controls per route, and 0 external requests.
+- UI-003C Inbox smoke proof passed with 3 selectable threads, 5 Inbox sections, selected-thread inspector updates, 16 disabled controls, disabled search/command placeholder, and 0 external requests.
 - Static check only validates file presence.
 - Previous visual/product review failed for the old shell.
 - Local proof must not be marked complete until the redesigned shell passes owner/framework UX review.

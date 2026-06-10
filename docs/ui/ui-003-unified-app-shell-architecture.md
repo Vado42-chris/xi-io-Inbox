@@ -11,7 +11,7 @@ UI-002 technical render smoke proof: passed
 UI-002 owner/framework UX review: failed on 2026-06-09
 UI-003 tracker: xi-io-Inbox#14
 Direct framework export blocker: xi-io.net#239
-Implementation status: UI-003B lane detail fixtures implemented
+Implementation status: UI-003C Inbox lane refinement implemented
 ```
 
 ## Decision
@@ -391,6 +391,53 @@ Next slice:
 
 ```text
 UI-003C: Inbox lane only.
+```
+
+## UI-003C Implementation Note
+
+UI-003C refines only the Inbox lane so it behaves more like email/message triage without adding provider integration.
+
+Implemented surfaces:
+
+- selectable static thread list with three preview threads,
+- account and smart-view mailbox panel,
+- selected-thread context panel,
+- sanitized message summary timeline,
+- evidence reference and blocked attachment tray,
+- per-thread draft/proposal content,
+- lane-aware right inspector that follows selected thread,
+- disabled egress controls and blocked provider/repository mutation gates.
+
+Validation recorded during UI-003C:
+
+```text
+npm run check: pass
+Inbox route smoke: pass
+Inbox thread count: 3
+Inbox lane sections: 5
+selected-thread inspector updates: pass
+disabled egress controls in Inbox: 16
+search/command placeholder disabled: yes
+external requests during Inbox smoke: 0
+provider connection: absent
+runtime action execution: absent
+```
+
+Not implemented in UI-003C:
+
+- real provider connection,
+- real message bodies,
+- provider credentials,
+- runtime send, forward, delete, archive, disclose, publish, deploy, provider mutation, or repository mutation,
+- automation execution,
+- local cloud/home server behavior,
+- Pass 4 runtime skeleton,
+- redesigned owner/framework visual proof.
+
+Next slice:
+
+```text
+UI-003D: redesigned shell review and visual-proof readiness triage.
 ```
 
 ## Decision value
