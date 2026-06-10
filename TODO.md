@@ -138,7 +138,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Implement UI-004D Ibal and Receipts lane polish next.
 - [x] Implement UI-004E Settings and Provider Gates polish next.
 - [x] Implement UI-004F Calendar and Tasks polish next.
-- [ ] Implement UI-004G Automations and Extensions polish next.
+- [x] Implement UI-004G Automations and Extensions polish next.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
@@ -158,4 +158,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 1 remaining UI polish pass (UI-004G), plus 1 owner visual proof pass (UI-003E), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks. Product UI code may proceed for UI-004G Automations and Extensions polish next.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-004 page polish complete (UI-004B–G). Remaining: 1 owner visual proof pass (UI-003E), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks. Next bounded step is UI-003E owner/framework visual proof recording.

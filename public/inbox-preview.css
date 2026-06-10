@@ -1575,3 +1575,103 @@ input:focus-visible {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* UI-004G Automations and Extensions polish */
+.is-automations-lane .metric-card,
+.is-extensions-lane .metric-card {
+  box-shadow: none;
+}
+
+.automation-rule-list,
+.dry-run-pipeline,
+.provider-gate-list,
+.secret-boundary-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 22, 26, 0.45);
+  overflow: hidden;
+}
+
+.automation-rule-row,
+.provider-gate-row,
+.secret-boundary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(52, 59, 67, 0.75);
+  background: transparent;
+  color: var(--text);
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+}
+
+.automation-rule-row:last-child,
+.provider-gate-row:last-child,
+.secret-boundary-row:last-child {
+  border-bottom: 0;
+}
+
+.automation-rule-copy p,
+.provider-gate-row p,
+.secret-boundary-row p {
+  margin: 0.2rem 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.automation-rule-meta,
+.provider-permission-line {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.automation-rule-row em,
+.provider-gate-row em,
+.secret-boundary-row em,
+.dry-run-step em {
+  color: var(--amber);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dry-run-pipeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dry-run-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid rgba(52, 59, 67, 0.75);
+}
+
+.dry-run-step:last-child {
+  border-bottom: 0;
+}
+
+.dry-run-step-index {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(231, 199, 97, 0.12);
+  color: var(--amber);
+  font-weight: 800;
+}
+
+.secret-boundary-row {
+  grid-template-columns: 1fr;
+  gap: 0.2rem;
+}

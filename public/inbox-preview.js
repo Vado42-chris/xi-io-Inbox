@@ -331,6 +331,29 @@ function inspectableItemsForLane(laneId) {
         blocked: 'No policy write path exists in this preview.',
       }));
     }
+    if (section.type === 'automation-studio') {
+      (section.templates || []).forEach((template, index) => pushItem(index, 'automation rule', {
+        ...template,
+        title: template.title,
+        safeNext: 'Dry-run simulation only; automation execution blocked.',
+        blocked: 'No automation execution path exists.',
+      }));
+    }
+    if (section.type === 'dry-run') {
+      (section.steps || []).forEach((step, index) => pushItem(index, 'dry-run step', step));
+    }
+    if (section.type === 'extension-matrix') {
+      (section.providers || []).forEach((provider, index) => pushItem(index, 'provider gate', {
+        title: provider.label,
+        summary: provider.summary,
+        state: provider.state,
+        meta: provider.permissions,
+        blocked: 'Provider connection and credentials remain blocked.',
+      }));
+    }
+    if (section.type === 'secret-boundary') {
+      (section.items || []).forEach((item, index) => pushItem(index, 'secret boundary', item));
+    }
     if (section.type === 'next-safe-action' && section.action) {
       pushItem('action', 'safe action', section.action);
     }
@@ -807,75 +830,97 @@ function renderTaskLinks(section) {
 }
 
 function renderAutomationStudio(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section automation-studio" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="automation-grid">
-        ${(section.templates || []).map((template) => `
-          <article class="automation-template">
-            <header>
-              <strong>${escapeHtml(template.title)}</strong>
-              ${renderPill(template.state || 'dry_run_only')}
-            </header>
-            <p>${escapeHtml(template.summary)}</p>
-            <dl class="mini-dl">
-              <div><dt>Trigger</dt><dd>${escapeHtml(template.trigger)}</dd></div>
-              <div><dt>Gate</dt><dd>${escapeHtml(template.gate)}</dd></div>
-              <div><dt>Receipt</dt><dd>${escapeHtml(template.receipt)}</dd></div>
-            </dl>
-          </article>
-        `).join('')}
+      <div class="automation-rule-list">
+        ${(section.templates || []).map((template, index) => {
+          const focusId = `${state.laneId}:automation-studio:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="automation-rule-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <div class="automation-rule-copy">
+                <strong>${escapeHtml(template.title)}</strong>
+                <p>${escapeHtml(template.summary)}</p>
+                <span class="automation-rule-meta">trigger: ${escapeHtml(template.trigger)} · gate: ${escapeHtml(template.gate)} · receipt: ${escapeHtml(template.receipt)}</span>
+              </div>
+              <em>${escapeHtml(label(template.state || 'dry_run_only'))}</em>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
 }
 
 function renderDryRun(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section dry-run-preview" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="dry-run-steps">
-        ${(section.steps || []).map((step, index) => `
-          <article>
-            <span>${escapeHtml(index + 1)}</span>
-            <div>
-              <strong>${escapeHtml(step.title)}</strong>
-              <p>${escapeHtml(step.summary)}</p>
-              ${renderPill(step.state || 'preview_only')}
-            </div>
-          </article>
-        `).join('')}
-      </div>
+      <ol class="dry-run-pipeline">
+        ${(section.steps || []).map((step, index) => {
+          const focusId = `${state.laneId}:dry-run:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <li class="dry-run-step is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" data-inspector-focus="${escapeHtml(focusId)}" tabindex="0" aria-selected="${focused ? 'true' : 'false'}">
+              <span class="dry-run-step-index">${escapeHtml(index + 1)}</span>
+              <div>
+                <strong>${escapeHtml(step.title)}</strong>
+                <p>${escapeHtml(step.summary)}</p>
+              </div>
+              <em>${escapeHtml(label(step.state || 'preview_only'))}</em>
+            </li>
+          `;
+        }).join('')}
+      </ol>
     </section>
   `;
 }
 
 function renderExtensionMatrix(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section extension-matrix" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="integration-grid">
-        ${(section.providers || []).map((provider) => `
-          <article>
-            <header>
-              <strong>${escapeHtml(provider.label)}</strong>
-              ${renderPill(provider.state || 'provider_blocked')}
-            </header>
-            <p>${escapeHtml(provider.summary)}</p>
-            <small>${escapeHtml(provider.permissions)}</small>
-          </article>
-        `).join('')}
+      <div class="provider-gate-list">
+        ${(section.providers || []).map((provider, index) => {
+          const focusId = `${state.laneId}:extension-matrix:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="provider-gate-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <div>
+                <strong>${escapeHtml(provider.label)}</strong>
+                <p>${escapeHtml(provider.summary)}</p>
+                <span class="provider-permission-line">${escapeHtml(provider.permissions)}</span>
+              </div>
+              <em>${escapeHtml(label(provider.state || 'provider_blocked'))}</em>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
 }
 
 function renderSecretBoundary(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section secret-boundary" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="boundary-list">
-        ${(section.items || []).map((item) => renderLaneItem(item, 'lane-item boundary-card')).join('')}
+      <div class="secret-boundary-list">
+        ${(section.items || []).map((item, index) => {
+          const focusId = `${state.laneId}:secret-boundary:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="secret-boundary-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.summary)}</p>
+              <em>${escapeHtml(label(item.state || 'credentials_absent'))}</em>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -1092,7 +1137,7 @@ function renderMainLane() {
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>
 
-      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}">
+      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
