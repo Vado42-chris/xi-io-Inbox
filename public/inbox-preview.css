@@ -1677,9 +1677,11 @@ input:focus-visible {
 }
 
 .inbox-operability-panel,
+.calendar-operability-panel,
 .inbox-draft-form,
 .inbox-triage-bar,
-.inbox-local-receipts {
+.inbox-local-receipts,
+.calendar-local-proposal-list {
   display: grid;
   gap: 0.75rem;
 }

@@ -1,7 +1,8 @@
 const DATA_URL = './data/inbox-events.preview.json';
-const STORAGE_KEY = 'xiioInbox.preview.ui005b';
+const STORAGE_KEY = 'xiioInbox.preview.state';
+const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 1;
+const STORAGE_SCHEMA_VERSION = 2;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -13,6 +14,7 @@ const state = {
   focusId: null,
   statusMessage: '',
   inbox: defaultInboxOps(),
+  calendar: defaultCalendarOps(),
 };
 
 function defaultInboxOps() {
@@ -22,6 +24,73 @@ function defaultInboxOps() {
     triage: {},
     proposals: [],
     receipts: [],
+  };
+}
+
+function defaultCalendarOps() {
+  return {
+    selectedProposalId: null,
+    proposals: [],
+    receipts: [],
+  };
+}
+
+function previewStateEnvelope() {
+  return {
+    schemaVersion: STORAGE_SCHEMA_VERSION,
+    laneId: state.laneId,
+    threadId: state.threadId,
+    focusId: state.focusId,
+    inbox: state.inbox,
+    calendar: state.calendar,
+  };
+}
+
+function applyPreviewEnvelope(stored) {
+  if (stored.laneId) state.laneId = stored.laneId;
+  if (stored.threadId) state.threadId = stored.threadId;
+  if (stored.focusId) state.focusId = stored.focusId;
+  state.inbox = {
+    ...defaultInboxOps(),
+    ...(stored.inbox || {}),
+    replyDrafts: stored.inbox?.replyDrafts || {},
+    triage: stored.inbox?.triage || {},
+    proposals: stored.inbox?.proposals || [],
+    receipts: stored.inbox?.receipts || [],
+  };
+  state.calendar = {
+    ...defaultCalendarOps(),
+    ...(stored.calendar || {}),
+    proposals: stored.calendar?.proposals || [],
+    receipts: stored.calendar?.receipts || [],
+  };
+  syncInboxCalendarProposals();
+}
+
+function migratePreviewStorage() {
+  const canonical = safeParse(localStorage.getItem(STORAGE_KEY) || 'null', null);
+  if (canonical?.schemaVersion === STORAGE_SCHEMA_VERSION) return canonical;
+
+  const ui005b = safeParse(localStorage.getItem(MIGRATION_UI005B_KEY) || 'null', null);
+  if (ui005b) {
+    return {
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      laneId: ui005b.laneId,
+      threadId: ui005b.threadId,
+      focusId: ui005b.focusId,
+      inbox: ui005b.inbox || defaultInboxOps(),
+      calendar: defaultCalendarOps(),
+    };
+  }
+
+  const legacy = safeParse(localStorage.getItem(LEGACY_STORAGE_KEY) || '{}', {});
+  return {
+    schemaVersion: STORAGE_SCHEMA_VERSION,
+    laneId: legacy.laneId,
+    threadId: legacy.threadId,
+    focusId: legacy.focusId,
+    inbox: defaultInboxOps(),
+    calendar: defaultCalendarOps(),
   };
 }
 
@@ -155,44 +224,120 @@ function selectedInboxThread() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    schemaVersion: STORAGE_SCHEMA_VERSION,
-    laneId: state.laneId,
-    threadId: state.threadId,
-    focusId: state.focusId,
-    inbox: state.inbox,
-  }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(previewStateEnvelope()));
 }
 
 function loadState() {
-  let stored = safeParse(localStorage.getItem(STORAGE_KEY) || 'null', null);
-  if (!stored || stored.schemaVersion !== STORAGE_SCHEMA_VERSION) {
-    const legacy = safeParse(localStorage.getItem(LEGACY_STORAGE_KEY) || '{}', {});
-    stored = {
-      schemaVersion: STORAGE_SCHEMA_VERSION,
-      laneId: legacy.laneId,
-      threadId: legacy.threadId,
-      focusId: legacy.focusId,
-      inbox: defaultInboxOps(),
-    };
-  }
-  if (stored.laneId) state.laneId = stored.laneId;
-  if (stored.threadId) state.threadId = stored.threadId;
-  if (stored.focusId) state.focusId = stored.focusId;
-  state.inbox = {
-    ...defaultInboxOps(),
-    ...(stored.inbox || {}),
-    replyDrafts: stored.inbox?.replyDrafts || {},
-    triage: stored.inbox?.triage || {},
-    proposals: stored.inbox?.proposals || [],
-    receipts: stored.inbox?.receipts || [],
-  };
+  const stored = migratePreviewStorage();
+  applyPreviewEnvelope(stored);
+  saveState();
 }
 
-function setStatusMessage(message) {
+function setStatusMessage(message, laneId = state.laneId) {
   state.statusMessage = message;
-  const region = document.getElementById('inboxStatusRegion');
+  const regionId = laneId === 'calendar' ? 'calendarStatusRegion' : 'inboxStatusRegion';
+  const region = document.getElementById(regionId);
   if (region) region.textContent = message;
+}
+
+function syncInboxCalendarProposals() {
+  const inboxCalendar = (state.inbox.proposals || []).filter((entry) => entry.type === 'calendar');
+  const existing = new Set((state.calendar.proposals || []).map((entry) => entry.id));
+  inboxCalendar.forEach((proposal) => {
+    if (existing.has(proposal.id)) return;
+    state.calendar.proposals = [{
+      id: proposal.id,
+      title: proposal.title,
+      dateTime: proposal.dateTime || '',
+      notes: proposal.summary || '',
+      sourceRef: proposal.threadId ? `inbox-thread:${proposal.threadId}` : '',
+      sourceType: 'inbox_local',
+      threadId: proposal.threadId || null,
+      createdAt: proposal.createdAt,
+      updatedAt: proposal.createdAt,
+      state: 'local_preview_proposal',
+    }, ...state.calendar.proposals];
+  });
+}
+
+function allCalendarProposals() {
+  syncInboxCalendarProposals();
+  return state.calendar.proposals || [];
+}
+
+function selectedCalendarProposal() {
+  const proposals = allCalendarProposals();
+  return proposals.find((entry) => entry.id === state.calendar.selectedProposalId) || proposals[0] || null;
+}
+
+function addCalendarReceipt({ type, title, proposalId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    proposalId: proposalId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No provider calendar write, send, or runtime action occurred.',
+  };
+  state.calendar.receipts = [receipt, ...(state.calendar.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function saveCalendarProposal(formData, proposalId) {
+  const payload = {
+    title: String(formData.get('title') || '').trim(),
+    dateTime: String(formData.get('dateTime') || '').trim(),
+    notes: String(formData.get('notes') || '').trim(),
+    sourceRef: String(formData.get('sourceRef') || '').trim(),
+    sourceType: String(formData.get('sourceType') || 'calendar_local').trim(),
+    threadId: String(formData.get('threadId') || '').trim() || null,
+    state: 'local_preview_proposal',
+  };
+  const now = new Date().toISOString();
+  if (proposalId) {
+    state.calendar.proposals = (state.calendar.proposals || []).map((entry) => (
+      entry.id === proposalId ? { ...entry, ...payload, updatedAt: now } : entry
+    ));
+    addCalendarReceipt({
+      type: 'proposal',
+      title: 'Local calendar proposal updated',
+      proposalId,
+      summary: payload.title || '(untitled)',
+    });
+    state.calendar.selectedProposalId = proposalId;
+    setStatusMessage('Local calendar proposal updated. Provider calendar write remains blocked.', 'calendar');
+  } else {
+    const id = createLocalId('calendar');
+    const proposal = { id, ...payload, createdAt: now, updatedAt: now };
+    state.calendar.proposals = [proposal, ...(state.calendar.proposals || [])];
+    addCalendarReceipt({
+      type: 'proposal',
+      title: 'Local calendar proposal created',
+      proposalId: id,
+      summary: payload.title || '(untitled)',
+    });
+    state.calendar.selectedProposalId = id;
+    state.focusId = `calendar:local:${id}`;
+    setStatusMessage('Local calendar proposal created. Provider calendar write remains blocked.', 'calendar');
+  }
+  saveState();
+}
+
+function clearCalendarProposal(proposalId) {
+  if (!proposalId) return;
+  state.calendar.proposals = (state.calendar.proposals || []).filter((entry) => entry.id !== proposalId);
+  if (state.calendar.selectedProposalId === proposalId) {
+    state.calendar.selectedProposalId = state.calendar.proposals[0]?.id || null;
+  }
+  saveState();
+  setStatusMessage('Local calendar proposal cleared.', 'calendar');
+}
+
+function clearCalendarPreviewState() {
+  state.calendar = defaultCalendarOps();
+  saveState();
+  setStatusMessage('All local Calendar preview state cleared. Fixture agenda unchanged.', 'calendar');
 }
 
 function inboxTriageFor(threadId) {
@@ -341,21 +486,42 @@ function createLocalTaskProposal(threadId) {
 function createLocalCalendarProposal(threadId) {
   const thread = inboxThreads().find((entry) => entry.id === threadId);
   if (!thread) return;
-  const proposal = {
-    id: createLocalId('calendar'),
+  const id = createLocalId('calendar');
+  const createdAt = new Date().toISOString();
+  const inboxProposal = {
+    id,
     type: 'calendar',
     threadId,
     title: `Calendar proposal from ${thread.title}`,
     summary: 'Local event proposal from inbox thread context. Not scheduled on provider.',
-    createdAt: new Date().toISOString(),
+    createdAt,
     state: 'local_proposal',
   };
-  state.inbox.proposals = [proposal, ...state.inbox.proposals].slice(0, 20);
+  state.inbox.proposals = [inboxProposal, ...state.inbox.proposals].slice(0, 20);
+  state.calendar.proposals = [{
+    id,
+    title: inboxProposal.title,
+    dateTime: '',
+    notes: inboxProposal.summary,
+    sourceRef: `inbox-thread:${threadId}`,
+    sourceType: 'inbox_local',
+    threadId,
+    createdAt,
+    updatedAt: createdAt,
+    state: 'local_preview_proposal',
+  }, ...(state.calendar.proposals || [])];
+  state.calendar.selectedProposalId = id;
   addLocalReceipt({
     type: 'proposal',
     title: 'Local calendar proposal created',
     threadId,
-    summary: proposal.title,
+    summary: inboxProposal.title,
+  });
+  addCalendarReceipt({
+    type: 'proposal',
+    title: 'Inbox-linked calendar proposal',
+    proposalId: id,
+    summary: `Source inbox-thread:${threadId}`,
   });
   saveState();
   setStatusMessage('Local calendar proposal created. Provider calendar write remains blocked.');
@@ -434,6 +600,10 @@ function defaultFocusIdForLane(laneId) {
     const thread = selectedInboxThread();
     return thread ? `inbox-thread:${thread.id}` : 'lane:inbox';
   }
+  if (laneId === 'calendar') {
+    const proposal = selectedCalendarProposal();
+    return proposal ? `calendar:local:${proposal.id}` : 'lane:calendar';
+  }
   return `lane:${laneId}`;
 }
 
@@ -456,6 +626,22 @@ function inspectableItemsForLane(laneId) {
       });
     });
     return items;
+  }
+
+  if (laneId === 'calendar') {
+    allCalendarProposals().forEach((proposal) => {
+      items.push({
+        id: `calendar:local:${proposal.id}`,
+        kind: 'local calendar proposal',
+        title: proposal.title,
+        summary: proposal.notes || 'Local preview proposal only.',
+        meta: proposal.sourceRef,
+        state: proposal.state,
+        safeNext: 'Edit local proposal; provider calendar write remains blocked.',
+        blocked: 'Provider calendar write, invite send, and runtime scheduling remain blocked.',
+        receipt: 'Local calendar proposal receipt preview available.',
+      });
+    });
   }
 
   (content.sections || []).forEach((section, sectionIndex) => {
@@ -586,6 +772,9 @@ function selectInspectorFocus(focusId) {
   state.focusId = focusId;
   if (focusId.startsWith('inbox-thread:')) {
     state.threadId = focusId.replace('inbox-thread:', '');
+  }
+  if (focusId.startsWith('calendar:local:')) {
+    state.calendar.selectedProposalId = focusId.replace('calendar:local:', '');
   }
   saveState();
   renderShell();
@@ -1021,6 +1210,86 @@ function renderDraftEgress(section) {
           ${renderLocalReceiptsPanel(threadId)}
         </article>
         ${renderEgressPolicyModule(actions)}
+      </div>
+    </section>
+  `;
+}
+
+function renderCalendarLocalReceipts(proposalId) {
+  const receipts = (state.calendar.receipts || []).filter((entry) => !proposalId || entry.proposalId === proposalId);
+  if (!receipts.length) return '<p class="form-hint">No local calendar receipts yet.</p>';
+  return receipts.map((receipt) => `
+    <article class="local-receipt-row">
+      <header>
+        <strong>${escapeHtml(receipt.title)}</strong>
+        <span>${escapeHtml(label(receipt.type))} · local receipt</span>
+      </header>
+      <p>${escapeHtml(receipt.summary)}</p>
+      <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+    </article>
+  `).join('');
+}
+
+function renderCalendarOperabilityPanel() {
+  const selected = selectedCalendarProposal();
+  const proposals = allCalendarProposals();
+  const proposalId = selected?.id || '';
+  return `
+    <section class="lane-section calendar-operability-panel" aria-label="Calendar local operability">
+      <header class="section-head">
+        <div>
+          <p class="section-eyebrow">local operability</p>
+          <h3>Event proposal controls</h3>
+          <p>Create and edit local preview proposals only. No provider calendar write.</p>
+        </div>
+        <span class="draft-proposal-state">local preview proposal</span>
+      </header>
+      <div id="calendarStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'calendar' ? state.statusMessage : 'Ready for local Calendar operability.')}</div>
+      <form class="inbox-draft-form" data-calendar-form="proposal" aria-label="Local calendar event proposal">
+        <input type="hidden" name="proposalId" value="${escapeHtml(proposalId)}" />
+        <h4 id="calendar-proposal-label">${proposalId ? 'Edit local calendar proposal' : 'New local calendar proposal'}</h4>
+        <label for="calendar-title">Event title (preview)</label>
+        <input id="calendar-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
+        <label for="calendar-datetime">Date/time text (preview)</label>
+        <input id="calendar-datetime" name="dateTime" type="text" autocomplete="off" value="${escapeHtml(selected?.dateTime || '')}" placeholder="e.g. Jun 10, 2:00 PM" />
+        <label for="calendar-notes">Notes (local preview only)</label>
+        <textarea id="calendar-notes" name="notes" rows="3" aria-describedby="calendar-proposal-hint">${escapeHtml(selected?.notes || '')}</textarea>
+        <label for="calendar-source-ref">Source reference (preview)</label>
+        <input id="calendar-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" placeholder="fixture ref or inbox-thread:id" />
+        <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'calendar_local')}" />
+        <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
+        <p id="calendar-proposal-hint" class="form-hint">Local preview proposal. Not scheduled on provider. Source may be fixture or inbox-local.</p>
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="submit" data-calendar-action="proposal-save">${proposalId ? 'Update local proposal' : 'Save local proposal'}</button>
+          ${proposalId ? `<button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(proposalId)}">Clear selected proposal</button>` : ''}
+          <button class="inbox-action-btn is-blocked" type="button" disabled aria-describedby="calendar-write-blocked">Provider calendar write blocked</button>
+        </div>
+        <p id="calendar-write-blocked" class="form-hint">Invite send, provider sync, and runtime scheduling remain blocked.</p>
+      </form>
+      <div class="calendar-local-proposal-list" aria-label="Local calendar proposals">
+        <h4>Local proposals (${proposals.length})</h4>
+        ${proposals.length ? proposals.map((proposal) => `
+          <button class="calendar-proposal-row is-inspector-focusable ${proposal.id === proposalId ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(`calendar:local:${proposal.id}`)}" data-calendar-action="select-proposal" data-proposal-id="${escapeHtml(proposal.id)}" aria-pressed="${proposal.id === proposalId ? 'true' : 'false'}">
+            <div>
+              <strong>${escapeHtml(proposal.title)}</strong>
+              <p>${escapeHtml(proposal.notes || '')}</p>
+            </div>
+            <div class="calendar-proposal-meta">
+              <span>${escapeHtml(proposal.sourceRef || 'no source ref')}</span>
+              <em>${escapeHtml(label(proposal.sourceType || 'calendar_local'))}</em>
+            </div>
+          </button>
+        `).join('') : '<p class="form-hint">No local proposals yet. Create one or use Inbox triage to add inbox-linked proposals.</p>'}
+      </div>
+      <article class="draft-proposal-panel">
+        <header>
+          <strong>Local receipt preview</strong>
+          <span class="draft-proposal-state">preview only</span>
+        </header>
+        ${renderCalendarLocalReceipts(proposalId)}
+      </article>
+      <div class="inbox-clear-control">
+        <button class="inbox-action-btn is-danger" type="button" data-calendar-action="clear-all">Clear all local Calendar preview state</button>
       </div>
     </section>
   `;
@@ -1465,6 +1734,7 @@ function renderMainLane() {
 
       <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
         ${lane.id === 'inbox' ? renderInboxOperabilityPanel() : ''}
+        ${lane.id === 'calendar' ? renderCalendarOperabilityPanel() : ''}
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
@@ -1498,6 +1768,29 @@ function activeInspectorModel() {
   const focusItem = activeInspectableItem();
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
+
+  if (focusItem?.id?.startsWith('calendar:local:')) {
+    const proposalId = focusItem.id.replace('calendar:local:', '');
+    const proposal = allCalendarProposals().find((entry) => entry.id === proposalId);
+    const receipts = (state.calendar.receipts || []).filter((entry) => entry.proposalId === proposalId);
+    const sourceLabel = proposal?.sourceType === 'inbox_local'
+      ? `Inbox-local source: ${proposal.sourceRef}`
+      : (proposal?.sourceRef ? `Source: ${proposal.sourceRef}` : 'No source ref');
+    return {
+      kind: focusItem.kind,
+      title: focusItem.title,
+      summary: focusItem.summary,
+      context: `Local calendar proposal selected. ${sourceLabel}. Fixture/provider calendar unchanged.`,
+      why: proposal?.notes || 'Time proposal requires human review before any provider scheduling.',
+      evidence: `${sourceLabel}. Date/time: ${proposal?.dateTime || 'not set'}. Preview metadata only.`,
+      safeNext: 'Edit local proposal fields; keep provider calendar write blocked.',
+      blocked: 'Provider calendar write, invite send, email send, and runtime scheduling remain blocked.',
+      ibalProposal: laneInspector.ibalProposal || 'Ibal may propose calendar follow-up but cannot schedule events.',
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary} (${entry.limitations})`).join(' ')
+        : 'Local calendar proposal receipt will appear after save.',
+    };
+  }
 
   if (focusItem?.id?.startsWith('inbox-thread:')) {
     const threadId = focusItem.id.replace('inbox-thread:', '');
@@ -1602,6 +1895,28 @@ function renderShell() {
   `;
 }
 
+function handleCalendarAction(action, proposalId) {
+  if (action === 'proposal-clear') {
+    clearCalendarProposal(proposalId);
+    renderShell();
+    return;
+  }
+  if (action === 'select-proposal') {
+    if (!proposalId) return;
+    state.calendar.selectedProposalId = proposalId;
+    state.focusId = `calendar:local:${proposalId}`;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all local Calendar preview proposals and receipts?')) {
+      clearCalendarPreviewState();
+      renderShell();
+    }
+  }
+}
+
 function handleInboxAction(action, threadId) {
   if (action === 'compose-save') return;
   if (action === 'compose-clear') {
@@ -1649,6 +1964,16 @@ function bindEvents() {
   });
 
   document.addEventListener('submit', (event) => {
+    const calendarForm = event.target.closest?.('[data-calendar-form]');
+    if (calendarForm) {
+      event.preventDefault();
+      const formData = new FormData(calendarForm);
+      const proposalId = String(formData.get('proposalId') || '').trim() || null;
+      saveCalendarProposal(formData, proposalId);
+      renderShell();
+      return;
+    }
+
     const form = event.target.closest?.('[data-inbox-form]');
     if (!form) return;
     event.preventDefault();
@@ -1666,6 +1991,13 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const calendarAction = event.target.closest?.('[data-calendar-action]');
+    if (calendarAction?.dataset.calendarAction && calendarAction.dataset.calendarAction !== 'proposal-save') {
+      event.preventDefault();
+      handleCalendarAction(calendarAction.dataset.calendarAction, calendarAction.dataset.proposalId);
+      return;
+    }
+
     const inboxAction = event.target.closest?.('[data-inbox-action]');
     if (inboxAction?.dataset.inboxAction) {
       event.preventDefault();
