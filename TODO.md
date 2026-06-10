@@ -160,7 +160,22 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-007A state reconciliation + draft workbench architecture (docs only).
 - [ ] Operator push local commits (20 ahead of remote) + `xi-io.net` freshness commit (1 ahead).
 - [x] Merge-prep: gates, proof packet, PR #12 body sync (2026-06-10).
-- [ ] Owner Inbox workbench screenshot review only (UI-007B-R1); full UI-003E deferred until post-R3.
+- [x] Owner Inbox workbench review — FAIL 2026-06-10 (significant polish required; see proof packet).
+- [x] UI-008A polish: restore product-visible lanes, sample drafts, account card, multi-inbox UX (`docs/ui/reviews/ui-008-owner-polish-receipt.md`) — **owner rejected: wrong account model**.
+- [x] UI-008B polish: reply/read styling, context rail Outcomes alignment — insufficient vs product bar.
+- [x] UI-008C polish (partial): Settings user preferences — insufficient vs product bar.
+- [x] Owner UI-003E re-review — FAIL product UX not user-facing (`docs/ui/reviews/ui-009-product-ux-gap-audit.md`).
+- [ ] UI-009A: remove fixture accounts from user UI; Add Account wizard shell; user card identity.
+- [ ] UI-009B: calendar month-grid shell.
+- [ ] UI-009C: tasks board/sprint layout + mail source links.
+- [ ] UI-009D: Activity (Receipts) rename + user-facing filters.
+- [ ] UI-009E: Settings split User vs Advanced.
+- [ ] UI-009F: mail reading polish v2; demote fixture copy.
+- [x] GMAIL-001B: real account metadata spike plan + adapter contract (`docs/providers/gmail/gmail-001b-receipt.md`).
+- [ ] GMAIL-001C: local metadata-only adapter implementation (OAuth loopback, labels/counts; no bodies/send/draft write).
+- [ ] GMAIL-001D: draft create/update spike (throwaway account preferred; send still blocked).
+- [ ] Owner approval before primary-account metadata API smoke.
+- [ ] UI-010+ product UI provider connect — after GMAIL-001C + UI-009A wizard shell.
 - [x] UI-007B-R1 mail navigation graduation (`docs/ui/reviews/ui-007b-r1-mail-navigation-graduation-receipt.md`).
 - [x] UI-007B-R2 Drafts / Approval Queue workbench (`docs/ui/reviews/ui-007b-r2-drafts-approval-queue-receipt.md`).
 - [x] UI-007B-R3 Context rail command modes (`docs/ui/reviews/ui-007b-r3-context-rail-modes-receipt.md`).
@@ -184,4 +199,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and draft workbench MVP: all agent slices complete locally; merge-prep docs synced. Remaining: operator push (2 repos), owner Inbox screenshot + full UI-003E (~2 owner), optional UI-007D (~0–1 agent if requested), `xi-io.net#239` export disposition (framework-side). ARCH-002/ARCH-004 separate. **~0–1 agent passes** + 2 owner actions + operator push.
+Current estimated work: UI-009A–F (~5–7 agent passes) product shell; GMAIL-001C metadata adapter (~1–2 passes); GMAIL-001D draft write later; xi-io.net framework backfeed for provider contract (~0–1 pass). PR #12 remains draft. Owner visual proof blocked.

@@ -1,0 +1,13 @@
+# Gmail adapter local secrets and cache — never commit
+.env
+.env.*
+*.json
+!provider-contract.md
+credentials.json
+token.json
+token.*
+oauth.*
+cache/
+data/
+receipts/
+*.log
