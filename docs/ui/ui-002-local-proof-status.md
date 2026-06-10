@@ -9,17 +9,18 @@ Track the local browser smoke proof and owner/framework UX review status for PR 
 ```text
 Technical render smoke proof: PASSED
 UI-005 human-operable shell: COMPLETE (UI-005A–I)
-UI-006 progressive disclosure IA: COMPLETE (UI-006A–F; local, push pending)
-UI-007A draft workbench architecture: COMPLETE (docs only)
+UI-006 progressive disclosure IA: COMPLETE (UI-006A–F)
+UI-007 draft workbench Tier 1: COMPLETE (UI-007A–C, UI-007B-R1/R2/R3)
+Framework freshness backfeed: COMPLETE (`xi-io.net#239` comment + framework note)
 Agent structural re-verification (UI-003E packet): PASSED 2026-06-10
 Owner/framework UX review (preliminary): FAILED 2026-06-10
-Owner visual proof (post UI-005): FAIL 2026-06-10 (inbox IA/UX; see proof packet)
-Owner visual proof (post UI-006): PENDING owner re-review
+Owner Inbox workbench screenshot: PENDING (scoped review before full UI-003E)
+Owner visual proof (full UI-003E): PENDING
 Local visual proof complete: NO
-PR #12 merge readiness: BLOCKED
+PR #12 merge readiness: BLOCKED (20 local commits unpushed)
 ```
 
-UI-003D readiness triage passed 2026-06-10. UI-005A–I and UI-006A–F completed 2026-06-10. Preliminary UI-003E inbox IA fail addressed by UI-006A; all operable lanes now use list/detail workspace IA. Owner must re-run visual checklist in `docs/ui/reviews/ui-003e-owner-visual-proof-packet.md` before visual proof can pass.
+Preliminary inbox IA fail addressed by UI-006A and UI-007B mail workbench. Owner should complete **Inbox workbench scoped review** first, then full checklist in `docs/ui/reviews/ui-003e-owner-visual-proof-packet.md`.
 
 ## Scope correction
 
@@ -62,7 +63,7 @@ Do not mark UI-002 visual proof complete.
 
 Keep PR #12 draft.
 
-UI-004 polish, UI-005 operability, UI-006 progressive disclosure, and UI-007A draft architecture are complete. Owner re-review and UI-007B draft workbench follow. PR #12 remains draft.
+UI-004 polish, UI-005 operability, UI-006 progressive disclosure, and UI-007 draft workbench (Tier 1) are complete locally. Operator push and owner visual proof remain. PR #12 remains draft.
 
 ## Required future UI acceptance criteria
 

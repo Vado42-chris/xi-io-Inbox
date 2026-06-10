@@ -10,7 +10,7 @@
 
 ## Commit SHA (packet baseline)
 
-`b889fbecbf2fc07e14b68257f5f22b94df4bc445`
+`05c9d35db69b0e774d5feb8d6e8212a93a73b320` (pre-push; 20 commits ahead of remote)
 
 ## Classification
 
@@ -56,9 +56,18 @@ Storage: single key `xiioInbox.preview.state` schemaVersion `2`.
 
 Open `npm run dev` → `http://localhost:4488`. Sign each item PASS/FAIL.
 
+### Inbox mail workbench (scoped review first)
+
+- [ ] 4-column layout: nav | list | reading | command rail; independent scroll per pane
+- [ ] Mail folders: Inbox, Drafts, Approval Queue with live counts
+- [ ] Outcome lanes demoted under collapsible "Outcomes (preview)"
+- [ ] Draft object flow: compose/reply → Drafts → submit → approve → simulate send (dry-run)
+- [ ] Command rail modes: thread / draft / batch / sent; evidence collapsed
+- [ ] Provider send remains blocked after simulate
+
 ### Shell and navigation
 
-- [ ] Home, Inbox, Calendar, Tasks, Automations, Extensions, Receipts, Settings lanes navigable
+- [ ] Home, Mail, Receipts, Settings primary; outcome lanes reachable
 - [ ] Ibal **not** in left lane nav
 - [ ] `#/ibal` lands on Home and opens Ibal concierge
 - [ ] Trust rail and blocked egress visible
@@ -87,7 +96,7 @@ Open `npm run dev` → `http://localhost:4488`. Sign each item PASS/FAIL.
 
 ### Persistence
 
-- [ ] Reload preserves `xiioInbox.preview.state` v2
+- [ ] Reload preserves `xiioInbox.preview.state` v3 (`drafts`, `sentEvents` namespaces)
 - [ ] Clear per-lane does not wipe unrelated namespaces
 
 ### Still forbidden (must remain blocked)
