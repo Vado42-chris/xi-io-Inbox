@@ -100,11 +100,15 @@ Open `npm run dev` → `http://localhost:4488`. Sign each item PASS/FAIL.
 ## Owner Decision (fill after review)
 
 ```text
-Owner reviewer:
-Date:
-Overall: PASS / FAIL
-Notes:
+Owner reviewer: Chris (preliminary re-review)
+Date: 2026-06-10
+Overall: FAIL
+Notes: Inbox IA unacceptable — everything dumped on one scroll page; not a modern email inbox.
+Cognitive overload; no progressive disclosure; compose/reply/forms always visible;
+technical jargon and redundant blocked-action stacks. Other lanes likely same pattern.
 ```
+
+Follow-up: UI-006 inbox IA refactor started (3-pane workspace, compose modal, reply on demand).
 
 If PASS:
 

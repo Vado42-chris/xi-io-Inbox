@@ -33,6 +33,8 @@ function defaultInboxOps() {
     triage: {},
     proposals: [],
     receipts: [],
+    composeOpen: false,
+    replyOpen: false,
   };
 }
 
@@ -1148,8 +1150,9 @@ function saveComposeDraft(formData) {
     threadId: null,
     summary: `Subject: ${state.inbox.composeDraft.subject || '(none)'}. Preview draft only.`,
   });
+  state.inbox.composeOpen = false;
   saveState();
-  setStatusMessage('Local compose draft saved. Send remains blocked.');
+  setStatusMessage('Draft saved. Send remains blocked.', 'inbox');
 }
 
 function clearComposeDraft() {
@@ -1373,6 +1376,7 @@ function selectInboxThread(threadId) {
   if (!threadId || !inboxThreads().some((thread) => thread.id === threadId)) return;
   state.threadId = threadId;
   state.focusId = `inbox-thread:${threadId}`;
+  state.inbox.replyOpen = false;
   saveState();
   renderShell();
   document.querySelector(`[data-thread-id="${CSS.escape(threadId)}"]`)?.focus({ preventScroll: true });
@@ -1890,39 +1894,171 @@ function renderLocalTriageChip(threadId) {
   return '';
 }
 
-function renderInboxOperabilityPanel() {
+function renderInboxToolbar() {
+  return `
+    <div class="inbox-toolbar" role="toolbar" aria-label="Inbox actions">
+      <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-compose" aria-expanded="${state.inbox.composeOpen ? 'true' : 'false'}">Compose</button>
+      <div id="inboxStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'inbox' ? state.statusMessage : '')}</div>
+      <details class="inbox-toolbar-overflow">
+        <summary>More</summary>
+        <button class="inbox-action-btn is-danger" type="button" data-inbox-action="clear-all">Clear local inbox state</button>
+      </details>
+    </div>
+  `;
+}
+
+function renderInboxComposeSheet() {
   const compose = state.inbox.composeDraft || {};
   return `
-    <section class="lane-section inbox-operability-panel" aria-label="Inbox local operability">
-      <header class="section-head">
+    <div class="inbox-compose-root ${state.inbox.composeOpen ? 'is-open' : ''}" aria-hidden="${state.inbox.composeOpen ? 'false' : 'true'}">
+      <button class="inbox-compose-backdrop" type="button" data-inbox-action="close-compose" aria-label="Close compose"></button>
+      <section class="inbox-compose-sheet" role="dialog" aria-modal="true" aria-label="Compose message">
+        <header class="inbox-compose-head">
+          <h3>New message</h3>
+          <button class="inbox-action-btn" type="button" data-inbox-action="close-compose">Close</button>
+        </header>
+        <form class="inbox-draft-form" data-inbox-form="compose" aria-label="Compose draft">
+          <label for="compose-to">To</label>
+          <input id="compose-to" name="to" type="text" autocomplete="off" value="${escapeHtml(compose.to || '')}" />
+          <label for="compose-subject">Subject</label>
+          <input id="compose-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(compose.subject || '')}" />
+          <label for="compose-body">Message</label>
+          <textarea id="compose-body" name="body" rows="8">${escapeHtml(compose.body || '')}</textarea>
+          <p class="form-hint">Draft only — not sent. No provider connection.</p>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="compose-save">Save draft</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="compose-clear">Discard</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  `;
+}
+
+function renderInboxReadingPane(layoutSection) {
+  const thread = selectedInboxThread();
+  const threadId = thread?.id || '';
+  const reply = replyDraftFor(threadId) || {};
+  const messages = thread?.messages || [];
+  const evidence = thread?.evidence || [];
+  const attachments = thread?.attachments || [];
+  if (!thread) {
+    return `
+      <section class="inbox-reading-pane is-empty" aria-label="Message reading pane">
+        <p class="inbox-empty-state">Select a conversation to read and reply.</p>
+      </section>
+    `;
+  }
+  return `
+    <section class="inbox-reading-pane" aria-label="Message reading pane">
+      <header class="inbox-reading-head">
         <div>
-          <p class="section-eyebrow">local operability</p>
-          <h3>Compose and preview controls</h3>
-          <p>Create local preview drafts only. No provider connection or send path exists.</p>
+          <h3>${escapeHtml(thread.title)}</h3>
+          <p class="inbox-reading-meta">${escapeHtml(thread.sender || '')} · ${escapeHtml(thread.receivedAt || '')}</p>
         </div>
-        <span class="draft-proposal-state">local preview draft</span>
+        ${renderThreadStatusChip(thread.state || 'needs_review')}
       </header>
-      <div id="inboxStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage || 'Ready for local Inbox operability.')}</div>
-      <form class="inbox-draft-form" data-inbox-form="compose" aria-label="Local compose draft">
-        <h4 id="compose-draft-label">New local compose draft</h4>
-        <label for="compose-to">To (preview)</label>
-        <input id="compose-to" name="to" type="text" autocomplete="off" value="${escapeHtml(compose.to || '')}" />
-        <label for="compose-subject">Subject (preview)</label>
-        <input id="compose-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(compose.subject || '')}" />
-        <label for="compose-body">Draft body (local preview only)</label>
-        <textarea id="compose-body" name="body" rows="4" aria-describedby="compose-draft-hint">${escapeHtml(compose.body || '')}</textarea>
-        <p id="compose-draft-hint" class="form-hint">Local preview draft. Not sent. No provider write.</p>
-        <div class="inbox-form-actions">
-          <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="compose-save">Save local compose draft</button>
-          <button class="inbox-action-btn" type="button" data-inbox-action="compose-clear">Clear compose draft</button>
-          <button class="inbox-action-btn is-blocked" type="button" disabled aria-describedby="send-blocked-hint">Send blocked</button>
-        </div>
-      </form>
-      <div class="inbox-clear-control">
-        <button class="inbox-action-btn is-danger" type="button" data-inbox-action="clear-all" aria-describedby="clear-all-hint">Clear all local Inbox preview state</button>
-        <p id="clear-all-hint" class="form-hint">Removes local drafts, triage, proposals, and receipts from preview storage. Fixture threads are unchanged.</p>
+      <div class="message-stack" aria-label="Conversation">
+        ${messages.map((message) => `
+          <article class="message-row">
+            <header class="message-row-head">
+              <strong>${escapeHtml(message.from)}</strong>
+              <small>${escapeHtml(message.meta)}</small>
+            </header>
+            <p>${escapeHtml(message.summary)}</p>
+          </article>
+        `).join('')}
       </div>
+      <div class="inbox-action-toolbar" role="toolbar" aria-label="Thread actions">
+        <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" data-thread-id="${escapeHtml(threadId)}" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(threadId)}">Mark read</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="defer-thread" data-thread-id="${escapeHtml(threadId)}">Defer</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(threadId)}">Add task</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="calendar-proposal" data-thread-id="${escapeHtml(threadId)}">Schedule</button>
+      </div>
+      ${state.inbox.replyOpen ? `
+        <form class="inbox-draft-form inbox-reply-sheet" data-inbox-form="reply" aria-label="Reply draft">
+          <label for="reply-to">To</label>
+          <input id="reply-to" name="to" type="text" autocomplete="off" value="${escapeHtml(reply.to || thread.sender || '')}" />
+          <label for="reply-subject">Subject</label>
+          <input id="reply-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(reply.subject || (thread.title ? `Re: ${thread.title}` : ''))}" />
+          <label for="reply-body">Message</label>
+          <textarea id="reply-body" name="body" rows="6">${escapeHtml(reply.body || '')}</textarea>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="reply-save" data-thread-id="${escapeHtml(threadId)}">Save draft</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="reply-clear" data-thread-id="${escapeHtml(threadId)}">Discard</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>
+          </div>
+        </form>
+      ` : ''}
+      <details class="inbox-reading-details">
+        <summary>Details and attachments</summary>
+        <dl class="thread-metadata-grid">
+          ${(thread.fields || thread.detailFields || []).map((field) => `
+            <div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(field.value)}</dd></div>
+          `).join('')}
+        </dl>
+        ${evidence.length ? `<ul class="detail-list">${evidence.map((item) => `<li>${escapeHtml(item.label)}: ${escapeHtml(item.summary)}</li>`).join('')}</ul>` : ''}
+        ${attachments.length ? `<p class="form-hint">Attachments: ${attachments.map((item) => escapeHtml(item.label)).join(', ')} (provider blocked)</p>` : ''}
+      </details>
+      ${(localReceiptsForThread(threadId).length || localProposalsForThread(threadId).length) ? `
+        <details class="inbox-reading-details">
+          <summary>Local drafts and receipts</summary>
+          ${renderLocalReceiptsPanel(threadId)}
+        </details>
+      ` : ''}
     </section>
+  `;
+}
+
+function renderInboxWorkspace() {
+  const content = activeLaneContent();
+  const layoutSection = sectionByType(content, 'inbox-layout') || { threads: inboxThreads(), accounts: [], views: [] };
+  const selected = selectedInboxThread();
+  return `
+    <div class="inbox-workspace">
+      ${renderInboxToolbar()}
+      <div class="inbox-workspace-grid">
+        <aside class="mailbox-panel" aria-label="Folders">
+          <h4 class="mailbox-panel-title">Folders</h4>
+          ${(layoutSection.views || []).map((view) => `
+            <div class="folder-row">
+              <span>${escapeHtml(view.label)}</span>
+              <strong>${escapeHtml(view.count)}</strong>
+            </div>
+          `).join('')}
+          <details class="inbox-mailbox-details">
+            <summary>Accounts (preview)</summary>
+            ${(layoutSection.accounts || []).map((account) => `
+              <article class="account-gate-row">
+                <strong>${escapeHtml(account.name)}</strong>
+                <span class="account-gate-state">${escapeHtml(label(account.state || 'provider_blocked'))}</span>
+              </article>
+            `).join('')}
+          </details>
+        </aside>
+        <div class="thread-list-panel" aria-label="Conversations">
+          ${(layoutSection.threads || []).map((thread) => `
+            <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
+              <div class="thread-row-main">
+                <div class="thread-row-top">
+                  <strong class="thread-sender">${escapeHtml(thread.sender || thread.title)}</strong>
+                  <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
+                </div>
+                <span class="thread-subject">${escapeHtml(thread.title)}</span>
+                <p class="thread-snippet">${escapeHtml(thread.summary)}</p>
+              </div>
+              <div class="thread-row-meta">
+                ${renderLocalTriageChip(thread.id)}
+              </div>
+            </button>
+          `).join('')}
+        </div>
+        ${renderInboxReadingPane(layoutSection)}
+      </div>
+      ${renderInboxComposeSheet()}
+    </div>
   `;
 }
 
@@ -3000,30 +3136,32 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header">
+      <header class="lane-header${lane.id === 'inbox' ? ' is-compact' : ''}">
         <div>
-          <p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>
-          <h2>${escapeHtml(content.title || lane.label)}</h2>
-          <p>${escapeHtml(content.summary || lane.description || '')}</p>
+          ${lane.id === 'inbox' ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml(lane.id === 'inbox' ? 'Inbox' : (content.title || lane.label))}</h2>
+          ${lane.id === 'inbox' ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
+        ${lane.id === 'inbox' ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
-        </div>
+        </div>`}
       </header>
 
+      ${lane.id === 'inbox' ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
-      </section>
+      </section>`}
 
       <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
-        ${lane.id === 'inbox' ? renderInboxOperabilityPanel() : ''}
+        ${lane.id === 'inbox' ? renderInboxWorkspace() : ''}
         ${lane.id === 'calendar' ? renderCalendarOperabilityPanel() : ''}
         ${lane.id === 'tasks' ? renderTasksOperabilityPanel() : ''}
         ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
         ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
         ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
-        ${(content.sections || []).map(renderLaneSection).join('')}
+        ${lane.id === 'inbox' ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -3621,9 +3759,31 @@ function handleCalendarAction(action, proposalId) {
 }
 
 function handleInboxAction(action, threadId) {
+  if (action === 'toggle-compose') {
+    state.inbox.composeOpen = !state.inbox.composeOpen;
+    if (state.inbox.composeOpen) state.inbox.replyOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-compose') {
+    state.inbox.composeOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'toggle-reply') {
+    state.inbox.replyOpen = !state.inbox.replyOpen;
+    if (state.inbox.replyOpen) state.inbox.composeOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'compose-save') return;
   if (action === 'compose-clear') {
     clearComposeDraft();
+    state.inbox.composeOpen = false;
+    saveState();
     renderShell();
     return;
   }
@@ -3810,7 +3970,7 @@ function bindEvents() {
     }
 
     const inboxAction = event.target.closest?.('[data-inbox-action]');
-    if (inboxAction?.dataset.inboxAction) {
+    if (inboxAction?.dataset.inboxAction && !['compose-save', 'reply-save'].includes(inboxAction.dataset.inboxAction)) {
       event.preventDefault();
       handleInboxAction(inboxAction.dataset.inboxAction, inboxAction.dataset.threadId);
       return;
@@ -3828,6 +3988,18 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.inbox.composeOpen) {
+      state.inbox.composeOpen = false;
+      saveState();
+      renderShell();
+      return;
+    }
+    if (event.key === 'Escape' && state.inbox.replyOpen) {
+      state.inbox.replyOpen = false;
+      saveState();
+      renderShell();
+      return;
+    }
     if (event.key === 'Escape' && state.account.open) {
       toggleAccountSession(false);
       renderShell();

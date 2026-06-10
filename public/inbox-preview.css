@@ -526,6 +526,203 @@ input:focus-visible {
   grid-template-columns: 15rem minmax(0, 1fr);
 }
 
+.inbox-workspace {
+  display: grid;
+  gap: 0.65rem;
+  min-height: 28rem;
+}
+
+.inbox-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.inbox-status-region.is-compact:empty {
+  display: none;
+}
+
+.inbox-status-region.is-compact:not(:empty) {
+  flex: 1;
+  min-width: 12rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.82rem;
+}
+
+.inbox-toolbar-overflow summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.inbox-workspace-grid {
+  display: grid;
+  grid-template-columns: 11rem minmax(14rem, 0.9fr) minmax(0, 1.4fr);
+  gap: 0.65rem;
+  min-height: 24rem;
+  align-items: stretch;
+}
+
+.inbox-reading-pane {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 22, 26, 0.55);
+  overflow: auto;
+  max-height: calc(100vh - 14rem);
+}
+
+.inbox-reading-pane.is-empty {
+  place-content: center;
+  color: var(--muted);
+}
+
+.inbox-empty-state {
+  margin: 0;
+  text-align: center;
+}
+
+.inbox-reading-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.inbox-reading-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.inbox-reading-meta {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.inbox-action-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.inbox-reply-sheet {
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inbox-reading-details {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inbox-reading-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.inbox-mailbox-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.mailbox-panel-title {
+  margin: 0 0 0.35rem;
+}
+
+.inbox-compose-root {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+}
+
+.inbox-compose-root.is-open {
+  pointer-events: auto;
+}
+
+.inbox-compose-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.inbox-compose-sheet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-strong);
+  box-shadow: 0 16px 48px var(--shadow);
+}
+
+.inbox-compose-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.inbox-compose-head h3 {
+  margin: 0;
+}
+
+.lane-header.is-compact {
+  padding-bottom: 0.35rem;
+  margin-bottom: 0;
+}
+
+.lane-header.is-compact h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.is-inbox-lane.lane-content {
+  padding-top: 0.35rem;
+}
+
+.thread-list-panel {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  overflow: auto;
+  max-height: calc(100vh - 14rem);
+  padding-right: 0.25rem;
+}
+
+@media (max-width: 1100px) {
+  .inbox-workspace-grid {
+    grid-template-columns: 10rem minmax(0, 1fr);
+  }
+
+  .inbox-reading-pane {
+    grid-column: 1 / -1;
+    max-height: none;
+  }
+}
+
 .mailbox-panel {
   display: grid;
   gap: 0.6rem;

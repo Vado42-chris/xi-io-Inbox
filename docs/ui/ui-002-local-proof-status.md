@@ -11,7 +11,7 @@ Technical render smoke proof: PASSED
 UI-005 human-operable shell: COMPLETE (UI-005A–I)
 Agent structural re-verification (UI-003E packet): PASSED 2026-06-10
 Owner/framework UX review (preliminary): FAILED 2026-06-10
-Owner visual proof (post UI-005): PENDING
+Owner visual proof (post UI-005): FAIL 2026-06-10 (inbox IA/UX; see proof packet)
 Local visual proof complete: NO
 PR #12 merge readiness: BLOCKED
 ```
