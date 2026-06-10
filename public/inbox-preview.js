@@ -277,7 +277,24 @@ function inspectableItemsForLane(laneId) {
       });
     }
     if (section.type === 'receipt-ledger') {
-      (section.rows || []).forEach((row, index) => pushItem(index, 'receipt row', { title: row.title, summary: row.source, state: row.state, meta: row.kind }));
+      (section.rows || []).forEach((row, index) => pushItem(index, 'receipt row', {
+        title: row.title,
+        summary: row.source,
+        state: row.state,
+        meta: row.kind,
+        safeNext: 'Inspect receipt evidence and linked source without runtime confirmation.',
+        receipt: 'Receipt row is planning evidence until a future confirmed action exists.',
+      }));
+    }
+    if (section.type === 'ibal-board') {
+      (section.groups || []).forEach((group, groupIndex) => {
+        (group.items || []).forEach((item, index) => pushItem(`${groupIndex}-${index}`, 'ibal recommendation', {
+          ...item,
+          meta: group.label,
+          safeNext: item.summary,
+          blocked: 'Ibal cannot execute actions or connect providers in this preview.',
+        }));
+      });
     }
     if (section.type === 'next-safe-action' && section.action) {
       pushItem('action', 'safe action', section.action);
@@ -799,18 +816,29 @@ function renderSecretBoundary(section) {
 }
 
 function renderReceiptLedger(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section receipt-ledger" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="ledger-table" role="table" aria-label="${escapeHtml(section.title)}">
-        ${(section.rows || []).map((row) => `
-          <article class="ledger-row" role="row">
-            <span role="cell">${escapeHtml(row.kind)}</span>
-            <strong role="cell">${escapeHtml(row.title)}</strong>
-            <span role="cell">${escapeHtml(row.source)}</span>
-            <span role="cell">${renderPill(row.state || 'preview_only')}</span>
-          </article>
-        `).join('')}
+      <div class="receipt-ledger-table" role="table" aria-label="${escapeHtml(section.title)}">
+        <div class="receipt-ledger-head" role="row">
+          <span role="columnheader">Type</span>
+          <span role="columnheader">Entry</span>
+          <span role="columnheader">Source</span>
+          <span role="columnheader">State</span>
+        </div>
+        ${(section.rows || []).map((row, index) => {
+          const focusId = `${state.laneId}:receipt-ledger:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="receipt-ledger-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" role="row" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <span class="receipt-kind receipt-kind-${escapeHtml(row.kind || 'proof')}" role="cell">${escapeHtml(row.kind)}</span>
+              <strong role="cell">${escapeHtml(row.title)}</strong>
+              <span role="cell">${escapeHtml(row.source)}</span>
+              <span class="receipt-state" role="cell">${escapeHtml(label(row.state || 'preview_only'))}</span>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -820,14 +848,14 @@ function renderReceiptGroups(section) {
   return `
     <section class="lane-section receipt-groups" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="preview-grid">
+      <div class="receipt-class-list">
         ${(section.groups || []).map((group) => `
-          <article class="preview-group">
-            <header>
+          <article class="receipt-class-row">
+            <div>
               <strong>${escapeHtml(group.label)}</strong>
-              ${renderPill(group.state || 'preview_only')}
-            </header>
-            <p>${escapeHtml(group.summary)}</p>
+              <p>${escapeHtml(group.summary)}</p>
+            </div>
+            <span class="receipt-class-state">${escapeHtml(label(group.state || 'preview_only'))}</span>
           </article>
         `).join('')}
       </div>
@@ -836,18 +864,31 @@ function renderReceiptGroups(section) {
 }
 
 function renderIbalBoard(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section ibal-board" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="ibal-grid">
-        ${(section.groups || []).map((group) => `
-          <article class="ibal-panel">
+      <div class="ibal-conductor-grid">
+        ${(section.groups || []).map((group, groupIndex) => `
+          <section class="ibal-conductor-group">
             <header>
-              <strong>${escapeHtml(group.label)}</strong>
-              ${renderPill(group.state || 'proposal_only')}
+              <h4>${escapeHtml(group.label)}</h4>
+              <span>${escapeHtml(label(group.state || 'proposal_only'))}</span>
             </header>
-            ${(group.items || []).map((item) => renderLaneItem(item, 'lane-item ibal-card')).join('')}
-          </article>
+            <div class="ibal-recommendation-list">
+              ${(group.items || []).map((item, index) => {
+                const focusId = `${state.laneId}:ibal-board:${sectionIndex}:${groupIndex}-${index}`;
+                const focused = state.focusId === focusId;
+                return `
+                  <button class="ibal-recommendation is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <p>${escapeHtml(item.summary)}</p>
+                    <span class="ibal-recommendation-state">${escapeHtml(label(item.state || 'proposal_only'))}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </section>
         `).join('')}
       </div>
     </section>
@@ -858,11 +899,15 @@ function renderIbalChanges(section) {
   return `
     <section class="lane-section ibal-changes" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <article class="callout-panel">
-        <strong>${escapeHtml(section.summaryTitle)}</strong>
+      <article class="ibal-synthesis-panel">
+        <header>
+          <strong>${escapeHtml(section.summaryTitle)}</strong>
+          <span>proposal only</span>
+        </header>
         <p>${escapeHtml(section.summary)}</p>
-        ${renderDetailList(section.changes || [])}
-        ${renderPill('proposal_only')}
+        <ul class="ibal-change-list">
+          ${(section.changes || []).map((change) => `<li>${escapeHtml(change)}</li>`).join('')}
+        </ul>
       </article>
     </section>
   `;
@@ -966,7 +1011,7 @@ function renderMainLane() {
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>
 
-      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}">
+      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}">
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>

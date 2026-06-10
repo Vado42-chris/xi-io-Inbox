@@ -135,8 +135,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Run UI-004A.6 simulated wargame review against the current UI-003B/UI-003C/UI-003D shell using PLAN-001A requirements, stories, gates, and compliance IDs.
 - [x] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only. Required repairs: reduce status/badge noise, integrate safety as trust grammar, establish consistent right-inspector selection/focus behavior, preserve blocked egress, and keep platform/runtime/provider claims blocked.
 - [x] Implement UI-004C Inbox lane polish as the first page-specific polish slice after UI-004B shell pass.
-- [ ] Implement UI-004D Ibal and Receipts lane polish next.
-- [ ] Implement remaining page-specific polish after UI-004D (UI-004E–G).
+- [x] Implement UI-004D Ibal and Receipts lane polish next.
+- [ ] Implement UI-004E Settings and Provider Gates polish next.
+- [ ] Implement remaining page-specific polish after UI-004E (UI-004F–G).
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
@@ -156,4 +157,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 2 to 4 remaining UI polish passes (UI-004D–G), plus 1 owner visual proof pass (UI-003E), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks. Product UI code may proceed for UI-004D Ibal and Receipts polish next.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 1 to 3 remaining UI polish passes (UI-004E–G), plus 1 owner visual proof pass (UI-003E), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks. Product UI code may proceed for UI-004E Settings and Provider Gates polish next.
