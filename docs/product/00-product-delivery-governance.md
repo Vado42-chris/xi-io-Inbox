@@ -10,8 +10,8 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 
 | ID | Area | Status | Evidence |
 | --- | --- | --- | --- |
-| GATE-UI-WARGAME-001 | UI-004A.6 simulated wargame | next after PLAN-001A is committed | `docs/ui/polish/14-ui-wargame-scenario-matrix.md` |
-| GATE-UI-IMPLEMENT-001 | UI-004B shell polish | blocked until UI-004A.6 completes | `TODO.md` |
+| GATE-UI-WARGAME-001 | UI-004A.6 simulated wargame | complete | `docs/ui/reviews/ui-004a6-wargame-review.md` |
+| GATE-UI-IMPLEMENT-001 | UI-004B shell polish | ready for bounded repair scope | `docs/product/04-build-readiness-gates.md` |
 | GATE-VISUAL-PROOF-001 | Owner/framework visual proof | blocked | `docs/ui/ui-002-local-proof-status.md` |
 | GATE-RUNTIME-001 | Pass 4 runtime skeleton | blocked | `docs/architecture/platform-runtime-decision-matrix.md` |
 | GATE-ANDROID-001 | Android mail spine build proof | pending | `docs/operations/cursor-arch-002-build-proof-prompt.md` |
@@ -54,9 +54,9 @@ Sprint/slice work executes inside this larger phase map.
 | PHASE-00 | Bootstrap governance | make repo safe, inspectable, and framework-aligned | complete |
 | PHASE-01 | Source mining and framework freshness | mine proven xi-io sources and report reusable findings | complete for initial audit |
 | PHASE-02 | Android mail spine proof plan | establish candidate mail spine and build proof path | partially complete, proof pending |
-| PHASE-03 | Product delivery governance | normalize requirements, stories, gates, compliance, hydration | PLAN-001A in progress |
+| PHASE-03 | Product delivery governance | normalize requirements, stories, gates, compliance, hydration | PLAN-001A complete |
 | PHASE-04 | UI design governance | define visual standards, wargame, and framework hooks | UI-004A.5 complete |
-| PHASE-05 | UI polish implementation | implement shell, then page-specific polish | blocked |
+| PHASE-05 | UI polish implementation | implement shell, then page-specific polish | UI-004B ready; page-specific polish blocked |
 | PHASE-06 | Owner/framework visual proof | record visual proof and merge-readiness decision | blocked |
 | PHASE-07 | Runtime/platform decision | decide platform, storage, secret, sync, backup, local-cloud boundaries | blocked by ARCH-004 |
 | PHASE-08 | Runtime skeleton | introduce buildable runtime code | blocked |

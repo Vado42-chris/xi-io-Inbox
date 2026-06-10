@@ -17,7 +17,7 @@ Define explicit gates that control when UI implementation, visual proof, runtime
 
 | ID | Gate Name | Required Completed Docs | Required Evidence | Evidence Artifact | Blocking Issues | Forbidden Actions While Blocked | State | Risk References | Next Review Trigger |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| GATE-UI-IMPLEMENT-001 | UI implementation allowed | PLAN-001A, UI-004A.6 receipt | wargame failures/TODOs recorded | `docs/ui/reviews/ui-004a6-wargame-review.md` | UI-004A.6 not run | UI-004B code polish | blocked | RISK-001, RISK-002 | after PLAN-001A commit |
+| GATE-UI-IMPLEMENT-001 | UI implementation allowed | PLAN-001A, UI-004A.6 receipt | wargame failures/TODOs recorded | `docs/ui/reviews/ui-004a6-wargame-review.md` | none for UI-004B repair scope | page-specific polish before UI-004B | pass for UI-004B only | RISK-002 | start UI-004B |
 | GATE-UI-VISUAL-001 | UI visual proof allowed | UI-004B and page-specific polish receipts | visual QA thresholds met, owner review ready | `docs/ui/ui-002-local-proof-status.md` | visual polish incomplete | mark visual proof complete, PR ready-for-review | blocked | RISK-002 | after UI-004 polish receipts |
 | GATE-PR12-DRAFT-001 | PR #12 draft exit allowed | UI visual proof, CI, TODO clean for scope | owner/framework visual proof pass | PR #12 body/comment receipt | visual proof incomplete | merge PR #12, mark ready | blocked | RISK-002 | after owner visual proof |
 | GATE-RUNTIME-001 | runtime skeleton allowed | ARCH-002 evidence, ARCH-004 decision, UI proof | build/platform decisions and UI acceptance | `docs/reports/pass-4-runtime-skeleton-receipt.md` | ARCH-002, ARCH-004, visual proof | runtime skeleton/import | blocked | RISK-003 | after ARCH/UI gates pass |

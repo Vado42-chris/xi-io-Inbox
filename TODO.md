@@ -89,7 +89,7 @@ Status: PLAN-001A complete as a minimum viable documentation/product-delivery go
 - [x] Add framework hydration checklist with `HYDRATE-` IDs and satisfied/partial/missing/blocked/not-applicable states.
 - [x] Add compliance validation index with `COMP-` IDs and WCAG 2.2 / OWASP ASVS mappings or mapping-pending notes.
 - [x] Confirm PLAN-001A is docs-only and does not change product UI code.
-- [ ] Run UI-004A.6 simulated wargame review using the normalized requirements, stories, slices, gates, and compliance index.
+- [x] Run UI-004A.6 simulated wargame review using the normalized requirements, stories, slices, gates, and compliance index.
 - [ ] Expand into PLAN-001B only if UI-004A.6 exposes missing journeys, page/system maps, component contracts, data/event models, QA matrices, or agent handoff details that block implementation.
 
 ## UI-001: framework UI adoption
@@ -132,8 +132,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Complete UI-004A docs/design-director packet by normalizing the partial docs into the numbered polish plan set.
 - [x] Complete UI-004A.5 page leveling, wargame scenario, engine hook, and white-label framework planning.
 - [x] Complete PLAN-001A product delivery governance and backlog skeleton before running UI-004A.6.
-- [ ] Run UI-004A.6 simulated wargame review against the current UI-003B/UI-003C/UI-003D shell using PLAN-001A requirements, stories, gates, and compliance IDs.
-- [ ] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only after UI-004A.6.
+- [x] Run UI-004A.6 simulated wargame review against the current UI-003B/UI-003C/UI-003D shell using PLAN-001A requirements, stories, gates, and compliance IDs.
+- [ ] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only. Required repairs: reduce status/badge noise, integrate safety as trust grammar, establish consistent right-inspector selection/focus behavior, preserve blocked egress, and keep platform/runtime/provider claims blocked.
 - [ ] Implement page-specific polish after UI-004B.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
@@ -154,4 +154,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 7 remaining passes after PLAN-001A, because simulated wargame review, shell/navigation/inspector polish, page-specific polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain. Product UI code must not be polished until UI-004A.6 wargame review is complete.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 6 remaining passes after UI-004A.6, because shell/navigation/inspector polish, page-specific polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain. Product UI code may proceed only for UI-004B shell/topbar/lane navigation/safety/inspector repair scope.
