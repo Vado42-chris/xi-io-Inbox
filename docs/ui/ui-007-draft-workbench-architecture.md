@@ -86,7 +86,7 @@ drafting | needs_review | approved | queued | sent | blocked | archived | reusab
 
 ## Storage (UI-007B+)
 
-Canonical key: `xiioInbox.preview.state` (schemaVersion 2 → 3 when drafts namespace ships).
+Canonical key: `xiioInbox.preview.state` (schemaVersion 3 — `drafts` namespace shipped in UI-007B-R2).
 
 Allowed new namespaces: `drafts`, `approvalQueue`, `sentEvents`, `files`, `projects` (document migration in UI-007B).
 

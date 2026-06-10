@@ -394,6 +394,10 @@ input:focus-visible {
   font-size: 0.88rem;
 }
 
+.draft-row .thread-status-chip.is-warn {
+  background: color-mix(in srgb, var(--warn, #c9a227) 18%, transparent);
+}
+
 .lane-header {
   display: flex;
   justify-content: space-between;

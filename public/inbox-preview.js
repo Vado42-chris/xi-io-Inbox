@@ -2,7 +2,7 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 2;
+const STORAGE_SCHEMA_VERSION = 3;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -22,6 +22,7 @@ const state = {
   settings: defaultSettingsOps(),
   ibal: defaultIbalOps(),
   account: defaultAccountOps(),
+  drafts: defaultDraftsOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -107,6 +108,14 @@ function defaultAccountOps() {
   };
 }
 
+function defaultDraftsOps() {
+  return {
+    items: [],
+    selectedDraftId: null,
+    receipts: [],
+  };
+}
+
 function previewStateEnvelope() {
   const { composeOpen, replyOpen, ...inboxPersist } = state.inbox;
   const { formOpen: calendarFormOpen, ...calendarPersist } = state.calendar;
@@ -127,6 +136,7 @@ function previewStateEnvelope() {
     settings: settingsPersist,
     ibal: state.ibal,
     account: state.account,
+    drafts: state.drafts,
   };
 }
 
@@ -185,6 +195,12 @@ function applyPreviewEnvelope(stored) {
     ...(stored.account || {}),
     receipts: stored.account?.receipts || [],
   };
+  state.drafts = {
+    ...defaultDraftsOps(),
+    ...(stored.drafts || {}),
+    items: stored.drafts?.items || [],
+    receipts: stored.drafts?.receipts || [],
+  };
   if (state.laneId === IBAL_LEGACY_LANE) {
     state.laneId = DEFAULT_LANE;
     state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
@@ -201,14 +217,81 @@ function applyPreviewEnvelope(stored) {
   syncInboxTaskProposals();
 }
 
+function migrateDraftItemsFromInbox(inbox) {
+  const items = [];
+  const now = new Date().toISOString();
+  const newDraftId = () => `draft-migrate-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const compose = inbox?.composeDraft;
+  if (compose?.subject || compose?.body || compose?.to) {
+    items.push({
+      id: newDraftId(),
+      kind: 'compose',
+      source_thread_id: null,
+      recipients: compose.to ? [compose.to] : [],
+      subject: compose.subject || '',
+      body: compose.body || '',
+      status: 'drafting',
+      approval_state: 'none',
+      created_at: compose.savedAt || now,
+      updated_at: compose.savedAt || now,
+    });
+  }
+  Object.entries(inbox?.replyDrafts || {}).forEach(([threadId, reply]) => {
+    if (!reply) return;
+    items.push({
+      id: newDraftId(),
+      kind: 'reply',
+      source_thread_id: threadId,
+      recipients: reply.to ? [reply.to] : [],
+      subject: reply.subject || '',
+      body: reply.body || '',
+      status: 'drafting',
+      approval_state: 'none',
+      created_at: reply.savedAt || now,
+      updated_at: reply.savedAt || now,
+    });
+  });
+  return items;
+}
+
+function upgradePreviewEnvelope(envelope) {
+  if (!envelope || envelope.schemaVersion === STORAGE_SCHEMA_VERSION) return envelope;
+  if (envelope.schemaVersion === 2) {
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      drafts: {
+        ...defaultDraftsOps(),
+        items: migrateDraftItemsFromInbox(envelope.inbox),
+      },
+    };
+  }
+  return {
+    schemaVersion: STORAGE_SCHEMA_VERSION,
+    laneId: envelope.laneId === IBAL_LEGACY_LANE ? DEFAULT_LANE : envelope.laneId,
+    threadId: envelope.threadId,
+    focusId: envelope.focusId,
+    inbox: envelope.inbox || defaultInboxOps(),
+    calendar: envelope.calendar || defaultCalendarOps(),
+    tasks: envelope.tasks || defaultTasksOps(),
+    automations: envelope.automations || defaultAutomationsOps(),
+    extensions: envelope.extensions || defaultExtensionsOps(),
+    settings: envelope.settings || defaultSettingsOps(),
+    ibal: envelope.ibal || defaultIbalOps(),
+    account: envelope.account || defaultAccountOps(),
+    drafts: envelope.drafts || { ...defaultDraftsOps(), items: migrateDraftItemsFromInbox(envelope.inbox) },
+  };
+}
+
 function migratePreviewStorage() {
   const canonical = safeParse(localStorage.getItem(STORAGE_KEY) || 'null', null);
   if (canonical?.schemaVersion === STORAGE_SCHEMA_VERSION) return canonical;
+  if (canonical) return upgradePreviewEnvelope(canonical);
 
   const ui005b = safeParse(localStorage.getItem(MIGRATION_UI005B_KEY) || 'null', null);
   if (ui005b) {
-    return {
-      schemaVersion: STORAGE_SCHEMA_VERSION,
+    return upgradePreviewEnvelope({
+      schemaVersion: 2,
       laneId: ui005b.laneId,
       threadId: ui005b.threadId,
       focusId: ui005b.focusId,
@@ -220,12 +303,12 @@ function migratePreviewStorage() {
       settings: defaultSettingsOps(),
       ibal: defaultIbalOps(),
       account: defaultAccountOps(),
-    };
+    });
   }
 
   const legacy = safeParse(localStorage.getItem(LEGACY_STORAGE_KEY) || '{}', {});
-  return {
-    schemaVersion: STORAGE_SCHEMA_VERSION,
+  return upgradePreviewEnvelope({
+    schemaVersion: 2,
     laneId: legacy.laneId === IBAL_LEGACY_LANE ? DEFAULT_LANE : legacy.laneId,
     threadId: legacy.threadId,
     focusId: legacy.focusId,
@@ -237,7 +320,7 @@ function migratePreviewStorage() {
     settings: defaultSettingsOps(),
     ibal: defaultIbalOps(),
     account: defaultAccountOps(),
-  };
+  });
 }
 
 function escapeHtml(value) {
@@ -402,14 +485,11 @@ function threadsForMailboxView() {
     return threads.filter((thread) => (thread.tags || []).includes('local_verification_required')
       || thread.state === 'needs_review');
   }
-  if (view === 'drafts') {
-    return threads.filter((thread) => replyDraftFor(thread.id) || thread.draft);
-  }
+  if (view === 'drafts' || view === 'approval-queue') return [];
   if (view === 'provider-gates') {
     return threads.filter((thread) => (thread.labels || []).includes('provider_gate')
       || thread.state === 'provider_blocked');
   }
-  if (view === 'approval-queue') return [];
   return threads;
 }
 
@@ -1182,8 +1262,179 @@ function inboxTriageFor(threadId) {
   return state.inbox.triage[threadId] || { reviewed: false, deferred: false };
 }
 
+function allDraftItems() {
+  return state.drafts?.items || [];
+}
+
+function draftById(draftId) {
+  return allDraftItems().find((draft) => draft.id === draftId) || null;
+}
+
+function draftForThread(threadId) {
+  return allDraftItems().find((draft) => draft.kind === 'reply' && draft.source_thread_id === threadId) || null;
+}
+
+function draftRecipientsLabel(draft) {
+  return (draft?.recipients || []).join(', ');
+}
+
 function replyDraftFor(threadId) {
+  const draft = draftForThread(threadId);
+  if (draft) {
+    return {
+      id: draft.id,
+      to: draftRecipientsLabel(draft),
+      subject: draft.subject,
+      body: draft.body,
+      savedAt: draft.updated_at,
+      state: 'local_preview_draft',
+    };
+  }
   return state.inbox.replyDrafts[threadId] || null;
+}
+
+function draftsForMailboxView() {
+  const view = state.inbox.mailboxView || 'inbox';
+  if (view === 'drafts') {
+    return allDraftItems().filter((draft) => draft.approval_state === 'none');
+  }
+  if (view === 'approval-queue') {
+    return allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state));
+  }
+  return [];
+}
+
+function selectedDraft() {
+  const visible = draftsForMailboxView();
+  return draftById(state.drafts.selectedDraftId)
+    || visible.find((draft) => draft.id === state.drafts.selectedDraftId)
+    || visible[0]
+    || null;
+}
+
+function addDraftReceipt({ type, title, draftId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    draftId: draftId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No provider write, send, or runtime action occurred.',
+  };
+  state.drafts.receipts = [receipt, ...(state.drafts.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function upsertDraftFromForm({ kind, threadId, formData, draftId }) {
+  const to = String(formData.get('to') || '').trim();
+  const subject = String(formData.get('subject') || '').trim();
+  const body = String(formData.get('body') || '').trim();
+  const now = new Date().toISOString();
+  let draft = draftId ? draftById(draftId) : null;
+  if (!draft && kind === 'reply') draft = draftForThread(threadId);
+  if (!draft && kind === 'compose') {
+    draft = allDraftItems().find((item) => item.kind === 'compose' && item.approval_state === 'none') || null;
+  }
+  if (!draft) {
+    draft = {
+      id: createLocalId('draft'),
+      kind,
+      source_thread_id: threadId || null,
+      recipients: to ? [to] : [],
+      subject,
+      body,
+      status: 'drafting',
+      approval_state: 'none',
+      created_at: now,
+      updated_at: now,
+    };
+    state.drafts.items = [draft, ...allDraftItems()];
+  } else {
+    draft.recipients = to ? [to] : [];
+    draft.subject = subject;
+    draft.body = body;
+    draft.updated_at = now;
+    if (draft.status === 'archived') draft.status = 'drafting';
+  }
+  if (kind === 'reply' && threadId) {
+    state.inbox.replyDrafts[threadId] = {
+      to,
+      subject,
+      body,
+      savedAt: now,
+      state: 'local_preview_draft',
+    };
+  }
+  if (kind === 'compose') {
+    state.inbox.composeDraft = { to, subject, body, savedAt: now, state: 'local_preview_draft' };
+    state.drafts.selectedDraftId = draft.id;
+  }
+  return draft;
+}
+
+function queueDraftForApproval(draftId) {
+  const draft = draftById(draftId);
+  if (!draft) return;
+  draft.approval_state = 'queued';
+  draft.status = 'needs_review';
+  draft.updated_at = new Date().toISOString();
+  addDraftReceipt({
+    type: 'approval',
+    title: 'Draft submitted to approval queue',
+    draftId: draft.id,
+    summary: `Subject: ${draft.subject || '(none)'}. Send remains blocked in Tier 1.`,
+  });
+  saveState();
+  setStatusMessage('Draft queued for approval. Send remains blocked.', 'inbox');
+}
+
+function approveDraftForSend(draftId) {
+  const draft = draftById(draftId);
+  if (!draft || draft.approval_state !== 'queued') return;
+  draft.approval_state = 'approved';
+  draft.status = 'approved';
+  draft.updated_at = new Date().toISOString();
+  addDraftReceipt({
+    type: 'approval',
+    title: 'Draft approved for send (preview)',
+    draftId: draft.id,
+    summary: 'Human approval recorded locally. Provider send blocked in Tier 1.',
+  });
+  saveState();
+  setStatusMessage('Draft approved for send. Provider send remains blocked.', 'inbox');
+}
+
+function dequeueDraft(draftId) {
+  const draft = draftById(draftId);
+  if (!draft) return;
+  draft.approval_state = 'none';
+  draft.status = 'drafting';
+  draft.updated_at = new Date().toISOString();
+  addDraftReceipt({
+    type: 'draft',
+    title: 'Draft removed from approval queue',
+    draftId: draft.id,
+    summary: 'Returned to drafting. No send occurred.',
+  });
+  saveState();
+  setStatusMessage('Draft returned to drafting.');
+}
+
+function deleteDraft(draftId) {
+  const draft = draftById(draftId);
+  if (!draft) return;
+  state.drafts.items = allDraftItems().filter((item) => item.id !== draftId);
+  if (draft.source_thread_id) delete state.inbox.replyDrafts[draft.source_thread_id];
+  if (state.drafts.selectedDraftId === draftId) state.drafts.selectedDraftId = null;
+  addDraftReceipt({
+    type: 'draft',
+    title: 'Draft deleted locally',
+    draftId: draft.id,
+    summary: `Removed ${draft.kind} draft. Fixture threads unchanged.`,
+  });
+  saveState();
+  setStatusMessage('Draft deleted locally.');
 }
 
 function localReceiptsForThread(threadId) {
@@ -1213,18 +1464,18 @@ function addLocalReceipt({ type, title, threadId, summary }) {
 }
 
 function saveComposeDraft(formData) {
-  state.inbox.composeDraft = {
-    to: String(formData.get('to') || '').trim(),
-    subject: String(formData.get('subject') || '').trim(),
-    body: String(formData.get('body') || '').trim(),
-    savedAt: new Date().toISOString(),
-    state: 'local_preview_draft',
-  };
+  const draft = upsertDraftFromForm({ kind: 'compose', threadId: null, formData });
   addLocalReceipt({
     type: 'draft',
     title: 'Local compose draft saved',
     threadId: null,
-    summary: `Subject: ${state.inbox.composeDraft.subject || '(none)'}. Preview draft only.`,
+    summary: `Subject: ${draft.subject || '(none)'}. Preview draft only.`,
+  });
+  addDraftReceipt({
+    type: 'draft',
+    title: 'Compose draft object saved',
+    draftId: draft.id,
+    summary: `Draft ${draft.id} in drafts namespace (schema v3).`,
   });
   state.inbox.composeOpen = false;
   saveState();
@@ -1233,24 +1484,25 @@ function saveComposeDraft(formData) {
 
 function clearComposeDraft() {
   state.inbox.composeDraft = null;
+  state.drafts.items = allDraftItems().filter((draft) => !(draft.kind === 'compose' && draft.approval_state === 'none'));
   saveState();
   setStatusMessage('Compose draft cleared.');
 }
 
-function saveReplyDraft(threadId, formData) {
+function saveReplyDraft(threadId, formData, draftId) {
   if (!threadId) return;
-  state.inbox.replyDrafts[threadId] = {
-    to: String(formData.get('to') || '').trim(),
-    subject: String(formData.get('subject') || '').trim(),
-    body: String(formData.get('body') || '').trim(),
-    savedAt: new Date().toISOString(),
-    state: 'local_preview_draft',
-  };
+  const draft = upsertDraftFromForm({ kind: 'reply', threadId, formData, draftId });
   addLocalReceipt({
     type: 'draft',
     title: 'Local reply draft saved',
     threadId,
     summary: `Reply draft for fixture thread ${threadId}. Not sent.`,
+  });
+  addDraftReceipt({
+    type: 'draft',
+    title: 'Reply draft object saved',
+    draftId: draft.id,
+    summary: `Draft ${draft.id} linked to thread ${threadId}.`,
   });
   saveState();
   setStatusMessage('Local reply draft saved. Send remains blocked.');
@@ -1258,6 +1510,8 @@ function saveReplyDraft(threadId, formData) {
 
 function clearReplyDraft(threadId) {
   if (!threadId) return;
+  const draft = draftForThread(threadId);
+  if (draft) deleteDraft(draft.id);
   delete state.inbox.replyDrafts[threadId];
   saveState();
   setStatusMessage('Reply draft cleared for selected thread.');
@@ -1391,6 +1645,7 @@ function createLocalCalendarProposal(threadId) {
 
 function clearInboxPreviewState() {
   state.inbox = defaultInboxOps();
+  state.drafts = defaultDraftsOps();
   saveState();
   setStatusMessage('All local Inbox preview state cleared. Fixture threads unchanged.');
 }
@@ -1838,7 +2093,8 @@ function renderInboxMailNav() {
   const section = inboxLayoutSection();
   const activeView = state.inbox.mailboxView || 'inbox';
   const smartViews = (section.views || []).filter((view) => mailboxViewId(view.label) !== 'drafts');
-  const draftListCount = inboxThreads().filter((thread) => replyDraftFor(thread.id) || thread.draft).length;
+  const draftListCount = allDraftItems().filter((draft) => draft.approval_state === 'none').length;
+  const approvalCount = allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state)).length;
   return `
     <div class="mail-nav-section" aria-label="Mail folders and views">
       <p class="mail-nav-label">Mail</p>
@@ -1852,7 +2108,7 @@ function renderInboxMailNav() {
       </button>
       <button class="mail-nav-item ${activeView === 'approval-queue' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="approval-queue">
         <span>Approval Queue</span>
-        <strong>0</strong>
+        <strong>${approvalCount}</strong>
       </button>
       ${smartViews.map((view) => {
         const viewId = mailboxViewId(view.label);
@@ -2065,10 +2321,21 @@ function renderInboxComposeSheet() {
 
 function syncMailboxThreadSelection() {
   if (state.laneId !== 'inbox') return;
-  if (state.inbox.mailboxView === 'approval-queue') {
+  const view = state.inbox.mailboxView || 'inbox';
+  if (view === 'drafts' || view === 'approval-queue') {
     state.threadId = null;
+    const visible = draftsForMailboxView();
+    if (!visible.length) {
+      state.drafts.selectedDraftId = null;
+      return;
+    }
+    if (!visible.some((draft) => draft.id === state.drafts.selectedDraftId)) {
+      state.drafts.selectedDraftId = visible[0].id;
+      state.focusId = `inbox-draft:${visible[0].id}`;
+    }
     return;
   }
+  state.drafts.selectedDraftId = null;
   const visible = threadsForMailboxView();
   if (!visible.length) {
     state.threadId = null;
@@ -2080,6 +2347,62 @@ function syncMailboxThreadSelection() {
   }
 }
 
+function renderDraftStatusChip(draft) {
+  const labelText = draft.approval_state === 'approved' ? 'Approved (send blocked)'
+    : draft.approval_state === 'queued' ? 'Awaiting approval'
+      : label(draft.status || 'drafting');
+  return `<span class="thread-status-chip ${draft.approval_state === 'approved' ? 'is-safe' : draft.approval_state === 'queued' ? 'is-warn' : 'is-neutral'}">${escapeHtml(labelText)}</span>`;
+}
+
+function renderDraftReadingPane(draft) {
+  if (!draft) {
+    return `
+      <section class="inbox-reading-pane mail-reading-pane is-empty" aria-label="Draft editor">
+        <p class="lane-empty-state">Select a draft to review or edit.</p>
+      </section>
+    `;
+  }
+  const thread = draft.source_thread_id
+    ? inboxThreads().find((item) => item.id === draft.source_thread_id)
+    : null;
+  return `
+    <section class="inbox-reading-pane mail-reading-pane" aria-label="Draft editor">
+      <header class="inbox-reading-head">
+        <div>
+          <h3>${escapeHtml(draft.subject || '(no subject)')}</h3>
+          <p class="inbox-reading-meta">${escapeHtml(draft.kind)} draft · ${escapeHtml(draft.updated_at || '')}${thread ? ` · re: ${escapeHtml(thread.title)}` : ''}</p>
+        </div>
+        ${renderDraftStatusChip(draft)}
+      </header>
+      <form class="inbox-draft-form" data-inbox-form="draft-edit" aria-label="Edit draft">
+        <input type="hidden" name="draftId" value="${escapeHtml(draft.id)}" />
+        <label for="draft-to-${escapeHtml(draft.id)}">To</label>
+        <input id="draft-to-${escapeHtml(draft.id)}" name="to" type="text" autocomplete="off" value="${escapeHtml(draftRecipientsLabel(draft))}" />
+        <label for="draft-subject-${escapeHtml(draft.id)}">Subject</label>
+        <input id="draft-subject-${escapeHtml(draft.id)}" name="subject" type="text" autocomplete="off" value="${escapeHtml(draft.subject || '')}" />
+        <label for="draft-body-${escapeHtml(draft.id)}">Message</label>
+        <textarea id="draft-body-${escapeHtml(draft.id)}" name="body" rows="10">${escapeHtml(draft.body || '')}</textarea>
+        <p class="form-hint">Draft object in local storage (schema v3). Send and provider writes remain blocked.</p>
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="draft-save">Save draft</button>
+          ${draft.approval_state === 'none' ? `
+            <button class="inbox-action-btn" type="button" data-inbox-action="draft-queue" data-draft-id="${escapeHtml(draft.id)}">Submit for approval</button>
+          ` : ''}
+          ${draft.approval_state === 'queued' ? `
+            <button class="inbox-action-btn" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(draft.id)}">Approve for send</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
+          ` : ''}
+          ${draft.approval_state === 'approved' ? `
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked (Tier 1)</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
+          ` : ''}
+          <button class="inbox-action-btn is-danger" type="button" data-inbox-action="draft-delete" data-draft-id="${escapeHtml(draft.id)}">Delete draft</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
 function renderInboxReadingPane(layoutSection, threadOverride) {
   const thread = threadOverride || selectedInboxThread();
   const threadId = thread?.id || '';
@@ -2087,12 +2410,8 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
   const messages = thread?.messages || [];
   const evidence = thread?.evidence || [];
   const attachments = thread?.attachments || [];
-  if (state.inbox.mailboxView === 'approval-queue') {
-    return `
-      <section class="inbox-reading-pane mail-reading-pane is-empty" aria-label="Approval queue">
-        <p class="lane-empty-state">No drafts in approval queue. Approve-for-send workflow ships in UI-007B-R2.</p>
-      </section>
-    `;
+  if (state.inbox.mailboxView === 'drafts' || state.inbox.mailboxView === 'approval-queue') {
+    return renderDraftReadingPane(selectedDraft());
   }
   if (!thread) {
     return `
@@ -2156,20 +2475,46 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
   `;
 }
 
+function renderDraftListRow(draft, selectedId) {
+  return `
+    <button class="thread-row draft-row ${selectedId === draft.id ? 'is-selected' : ''}" type="button" data-draft-id="${escapeHtml(draft.id)}" data-inspector-focus="${escapeHtml(`inbox-draft:${draft.id}`)}" aria-pressed="${selectedId === draft.id ? 'true' : 'false'}">
+      <div class="thread-row-main">
+        <div class="thread-row-top">
+          <strong class="thread-sender">${escapeHtml(draftRecipientsLabel(draft) || draft.kind)}</strong>
+          <time class="thread-time">${escapeHtml(draft.updated_at || '')}</time>
+        </div>
+        <span class="thread-subject">${escapeHtml(draft.subject || '(no subject)')}</span>
+        <p class="thread-snippet">${escapeHtml((draft.body || '').slice(0, 120))}</p>
+      </div>
+      <div class="thread-row-meta">${renderDraftStatusChip(draft)}</div>
+    </button>
+  `;
+}
+
 function renderInboxWorkspace() {
   const layoutSection = inboxLayoutSection();
+  const mailboxView = state.inbox.mailboxView || 'inbox';
+  const visibleDrafts = draftsForMailboxView();
+  const selectedDraftId = state.drafts.selectedDraftId;
   const visibleThreads = threadsForMailboxView();
   const selected = visibleThreads.find((thread) => thread.id === state.threadId)
     || visibleThreads[0]
     || null;
+  const listLabel = mailboxView === 'drafts' ? 'Drafts'
+    : mailboxView === 'approval-queue' ? 'Approval queue'
+      : 'Conversations';
   return `
     <div class="inbox-workspace is-mail-workbench">
       ${renderInboxToolbar()}
       <div class="inbox-workspace-grid mail-workbench-center">
-        <div class="thread-list-panel mail-list-pane" aria-label="Conversations">
-          ${state.inbox.mailboxView === 'approval-queue' ? `
-            <p class="lane-empty-state">Approval Queue — drafts approved for send will appear here (UI-007B-R2). Send remains blocked in Tier 1.</p>
-          ` : visibleThreads.length ? visibleThreads.map((thread) => `
+        <div class="thread-list-panel mail-list-pane" aria-label="${escapeHtml(listLabel)}">
+          ${mailboxView === 'drafts' || mailboxView === 'approval-queue' ? (
+    visibleDrafts.length
+      ? visibleDrafts.map((draft) => renderDraftListRow(draft, selectedDraftId)).join('')
+      : `<p class="lane-empty-state">${mailboxView === 'approval-queue'
+        ? 'No drafts in approval queue. Submit a draft from the Drafts view.'
+        : 'No drafts yet. Compose or reply to create a local draft object.'}</p>`
+  ) : visibleThreads.length ? visibleThreads.map((thread) => `
             <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <div class="thread-row-main">
                 <div class="thread-row-top">
@@ -3943,7 +4288,21 @@ function renderInspector() {
       <section class="inspector-block inspector-commands">
         <h3>Available actions</h3>
         <p>${escapeHtml(inspector.safeNext || 'Review context and keep actions in draft or proposal mode.')}</p>
-        ${state.laneId === 'inbox' && state.threadId ? `
+        ${state.laneId === 'inbox' && state.drafts.selectedDraftId ? `
+          <div class="inbox-action-toolbar" role="toolbar" aria-label="Draft actions">
+            ${(() => {
+              const draft = selectedDraft();
+              if (!draft) return '';
+              return `
+                ${draft.approval_state === 'none' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-queue" data-draft-id="${escapeHtml(draft.id)}">Submit for approval</button>` : ''}
+                ${draft.approval_state === 'queued' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(draft.id)}">Approve for send</button>` : ''}
+                ${draft.approval_state === 'approved' ? `<button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>` : ''}
+                ${['queued', 'approved'].includes(draft.approval_state) ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>` : ''}
+              `;
+            })()}
+          </div>
+        ` : ''}
+        ${state.laneId === 'inbox' && state.threadId && !state.drafts.selectedDraftId ? `
           <div class="inbox-action-toolbar" role="toolbar" aria-label="Thread actions">
             <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" data-thread-id="${escapeHtml(state.threadId)}" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
             <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(state.threadId)}">Mark read</button>
@@ -4450,7 +4809,7 @@ function handleCalendarAction(action, proposalId, focusId) {
   }
 }
 
-function handleInboxAction(action, threadId, mailboxView) {
+function handleInboxAction(action, threadId, mailboxView, draftId) {
   if (action === 'select-mailbox-view') {
     if (!mailboxView) return;
     state.inbox.mailboxView = mailboxView;
@@ -4510,6 +4869,31 @@ function handleInboxAction(action, threadId, mailboxView) {
   if (action === 'calendar-proposal') {
     createLocalCalendarProposal(threadId || state.threadId);
     renderShell();
+    return;
+  }
+  if (action === 'draft-queue') {
+    queueDraftForApproval(draftId || state.drafts.selectedDraftId);
+    syncMailboxThreadSelection();
+    renderShell();
+    return;
+  }
+  if (action === 'draft-approve') {
+    approveDraftForSend(draftId || state.drafts.selectedDraftId);
+    renderShell();
+    return;
+  }
+  if (action === 'draft-dequeue') {
+    dequeueDraft(draftId || state.drafts.selectedDraftId);
+    syncMailboxThreadSelection();
+    renderShell();
+    return;
+  }
+  if (action === 'draft-delete') {
+    if (window.confirm('Delete this local draft?')) {
+      deleteDraft(draftId || state.drafts.selectedDraftId);
+      syncMailboxThreadSelection();
+      renderShell();
+    }
     return;
   }
   if (action === 'clear-all') {
@@ -4612,6 +4996,27 @@ function bindEvents() {
       const threadId = form.querySelector('[data-thread-id]')?.dataset.threadId || state.threadId;
       saveReplyDraft(threadId, formData);
       renderShell();
+      return;
+    }
+    if (form.dataset.inboxForm === 'draft-edit') {
+      const draft = draftById(String(formData.get('draftId') || '').trim());
+      if (draft) {
+        upsertDraftFromForm({
+          kind: draft.kind,
+          threadId: draft.source_thread_id,
+          formData,
+          draftId: draft.id,
+        });
+        addDraftReceipt({
+          type: 'draft',
+          title: 'Draft updated',
+          draftId: draft.id,
+          summary: `Subject: ${draft.subject || '(none)'}.`,
+        });
+        saveState();
+        setStatusMessage('Draft updated locally.');
+      }
+      renderShell();
     }
   });
 
@@ -4683,9 +5088,23 @@ function bindEvents() {
     }
 
     const inboxAction = event.target.closest?.('[data-inbox-action]');
-    if (inboxAction?.dataset.inboxAction && !['compose-save', 'reply-save'].includes(inboxAction.dataset.inboxAction)) {
+    if (inboxAction?.dataset.inboxAction && !['compose-save', 'reply-save', 'draft-save'].includes(inboxAction.dataset.inboxAction)) {
       event.preventDefault();
-      handleInboxAction(inboxAction.dataset.inboxAction, inboxAction.dataset.threadId, inboxAction.dataset.mailboxView);
+      handleInboxAction(
+        inboxAction.dataset.inboxAction,
+        inboxAction.dataset.threadId,
+        inboxAction.dataset.mailboxView,
+        inboxAction.dataset.draftId,
+      );
+      return;
+    }
+
+    const draftRow = event.target.closest?.('[data-draft-id]');
+    if (draftRow?.dataset.draftId && !draftRow.dataset.inboxAction) {
+      state.drafts.selectedDraftId = draftRow.dataset.draftId;
+      state.focusId = `inbox-draft:${draftRow.dataset.draftId}`;
+      saveState();
+      renderShell();
       return;
     }
 
