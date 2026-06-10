@@ -62,6 +62,7 @@ function defaultAutomationsOps() {
     rules: [],
     receipts: [],
     lastDryRun: null,
+    formOpen: false,
   };
 }
 
@@ -652,6 +653,7 @@ function saveLocalAutomationRule(formData, ruleId) {
     state.focusId = `automations:local:${id}`;
     setStatusMessage('Local automation rule created. Execution remains blocked.', 'automations');
   }
+  state.automations.formOpen = false;
   saveState();
 }
 
@@ -2793,67 +2795,165 @@ function renderAutomationsDryRunOutput(ruleId) {
   `;
 }
 
-function renderAutomationsOperabilityPanel() {
-  const selected = selectedAutomationRule();
-  const rules = allLocalAutomationRules();
-  const ruleId = selected?.id || '';
+function automationTemplateFixtures() {
+  const content = activeLaneContent();
+  const section = sectionByType(content, 'automation-studio');
+  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
+  return (section?.templates || []).map((template, index) => ({
+    focusId: `automations:automation-studio:${sectionIndex}:${index}`,
+    title: template.title,
+    summary: template.summary,
+    trigger: template.trigger,
+    gate: template.gate,
+    state: template.state,
+  }));
+}
+
+function automationDryRunFixtures() {
+  return sectionByType(activeLaneContent(), 'dry-run')?.steps || [];
+}
+
+function renderAutomationsRuleForm(ruleId) {
+  const selected = ruleId
+    ? allLocalAutomationRules().find((entry) => entry.id === ruleId)
+    : selectedAutomationRule();
+  const id = ruleId || selected?.id || '';
   return `
-    <section class="lane-section automations-operability-panel" aria-label="Automations local operability">
-      <header class="section-head">
-        <div>
-          <p class="section-eyebrow">local operability</p>
-          <h3>Rule builder and dry-run</h3>
-          <p>Build local preview rules and simulate dry-run only. No execution.</p>
-        </div>
-        <span class="draft-proposal-state">dry-run only</span>
-      </header>
-      <div id="automationsStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'automations' ? state.statusMessage : 'Ready for local Automations operability.')}</div>
-      <form class="inbox-draft-form" data-automations-form="rule" aria-label="Local automation rule">
-        <input type="hidden" name="ruleId" value="${escapeHtml(ruleId)}" />
-        <h4>${ruleId ? 'Edit local rule' : 'New local rule'}</h4>
-        <label for="auto-title">Rule title (preview)</label>
-        <input id="auto-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
-        <label for="auto-trigger">Trigger (preview)</label>
-        <input id="auto-trigger" name="trigger" type="text" autocomplete="off" value="${escapeHtml(selected?.trigger || '')}" placeholder="e.g. urgent inbox thread" />
-        <label for="auto-condition">Condition (preview)</label>
-        <input id="auto-condition" name="condition" type="text" autocomplete="off" value="${escapeHtml(selected?.condition || '')}" />
-        <label for="auto-proposal">Proposed action (preview)</label>
-        <textarea id="auto-proposal" name="proposal" rows="2">${escapeHtml(selected?.proposal || '')}</textarea>
-        <label for="auto-gate">Approval gate (preview)</label>
-        <input id="auto-gate" name="gate" type="text" autocomplete="off" value="${escapeHtml(selected?.gate || 'human approval required')}" />
-        <p class="form-hint">Local preview rule. Execution and enablement blocked.</p>
-        <div class="inbox-form-actions">
-          <button class="inbox-action-btn is-primary" type="submit" data-automations-action="rule-save">${ruleId ? 'Update local rule' : 'Save local rule'}</button>
-          ${ruleId ? `<button class="inbox-action-btn" type="button" data-automations-action="dry-run" data-rule-id="${escapeHtml(ruleId)}">Run dry-run</button>` : ''}
-          ${ruleId ? `<button class="inbox-action-btn" type="button" data-automations-action="rule-clear" data-rule-id="${escapeHtml(ruleId)}">Clear selected rule</button>` : ''}
-          <button class="inbox-action-btn is-blocked" type="button" disabled>Enable/run blocked</button>
-        </div>
-      </form>
-      <div class="automations-local-list" aria-label="Local automation rules">
-        <h4>Local rules (${rules.length})</h4>
-        ${rules.length ? rules.map((rule) => `
-          <button class="automation-rule-row is-inspector-focusable ${rule.id === ruleId ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(`automations:local:${rule.id}`)}" data-automations-action="select-rule" data-rule-id="${escapeHtml(rule.id)}" aria-pressed="${rule.id === ruleId ? 'true' : 'false'}">
-            <div class="automation-rule-copy">
-              <strong>${escapeHtml(rule.title)}</strong>
-              <p>${escapeHtml(rule.proposal || '')}</p>
-              <span class="automation-rule-meta">trigger: ${escapeHtml(rule.trigger || 'unset')} · ${escapeHtml(label(rule.state))}</span>
-            </div>
-            <em>dry run only</em>
-          </button>
-        `).join('') : '<p class="form-hint">No local rules yet. Create a rule above.</p>'}
+    <form class="inbox-draft-form" data-automations-form="rule" aria-label="Automation rule">
+      <input type="hidden" name="ruleId" value="${escapeHtml(id)}" />
+      <label for="auto-title">Rule name</label>
+      <input id="auto-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
+      <label for="auto-trigger">Trigger</label>
+      <input id="auto-trigger" name="trigger" type="text" autocomplete="off" value="${escapeHtml(selected?.trigger || '')}" />
+      <label for="auto-condition">Condition</label>
+      <input id="auto-condition" name="condition" type="text" autocomplete="off" value="${escapeHtml(selected?.condition || '')}" />
+      <label for="auto-proposal">Proposed action</label>
+      <textarea id="auto-proposal" name="proposal" rows="2">${escapeHtml(selected?.proposal || '')}</textarea>
+      <label for="auto-gate">Approval gate</label>
+      <input id="auto-gate" name="gate" type="text" autocomplete="off" value="${escapeHtml(selected?.gate || 'human approval required')}" />
+      <p class="form-hint">Dry-run only — execution and enablement blocked.</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-automations-action="rule-save">${id ? 'Save changes' : 'Save rule'}</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Enable blocked</button>
       </div>
-      <article class="draft-proposal-panel">
-        <header><strong>Dry-run output</strong><span class="draft-proposal-state">simulation only</span></header>
-        ${renderAutomationsDryRunOutput(ruleId)}
-      </article>
-      <article class="draft-proposal-panel">
-        <header><strong>Local receipt preview</strong><span class="draft-proposal-state">preview only</span></header>
-        ${renderAutomationsLocalReceipts(ruleId)}
-      </article>
-      <div class="inbox-clear-control">
-        <button class="inbox-action-btn is-danger" type="button" data-automations-action="clear-all">Clear all local Automations preview state</button>
+    </form>
+  `;
+}
+
+function renderAutomationsRuleSheet() {
+  const ruleId = state.automations.selectedRuleId || '';
+  return `
+    <div class="lane-compose-root automations-compose-root ${state.automations.formOpen ? 'is-open' : ''}" aria-hidden="${state.automations.formOpen ? 'false' : 'true'}">
+      <button class="lane-compose-backdrop" type="button" data-automations-action="close-form" aria-label="Close"></button>
+      <section class="lane-compose-sheet" role="dialog" aria-modal="true" aria-label="Automation rule">
+        <header class="lane-compose-head">
+          <h3>${ruleId ? 'Edit rule' : 'New rule'}</h3>
+          <button class="inbox-action-btn" type="button" data-automations-action="close-form">Close</button>
+        </header>
+        ${renderAutomationsRuleForm(ruleId)}
+      </section>
+    </div>
+  `;
+}
+
+function renderAutomationsReadingPane() {
+  const rules = allLocalAutomationRules();
+  const rule = rules.find((entry) => entry.id === state.automations.selectedRuleId)
+    || (state.focusId?.startsWith('automations:local:')
+      ? rules.find((entry) => `automations:local:${entry.id}` === state.focusId)
+      : null);
+  const template = automationTemplateFixtures().find((entry) => entry.focusId === state.focusId);
+  const dryRunSteps = automationDryRunFixtures();
+  if (rule) {
+    return `
+      <section class="lane-reading-pane" aria-label="Rule details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(rule.title)}</h3>
+            <p class="lane-reading-meta">${escapeHtml(label(rule.state))} · dry-run only</p>
+          </div>
+        </header>
+        <p><strong>Trigger:</strong> ${escapeHtml(rule.trigger || 'unset')}</p>
+        <p><strong>Condition:</strong> ${escapeHtml(rule.condition || 'unset')}</p>
+        <p><strong>Proposal:</strong> ${escapeHtml(rule.proposal || 'unset')}</p>
+        <p><strong>Gate:</strong> ${escapeHtml(rule.gate || 'unset')}</p>
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-automations-action="dry-run" data-rule-id="${escapeHtml(rule.id)}">Run dry-run</button>
+          <button class="inbox-action-btn" type="button" data-automations-action="edit-rule" data-rule-id="${escapeHtml(rule.id)}">Edit</button>
+          <button class="inbox-action-btn" type="button" data-automations-action="rule-clear" data-rule-id="${escapeHtml(rule.id)}">Delete</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Enable blocked</button>
+        </div>
+        ${state.automations.lastDryRun?.ruleId === rule.id ? `
+          <details class="lane-reading-details" open>
+            <summary>Dry-run result</summary>
+            ${renderAutomationsDryRunOutput(rule.id)}
+          </details>
+        ` : ''}
+        ${(state.automations.receipts || []).filter((r) => r.ruleId === rule.id).length ? `
+          <details class="lane-reading-details"><summary>Receipts</summary>${renderAutomationsLocalReceipts(rule.id)}</details>
+        ` : ''}
+      </section>
+    `;
+  }
+  if (template) {
+    return `
+      <section class="lane-reading-pane" aria-label="Template details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(template.title)}</h3>
+            <p class="lane-reading-meta">template · ${escapeHtml(label(template.state))}</p>
+          </div>
+        </header>
+        <p>${escapeHtml(template.summary)}</p>
+        <p class="form-hint">Trigger: ${escapeHtml(template.trigger)} · Gate: ${escapeHtml(template.gate)}</p>
+        ${dryRunSteps.length ? `
+          <details class="lane-reading-details">
+            <summary>How dry-run works</summary>
+            <ol class="dry-run-pipeline">${dryRunSteps.map((step, index) => `
+              <li class="dry-run-step"><span class="dry-run-step-index">${index + 1}</span>
+                <div><strong>${escapeHtml(step.title)}</strong><p>${escapeHtml(step.summary)}</p></div></li>
+            `).join('')}</ol>
+          </details>
+        ` : ''}
+      </section>
+    `;
+  }
+  return `<section class="lane-reading-pane is-empty" aria-label="Rule details"><p class="lane-empty-state">Select a rule or template.</p></section>`;
+}
+
+function renderAutomationsWorkspace() {
+  const rules = allLocalAutomationRules();
+  const templates = automationTemplateFixtures();
+  const selectedId = state.automations.selectedRuleId;
+  return `
+    <div class="lane-workspace automations-workspace">
+      <div class="lane-toolbar" role="toolbar" aria-label="Automations actions">
+        <button class="inbox-action-btn is-primary" type="button" data-automations-action="new-rule">New rule</button>
+        <div id="automationsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'automations' ? state.statusMessage : '')}</div>
+        <details class="lane-toolbar-overflow">
+          <summary>More</summary>
+          <button class="inbox-action-btn is-danger" type="button" data-automations-action="clear-all">Clear local automations state</button>
+        </details>
       </div>
-    </section>
+      <div class="lane-workspace-grid automations-workspace-grid">
+        <div class="automations-item-list" aria-label="Rules and templates">
+          ${rules.map((rule) => `
+            <button class="automations-list-row ${rule.id === selectedId ? 'is-selected' : ''}" type="button" data-automations-action="select-rule" data-rule-id="${escapeHtml(rule.id)}" data-inspector-focus="${escapeHtml(`automations:local:${rule.id}`)}">
+              <span class="automations-list-badge">rule</span>
+              <div><strong>${escapeHtml(rule.title)}</strong><p>${escapeHtml(rule.trigger || '')}</p></div>
+            </button>
+          `).join('')}
+          ${templates.map((item) => `
+            <button class="automations-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-automations-action="select-template" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
+              <span class="automations-list-badge">template</span>
+              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.summary)}</p></div>
+            </button>
+          `).join('')}
+        </div>
+        ${renderAutomationsReadingPane()}
+      </div>
+      ${renderAutomationsRuleSheet()}
+    </div>
   `;
 }
 
@@ -3317,20 +3417,20 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${['inbox', 'calendar', 'tasks'].includes(lane.id) ? ' is-compact' : ''}">
+      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
           ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
           <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks' }[lane.id] || (content.title || lane.label))}</h2>
           ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `
+        ${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>`}
       </header>
 
-      ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : `
+      ${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>`}
@@ -3339,10 +3439,10 @@ function renderMainLane() {
         ${lane.id === 'inbox' ? renderInboxWorkspace() : ''}
         ${lane.id === 'calendar' ? renderCalendarWorkspace() : ''}
         ${lane.id === 'tasks' ? renderTasksWorkspace() : ''}
-        ${lane.id === 'automations' ? renderAutomationsOperabilityPanel() : ''}
+        ${lane.id === 'automations' ? renderAutomationsWorkspace() : ''}
         ${lane.id === 'extensions' ? renderExtensionsOperabilityPanel() : ''}
         ${lane.id === 'settings' ? renderSettingsOperabilityPanel() : ''}
-        ${['inbox', 'calendar', 'tasks'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${['inbox', 'calendar', 'tasks', 'automations'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -3863,7 +3963,36 @@ function handleExtensionsAction(action, installId, fixtureId) {
   }
 }
 
-function handleAutomationsAction(action, ruleId) {
+function handleAutomationsAction(action, ruleId, focusId) {
+  if (action === 'new-rule') {
+    state.automations.selectedRuleId = null;
+    state.automations.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'edit-rule') {
+    if (!ruleId) return;
+    state.automations.selectedRuleId = ruleId;
+    state.automations.formOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-form') {
+    state.automations.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-template') {
+    if (!focusId) return;
+    state.focusId = focusId;
+    state.automations.selectedRuleId = null;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'rule-clear') {
     clearLocalAutomationRule(ruleId);
     renderShell();
@@ -4194,7 +4323,11 @@ function bindEvents() {
     const automationsAction = event.target.closest?.('[data-automations-action]');
     if (automationsAction?.dataset.automationsAction && automationsAction.dataset.automationsAction !== 'rule-save') {
       event.preventDefault();
-      handleAutomationsAction(automationsAction.dataset.automationsAction, automationsAction.dataset.ruleId);
+      handleAutomationsAction(
+        automationsAction.dataset.automationsAction,
+        automationsAction.dataset.ruleId,
+        automationsAction.dataset.focusId,
+      );
       return;
     }
 
