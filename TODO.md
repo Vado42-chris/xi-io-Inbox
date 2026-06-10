@@ -142,8 +142,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Record preliminary UI-003E owner review failure (one-way reporting; not human-operable; Ibal model wrong).
 - [x] Reconcile local agent vs ChatGPT guidance; confirm stale UI-004B prompt must not be rerun (`docs/ui/reviews/ui-003e-agent-reconciliation.md`).
 - [x] Run UI-005A operability architecture + Ibal model correction (docs/governance) before UI-005B implementation (`docs/ui/reviews/ui-005a-operability-architecture-receipt.md`).
-- [ ] Run UI-005B Inbox operability (compose, reply draft, triage, local state) — next slice.
-- [ ] Run UI-005C through UI-005I human-operable shell slices before next UI-003E visual proof attempt.
+- [x] Run UI-005B Inbox operability (compose, reply draft, triage, local state) (`docs/ui/reviews/ui-005b-inbox-operability-receipt.md`).
+- [ ] Run UI-005C Calendar operability — next slice.
+- [ ] Run UI-005D through UI-005I human-operable shell slices before next UI-003E visual proof attempt.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-005 operability work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
 
@@ -163,4 +164,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-004 page polish complete; UI-005A operability architecture complete; preliminary UI-003E owner review failed. Remaining: UI-005B–I human-operable shell (~10–12 passes: inbox, calendar, tasks, automations, extensions, settings, Ibal concierge, account shell, then UI-003E re-review), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: UI-004 page polish complete; UI-005A operability architecture complete; UI-005B Inbox operability complete; preliminary UI-003E owner review failed. Remaining: UI-005C–I human-operable shell (~9–11 passes: calendar, tasks, automations, extensions, settings, receipts, Ibal concierge, account shell, then UI-003E re-review), 1 merge-prep pass, and 1 framework freshness feedback pass to `xi-io.net#239` after proof. ARCH-002 and ARCH-004 remain separate architecture tracks.

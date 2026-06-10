@@ -1,5 +1,7 @@
 const DATA_URL = './data/inbox-events.preview.json';
-const STORAGE_KEY = 'xiio-inbox-preview-state-v2';
+const STORAGE_KEY = 'xiioInbox.preview.ui005b';
+const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
+const STORAGE_SCHEMA_VERSION = 1;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -9,7 +11,19 @@ const state = {
   laneId: DEFAULT_LANE,
   threadId: null,
   focusId: null,
+  statusMessage: '',
+  inbox: defaultInboxOps(),
 };
+
+function defaultInboxOps() {
+  return {
+    composeDraft: null,
+    replyDrafts: {},
+    triage: {},
+    proposals: [],
+    receipts: [],
+  };
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -142,17 +156,215 @@ function selectedInboxThread() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    schemaVersion: STORAGE_SCHEMA_VERSION,
     laneId: state.laneId,
     threadId: state.threadId,
     focusId: state.focusId,
+    inbox: state.inbox,
   }));
 }
 
 function loadState() {
-  const stored = safeParse(localStorage.getItem(STORAGE_KEY) || '{}', {});
+  let stored = safeParse(localStorage.getItem(STORAGE_KEY) || 'null', null);
+  if (!stored || stored.schemaVersion !== STORAGE_SCHEMA_VERSION) {
+    const legacy = safeParse(localStorage.getItem(LEGACY_STORAGE_KEY) || '{}', {});
+    stored = {
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      laneId: legacy.laneId,
+      threadId: legacy.threadId,
+      focusId: legacy.focusId,
+      inbox: defaultInboxOps(),
+    };
+  }
   if (stored.laneId) state.laneId = stored.laneId;
   if (stored.threadId) state.threadId = stored.threadId;
   if (stored.focusId) state.focusId = stored.focusId;
+  state.inbox = {
+    ...defaultInboxOps(),
+    ...(stored.inbox || {}),
+    replyDrafts: stored.inbox?.replyDrafts || {},
+    triage: stored.inbox?.triage || {},
+    proposals: stored.inbox?.proposals || [],
+    receipts: stored.inbox?.receipts || [],
+  };
+}
+
+function setStatusMessage(message) {
+  state.statusMessage = message;
+  const region = document.getElementById('inboxStatusRegion');
+  if (region) region.textContent = message;
+}
+
+function inboxTriageFor(threadId) {
+  return state.inbox.triage[threadId] || { reviewed: false, deferred: false };
+}
+
+function replyDraftFor(threadId) {
+  return state.inbox.replyDrafts[threadId] || null;
+}
+
+function localReceiptsForThread(threadId) {
+  return (state.inbox.receipts || []).filter((receipt) => !threadId || receipt.threadId === threadId);
+}
+
+function localProposalsForThread(threadId) {
+  return (state.inbox.proposals || []).filter((proposal) => proposal.threadId === threadId);
+}
+
+function createLocalId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function addLocalReceipt({ type, title, threadId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    threadId: threadId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Local preview only. No provider write, send, forward, delete, archive, or runtime action occurred.',
+  };
+  state.inbox.receipts = [receipt, ...(state.inbox.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function saveComposeDraft(formData) {
+  state.inbox.composeDraft = {
+    to: String(formData.get('to') || '').trim(),
+    subject: String(formData.get('subject') || '').trim(),
+    body: String(formData.get('body') || '').trim(),
+    savedAt: new Date().toISOString(),
+    state: 'local_preview_draft',
+  };
+  addLocalReceipt({
+    type: 'draft',
+    title: 'Local compose draft saved',
+    threadId: null,
+    summary: `Subject: ${state.inbox.composeDraft.subject || '(none)'}. Preview draft only.`,
+  });
+  saveState();
+  setStatusMessage('Local compose draft saved. Send remains blocked.');
+}
+
+function clearComposeDraft() {
+  state.inbox.composeDraft = null;
+  saveState();
+  setStatusMessage('Compose draft cleared.');
+}
+
+function saveReplyDraft(threadId, formData) {
+  if (!threadId) return;
+  state.inbox.replyDrafts[threadId] = {
+    to: String(formData.get('to') || '').trim(),
+    subject: String(formData.get('subject') || '').trim(),
+    body: String(formData.get('body') || '').trim(),
+    savedAt: new Date().toISOString(),
+    state: 'local_preview_draft',
+  };
+  addLocalReceipt({
+    type: 'draft',
+    title: 'Local reply draft saved',
+    threadId,
+    summary: `Reply draft for fixture thread ${threadId}. Not sent.`,
+  });
+  saveState();
+  setStatusMessage('Local reply draft saved. Send remains blocked.');
+}
+
+function clearReplyDraft(threadId) {
+  if (!threadId) return;
+  delete state.inbox.replyDrafts[threadId];
+  saveState();
+  setStatusMessage('Reply draft cleared for selected thread.');
+}
+
+function markThreadReviewed(threadId) {
+  if (!threadId) return;
+  state.inbox.triage[threadId] = {
+    ...inboxTriageFor(threadId),
+    reviewed: true,
+    deferred: false,
+    reviewedAt: new Date().toISOString(),
+  };
+  addLocalReceipt({
+    type: 'triage',
+    title: 'Thread marked reviewed locally',
+    threadId,
+    summary: 'Local triage only. No provider sync or archive occurred.',
+  });
+  saveState();
+  setStatusMessage('Thread marked reviewed locally.');
+}
+
+function deferThread(threadId) {
+  if (!threadId) return;
+  state.inbox.triage[threadId] = {
+    ...inboxTriageFor(threadId),
+    reviewed: false,
+    deferred: true,
+    deferredAt: new Date().toISOString(),
+  };
+  addLocalReceipt({
+    type: 'triage',
+    title: 'Thread deferred locally',
+    threadId,
+    summary: 'Local defer state only. No provider archive or snooze occurred.',
+  });
+  saveState();
+  setStatusMessage('Thread deferred locally.');
+}
+
+function createLocalTaskProposal(threadId) {
+  const thread = inboxThreads().find((entry) => entry.id === threadId);
+  if (!thread) return;
+  const proposal = {
+    id: createLocalId('task'),
+    type: 'task',
+    threadId,
+    title: `Task from ${thread.title}`,
+    summary: thread.summary,
+    createdAt: new Date().toISOString(),
+    state: 'local_proposal',
+  };
+  state.inbox.proposals = [proposal, ...state.inbox.proposals].slice(0, 20);
+  addLocalReceipt({
+    type: 'proposal',
+    title: 'Local task proposal created',
+    threadId,
+    summary: proposal.title,
+  });
+  saveState();
+  setStatusMessage('Local task proposal created. Provider task write remains blocked.');
+}
+
+function createLocalCalendarProposal(threadId) {
+  const thread = inboxThreads().find((entry) => entry.id === threadId);
+  if (!thread) return;
+  const proposal = {
+    id: createLocalId('calendar'),
+    type: 'calendar',
+    threadId,
+    title: `Calendar proposal from ${thread.title}`,
+    summary: 'Local event proposal from inbox thread context. Not scheduled on provider.',
+    createdAt: new Date().toISOString(),
+    state: 'local_proposal',
+  };
+  state.inbox.proposals = [proposal, ...state.inbox.proposals].slice(0, 20);
+  addLocalReceipt({
+    type: 'proposal',
+    title: 'Local calendar proposal created',
+    threadId,
+    summary: proposal.title,
+  });
+  saveState();
+  setStatusMessage('Local calendar proposal created. Provider calendar write remains blocked.');
+}
+
+function clearInboxPreviewState() {
+  state.inbox = defaultInboxOps();
+  saveState();
+  setStatusMessage('All local Inbox preview state cleared. Fixture threads unchanged.');
 }
 
 async function fetchJson(url, fallback) {
@@ -559,6 +771,49 @@ function renderNextSafeAction(section) {
   `;
 }
 
+function renderLocalTriageChip(threadId) {
+  const triage = inboxTriageFor(threadId);
+  if (triage.deferred) return '<span class="thread-status-chip is-neutral">deferred locally</span>';
+  if (triage.reviewed) return '<span class="thread-status-chip is-neutral">reviewed locally</span>';
+  return '';
+}
+
+function renderInboxOperabilityPanel() {
+  const compose = state.inbox.composeDraft || {};
+  return `
+    <section class="lane-section inbox-operability-panel" aria-label="Inbox local operability">
+      <header class="section-head">
+        <div>
+          <p class="section-eyebrow">local operability</p>
+          <h3>Compose and preview controls</h3>
+          <p>Create local preview drafts only. No provider connection or send path exists.</p>
+        </div>
+        <span class="draft-proposal-state">local preview draft</span>
+      </header>
+      <div id="inboxStatusRegion" class="inbox-status-region" role="status" aria-live="polite">${escapeHtml(state.statusMessage || 'Ready for local Inbox operability.')}</div>
+      <form class="inbox-draft-form" data-inbox-form="compose" aria-label="Local compose draft">
+        <h4 id="compose-draft-label">New local compose draft</h4>
+        <label for="compose-to">To (preview)</label>
+        <input id="compose-to" name="to" type="text" autocomplete="off" value="${escapeHtml(compose.to || '')}" />
+        <label for="compose-subject">Subject (preview)</label>
+        <input id="compose-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(compose.subject || '')}" />
+        <label for="compose-body">Draft body (local preview only)</label>
+        <textarea id="compose-body" name="body" rows="4" aria-describedby="compose-draft-hint">${escapeHtml(compose.body || '')}</textarea>
+        <p id="compose-draft-hint" class="form-hint">Local preview draft. Not sent. No provider write.</p>
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="compose-save">Save local compose draft</button>
+          <button class="inbox-action-btn" type="button" data-inbox-action="compose-clear">Clear compose draft</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled aria-describedby="send-blocked-hint">Send blocked</button>
+        </div>
+      </form>
+      <div class="inbox-clear-control">
+        <button class="inbox-action-btn is-danger" type="button" data-inbox-action="clear-all" aria-describedby="clear-all-hint">Clear all local Inbox preview state</button>
+        <p id="clear-all-hint" class="form-hint">Removes local drafts, triage, proposals, and receipts from preview storage. Fixture threads are unchanged.</p>
+      </div>
+    </section>
+  `;
+}
+
 function renderInboxLayout(section) {
   const selected = selectedInboxThread();
   return `
@@ -595,6 +850,7 @@ function renderInboxLayout(section) {
               </div>
               <div class="thread-row-meta">
                 ${renderThreadStatusChip(thread.state || 'preview_only')}
+                ${renderLocalTriageChip(thread.id)}
                 ${renderCompactLabelLine((thread.labels || []).slice(0, 2))}
               </div>
             </button>
@@ -602,6 +858,50 @@ function renderInboxLayout(section) {
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderInboxTriageBar(threadId) {
+  if (!threadId) return '';
+  return `
+    <div class="inbox-triage-bar" aria-label="Local triage actions">
+      <button class="inbox-action-btn" type="button" data-inbox-action="mark-reviewed" data-thread-id="${escapeHtml(threadId)}">Mark reviewed locally</button>
+      <button class="inbox-action-btn" type="button" data-inbox-action="defer-thread" data-thread-id="${escapeHtml(threadId)}">Defer locally</button>
+      <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(threadId)}">Create local task proposal</button>
+      <button class="inbox-action-btn" type="button" data-inbox-action="calendar-proposal" data-thread-id="${escapeHtml(threadId)}">Create local calendar proposal</button>
+    </div>
+  `;
+}
+
+function renderLocalReceiptsPanel(threadId) {
+  const receipts = localReceiptsForThread(threadId);
+  const proposals = localProposalsForThread(threadId);
+  if (!receipts.length && !proposals.length) {
+    return '<p class="form-hint">No local receipts or proposals yet for this thread.</p>';
+  }
+  return `
+    <div class="inbox-local-receipts" aria-label="Local receipt and proposal preview">
+      ${proposals.map((proposal) => `
+        <article class="local-receipt-row">
+          <header>
+            <strong>${escapeHtml(proposal.title)}</strong>
+            <span>${escapeHtml(label(proposal.type))} · local proposal</span>
+          </header>
+          <p>${escapeHtml(proposal.summary)}</p>
+          <p class="form-hint">Local preview only. Runtime ${escapeHtml(proposal.type)} write remains blocked.</p>
+        </article>
+      `).join('')}
+      ${receipts.map((receipt) => `
+        <article class="local-receipt-row">
+          <header>
+            <strong>${escapeHtml(receipt.title)}</strong>
+            <span>${escapeHtml(label(receipt.type))} · local receipt</span>
+          </header>
+          <p>${escapeHtml(receipt.summary)}</p>
+          <p class="form-hint">${escapeHtml(receipt.limitations)}</p>
+        </article>
+      `).join('')}
+    </div>
   `;
 }
 
@@ -682,17 +982,43 @@ function renderDraftEgress(section) {
   const thread = selectedInboxThread() || {};
   const draft = thread.draft || section.draft || {};
   const actions = section.blockedActions || getPayload().egressPolicy?.blockedActions || [];
+  const threadId = thread.id || state.threadId;
+  const reply = replyDraftFor(threadId) || {};
   return `
     <section class="lane-section draft-egress-panel" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
+      ${renderInboxTriageBar(threadId)}
       <div class="inbox-draft-grid">
         <article class="draft-proposal-panel">
           <header>
-            <strong>${escapeHtml(draft.title || 'Draft proposal')}</strong>
+            <strong>${escapeHtml(draft.title || 'Fixture draft guidance')}</strong>
             <span class="draft-proposal-state">${escapeHtml(label(draft.state || 'draft_only'))}</span>
           </header>
           <p>${escapeHtml(draft.summary || '')}</p>
           ${renderDetailList(draft.details)}
+        </article>
+        <form class="inbox-draft-form" data-inbox-form="reply" aria-label="Local reply draft for selected thread">
+          <h4 id="reply-draft-label">Reply draft for selected thread</h4>
+          <p class="form-hint">Fixture context only: ${escapeHtml(thread.title || 'No thread selected')}</p>
+          <label for="reply-to">To (preview)</label>
+          <input id="reply-to" name="to" type="text" autocomplete="off" value="${escapeHtml(reply.to || thread.sender || '')}" />
+          <label for="reply-subject">Subject (preview)</label>
+          <input id="reply-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(reply.subject || (thread.title ? `Re: ${thread.title}` : ''))}" />
+          <label for="reply-body">Reply body (local preview only)</label>
+          <textarea id="reply-body" name="body" rows="5" aria-describedby="reply-draft-hint">${escapeHtml(reply.body || '')}</textarea>
+          <p id="reply-draft-hint" class="form-hint">Local preview reply draft. Not sent. No message body or provider data loaded.</p>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="reply-save" data-thread-id="${escapeHtml(threadId || '')}">Save local reply draft</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="reply-clear" data-thread-id="${escapeHtml(threadId || '')}">Clear reply draft</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled id="send-blocked-hint" aria-describedby="send-blocked-hint">Send blocked — provider/runtime gated</button>
+          </div>
+        </form>
+        <article class="draft-proposal-panel">
+          <header>
+            <strong>Local receipt and proposal preview</strong>
+            <span class="draft-proposal-state">preview only</span>
+          </header>
+          ${renderLocalReceiptsPanel(threadId)}
         </article>
         ${renderEgressPolicyModule(actions)}
       </div>
@@ -1138,6 +1464,7 @@ function renderMainLane() {
       </section>
 
       <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
+        ${lane.id === 'inbox' ? renderInboxOperabilityPanel() : ''}
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
@@ -1172,18 +1499,36 @@ function activeInspectorModel() {
   const laneInspector = activeLaneContent().inspector || getPayload().inspector || {};
   const focusInspector = focusItem?.inspector || {};
 
-  if (focusItem?.id?.startsWith('inbox-thread:') && focusInspector.context) {
+  if (focusItem?.id?.startsWith('inbox-thread:')) {
+    const threadId = focusItem.id.replace('inbox-thread:', '');
+    const triage = inboxTriageFor(threadId);
+    const reply = replyDraftFor(threadId);
+    const proposals = localProposalsForThread(threadId);
+    const receipts = localReceiptsForThread(threadId);
+    const localParts = [];
+    if (reply) localParts.push(`Local reply draft saved (${reply.subject || 'no subject'}).`);
+    if (triage.reviewed) localParts.push('Marked reviewed locally.');
+    if (triage.deferred) localParts.push('Deferred locally.');
+    if (proposals.length) localParts.push(`${proposals.length} local proposal(s) from this thread.`);
+    if (receipts.length) localParts.push(`${receipts.length} local receipt preview(s).`);
+    const localContext = localParts.length
+      ? `${focusInspector.context || focusItem.summary} Local state: ${localParts.join(' ')}`
+      : (focusInspector.context || focusItem.summary);
     return {
       kind: focusItem.kind,
       title: focusItem.title,
       summary: focusItem.summary,
-      context: focusInspector.context,
+      context: localContext,
       why: focusItem.summary,
-      evidence: focusInspector.evidence,
-      safeNext: focusItem.safeNext,
-      blocked: focusInspector.egressState || focusItem.blocked,
+      evidence: focusInspector.evidence || 'Fixture thread refs only. No private message body loaded.',
+      safeNext: reply
+        ? 'Review local reply draft and keep send blocked until runtime gates clear.'
+        : (focusItem.safeNext || 'Create a local draft or proposal; runtime send remains blocked.'),
+      blocked: focusInspector.egressState || focusItem.blocked || 'Send, forward, delete, archive, provider write, and runtime actions remain blocked.',
       ibalProposal: focusInspector.ibalProposal,
-      receipts: focusInspector.receipts || focusItem.receipt,
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary} (${entry.limitations})`).join(' ')
+        : (focusInspector.receipts || focusItem.receipt),
     };
   }
 
@@ -1257,13 +1602,77 @@ function renderShell() {
   `;
 }
 
+function handleInboxAction(action, threadId) {
+  if (action === 'compose-save') return;
+  if (action === 'compose-clear') {
+    clearComposeDraft();
+    renderShell();
+    return;
+  }
+  if (action === 'reply-clear') {
+    clearReplyDraft(threadId || state.threadId);
+    renderShell();
+    return;
+  }
+  if (action === 'mark-reviewed') {
+    markThreadReviewed(threadId || state.threadId);
+    renderShell();
+    return;
+  }
+  if (action === 'defer-thread') {
+    deferThread(threadId || state.threadId);
+    renderShell();
+    return;
+  }
+  if (action === 'task-proposal') {
+    createLocalTaskProposal(threadId || state.threadId);
+    renderShell();
+    return;
+  }
+  if (action === 'calendar-proposal') {
+    createLocalCalendarProposal(threadId || state.threadId);
+    renderShell();
+    return;
+  }
+  if (action === 'clear-all') {
+    if (window.confirm('Clear all local Inbox preview drafts, triage, proposals, and receipts?')) {
+      clearInboxPreviewState();
+      renderShell();
+    }
+  }
+}
+
 function bindEvents() {
   window.addEventListener('hashchange', () => {
     syncRoute();
     renderShell();
   });
 
+  document.addEventListener('submit', (event) => {
+    const form = event.target.closest?.('[data-inbox-form]');
+    if (!form) return;
+    event.preventDefault();
+    const formData = new FormData(form);
+    if (form.dataset.inboxForm === 'compose') {
+      saveComposeDraft(formData);
+      renderShell();
+      return;
+    }
+    if (form.dataset.inboxForm === 'reply') {
+      const threadId = form.querySelector('[data-thread-id]')?.dataset.threadId || state.threadId;
+      saveReplyDraft(threadId, formData);
+      renderShell();
+    }
+  });
+
   document.addEventListener('click', (event) => {
+    const inboxAction = event.target.closest?.('[data-inbox-action]');
+    if (inboxAction?.dataset.inboxAction) {
+      event.preventDefault();
+      handleInboxAction(inboxAction.dataset.inboxAction, inboxAction.dataset.threadId);
+      return;
+    }
+
     const focusTarget = event.target.closest?.('[data-inspector-focus]');
     if (focusTarget?.dataset.inspectorFocus) {
       selectInspectorFocus(focusTarget.dataset.inspectorFocus);
@@ -1271,7 +1680,7 @@ function bindEvents() {
     }
 
     const threadButton = event.target.closest?.('[data-thread-id]');
-    if (!threadButton) return;
+    if (!threadButton?.dataset.threadId || threadButton.dataset.inboxAction) return;
     selectInboxThread(threadButton.dataset.threadId);
   });
 

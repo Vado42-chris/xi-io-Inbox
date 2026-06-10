@@ -1675,3 +1675,113 @@ input:focus-visible {
   grid-template-columns: 1fr;
   gap: 0.2rem;
 }
+
+.inbox-operability-panel,
+.inbox-draft-form,
+.inbox-triage-bar,
+.inbox-local-receipts {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.inbox-status-region {
+  border: 1px solid rgba(105, 210, 255, 0.25);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  background: rgba(20, 22, 26, 0.55);
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.inbox-draft-form label {
+  display: block;
+  margin-top: 0.45rem;
+  margin-bottom: 0.2rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.inbox-draft-form input,
+.inbox-draft-form textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(8, 10, 14, 0.75);
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.inbox-draft-form input:focus-visible,
+.inbox-draft-form textarea:focus-visible,
+.inbox-action-btn:focus-visible {
+  outline: 2px solid rgba(105, 210, 255, 0.8);
+  outline-offset: 2px;
+}
+
+.form-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.inbox-form-actions,
+.inbox-triage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.inbox-action-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(20, 22, 26, 0.8);
+  color: var(--text);
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.inbox-action-btn.is-primary {
+  border-color: rgba(105, 210, 255, 0.45);
+  background: rgba(105, 210, 255, 0.12);
+}
+
+.inbox-action-btn.is-danger {
+  border-color: rgba(255, 135, 125, 0.45);
+}
+
+.inbox-action-btn.is-blocked,
+.inbox-action-btn:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.inbox-clear-control {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.75rem;
+}
+
+.local-receipt-row {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: rgba(12, 14, 18, 0.55);
+}
+
+.local-receipt-row header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.local-receipt-row header span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
