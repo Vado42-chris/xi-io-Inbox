@@ -163,7 +163,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-007B-R1 mail navigation graduation (`docs/ui/reviews/ui-007b-r1-mail-navigation-graduation-receipt.md`).
 - [x] UI-007B-R2 Drafts / Approval Queue workbench (`docs/ui/reviews/ui-007b-r2-drafts-approval-queue-receipt.md`).
 - [x] UI-007B-R3 Context rail command modes (`docs/ui/reviews/ui-007b-r3-context-rail-modes-receipt.md`).
-- [ ] UI-007C Send-event dry-run wiring + post-send plan preview.
+- [x] UI-007C Send-event dry-run wiring (`docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md`).
 - [ ] `xi-io.net#239` framework freshness after UI-007B patterns stable.
 - [ ] Merge-prep final after owner UI-003E PASS.
 
@@ -183,4 +183,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and draft workbench MVP: UI-005/006/007A/007B complete locally. Remaining: operator push (~0 agent), owner Inbox screenshot (~1 owner), UI-007C (~1 pass), UI-007D files/labels (~0–1 pass), framework `xi-io.net#239` two-way sync (~1–2 passes), merge-prep + full UI-003E after visual PASS (~1 pass). ARCH-002/ARCH-004 separate. **~4–5 agent passes** + 2 owner actions + operator push.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and draft workbench MVP: UI-005/006/007A/007B/007C complete locally. Remaining: operator push (~0 agent), owner Inbox screenshot (~1 owner), UI-007D files/labels (~0–1 pass), framework `xi-io.net#239` two-way sync (~1–2 passes), merge-prep + full UI-003E after visual PASS (~1 pass). ARCH-002/ARCH-004 separate. **~3–4 agent passes** + 2 owner actions + operator push.

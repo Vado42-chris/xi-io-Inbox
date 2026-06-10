@@ -23,6 +23,7 @@ const state = {
   ibal: defaultIbalOps(),
   account: defaultAccountOps(),
   drafts: defaultDraftsOps(),
+  sentEvents: defaultSentEventsOps(),
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
@@ -116,6 +117,14 @@ function defaultDraftsOps() {
   };
 }
 
+function defaultSentEventsOps() {
+  return {
+    events: [],
+    selectedEventId: null,
+    receipts: [],
+  };
+}
+
 function previewStateEnvelope() {
   const { composeOpen, replyOpen, ...inboxPersist } = state.inbox;
   const { formOpen: calendarFormOpen, ...calendarPersist } = state.calendar;
@@ -137,6 +146,7 @@ function previewStateEnvelope() {
     ibal: state.ibal,
     account: state.account,
     drafts: state.drafts,
+    sentEvents: state.sentEvents,
   };
 }
 
@@ -201,6 +211,12 @@ function applyPreviewEnvelope(stored) {
     items: stored.drafts?.items || [],
     receipts: stored.drafts?.receipts || [],
   };
+  state.sentEvents = {
+    ...defaultSentEventsOps(),
+    ...(stored.sentEvents || {}),
+    events: stored.sentEvents?.events || [],
+    receipts: stored.sentEvents?.receipts || [],
+  };
   if (state.laneId === IBAL_LEGACY_LANE) {
     state.laneId = DEFAULT_LANE;
     state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
@@ -264,6 +280,7 @@ function upgradePreviewEnvelope(envelope) {
         ...defaultDraftsOps(),
         items: migrateDraftItemsFromInbox(envelope.inbox),
       },
+      sentEvents: defaultSentEventsOps(),
     };
   }
   return {
@@ -280,6 +297,7 @@ function upgradePreviewEnvelope(envelope) {
     ibal: envelope.ibal || defaultIbalOps(),
     account: envelope.account || defaultAccountOps(),
     drafts: envelope.drafts || { ...defaultDraftsOps(), items: migrateDraftItemsFromInbox(envelope.inbox) },
+    sentEvents: envelope.sentEvents || defaultSentEventsOps(),
   };
 }
 
@@ -1296,10 +1314,10 @@ function replyDraftFor(threadId) {
 function draftsForMailboxView() {
   const view = state.inbox.mailboxView || 'inbox';
   if (view === 'drafts') {
-    return allDraftItems().filter((draft) => draft.approval_state === 'none');
+    return allDraftItems().filter((draft) => draft.approval_state === 'none' && draft.status !== 'sent');
   }
   if (view === 'approval-queue') {
-    return allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state));
+    return allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state) && draft.status !== 'sent');
   }
   return [];
 }
@@ -1473,6 +1491,135 @@ function approveAllQueuedDrafts() {
   });
   saveState();
   setStatusMessage(`Batch approved ${queued.length} draft(s). Send remains blocked.`, 'inbox');
+}
+
+function allSentEvents() {
+  return state.sentEvents?.events || [];
+}
+
+function sentEventById(eventId) {
+  return allSentEvents().find((event) => event.id === eventId) || null;
+}
+
+function buildPostSendPlan(draft) {
+  const steps = [
+    { action: 'create_receipt', summary: 'Append simulated send receipt to local ledger' },
+    { action: 'notify_user', summary: 'Show dry-run status message (no provider delivery)' },
+  ];
+  if (draft?.source_thread_id) {
+    steps.push({ action: 'archive_thread', summary: `Mark source thread ${draft.source_thread_id} reviewed locally` });
+    steps.push({ action: 'follow_up_task', summary: 'Create follow-up task proposal (local only)' });
+    steps.push({ action: 'calendar_event', summary: 'Create calendar follow-up proposal (local only)' });
+  }
+  steps.push({ action: 'post_send_automation', summary: 'Dry-run post-send automation recipes (execution blocked)' });
+  return steps;
+}
+
+function sendConsequencePreview(draft) {
+  return buildPostSendPlan(draft).map((step) => step.summary);
+}
+
+function addSentEventReceipt({ type, title, eventId, summary }) {
+  const receipt = {
+    id: createLocalId('receipt'),
+    type,
+    title,
+    eventId: eventId || null,
+    summary,
+    createdAt: new Date().toISOString(),
+    limitations: 'Simulated send only. No provider write or delivery occurred.',
+  };
+  state.sentEvents.receipts = [receipt, ...(state.sentEvents.receipts || [])].slice(0, 20);
+  return receipt;
+}
+
+function linkPostSendProposals(draft, eventId) {
+  const links = [];
+  const now = new Date().toISOString();
+  if (!draft?.source_thread_id) return links;
+  const thread = inboxThreads().find((entry) => entry.id === draft.source_thread_id);
+  if (!thread) return links;
+  state.inbox.triage[draft.source_thread_id] = {
+    ...inboxTriageFor(draft.source_thread_id),
+    reviewed: true,
+    deferred: false,
+    reviewedAt: now,
+  };
+  const taskId = createLocalId('task');
+  state.tasks.tasks = [{
+    id: taskId,
+    title: `Follow-up: ${draft.subject || thread.title}`,
+    status: 'proposed',
+    dueDate: '',
+    notes: 'Post-send plan preview (simulated). Provider sync blocked.',
+    sourceRef: `sent-event:${eventId}`,
+    sourceType: 'send_simulation',
+    threadId: draft.source_thread_id,
+    createdAt: now,
+    updatedAt: now,
+    state: 'local_preview_task',
+  }, ...(state.tasks.tasks || [])];
+  links.push({ type: 'task', id: taskId });
+  const calId = createLocalId('cal');
+  state.calendar.proposals = [{
+    id: calId,
+    title: `Follow-up hold: ${draft.subject || thread.title}`,
+    dateTime: '',
+    notes: 'Post-send calendar proposal (simulated). Provider write blocked.',
+    sourceRef: `sent-event:${eventId}`,
+    sourceType: 'send_simulation',
+    threadId: draft.source_thread_id,
+    createdAt: now,
+    updatedAt: now,
+    state: 'local_proposal',
+  }, ...(state.calendar.proposals || [])];
+  links.push({ type: 'calendar', id: calId });
+  return links;
+}
+
+function simulateSendDraft(draftId) {
+  const draft = draftById(draftId);
+  if (!draft || draft.approval_state !== 'approved' || draft.status === 'sent') {
+    setStatusMessage('Only approved drafts can simulate send.');
+    return null;
+  }
+  const now = new Date().toISOString();
+  const plan = buildPostSendPlan(draft);
+  const eventId = createLocalId('sent');
+  const links = linkPostSendProposals(draft, eventId);
+  draft.post_send_plan = plan;
+  draft.task_links = links.filter((link) => link.type === 'task').map((link) => link.id);
+  draft.status = 'sent';
+  draft.sent_at = now;
+  draft.updated_at = now;
+  const event = {
+    id: eventId,
+    draft_id: draft.id,
+    source_thread_id: draft.source_thread_id,
+    subject: draft.subject,
+    recipients: draft.recipients,
+    simulated: true,
+    post_send_plan: plan,
+    task_links: draft.task_links,
+    created_at: now,
+  };
+  state.sentEvents.events = [event, ...allSentEvents()].slice(0, 30);
+  state.sentEvents.selectedEventId = eventId;
+  addDraftReceipt({
+    type: 'post_send_plan',
+    title: 'Send simulated (dry-run)',
+    draftId: draft.id,
+    summary: `Post-send plan recorded. ${plan.length} step(s). Provider send did not occur.`,
+  });
+  addSentEventReceipt({
+    type: 'post_send_plan',
+    title: 'Simulated send event',
+    eventId,
+    summary: `Draft ${draft.id} → sent-event ${eventId}. Downstream proposals linked locally.`,
+  });
+  saveState();
+  setStatusMessage('Send simulated (dry-run). View event in Receipts lane.', 'inbox');
+  return event;
 }
 
 function inboxCommandRailMode() {
@@ -1915,6 +2062,21 @@ function inspectableItemsForLane(laneId) {
     });
   }
 
+  if (laneId === 'receipts') {
+    allSentEvents().forEach((event) => {
+      items.push({
+        id: `sent-event:${event.id}`,
+        kind: 'sent event (simulated)',
+        title: event.subject || 'Simulated send',
+        summary: `Dry-run ${event.created_at}. Draft ${event.draft_id}.`,
+        meta: event.simulated ? 'simulated' : 'preview',
+        safeNext: 'Inspect post-send plan and linked proposals.',
+        blocked: 'Provider delivery and runtime replay remain blocked.',
+        receipt: 'Sent-event receipt in sentEvents namespace.',
+      });
+    });
+  }
+
   if (laneId === 'settings') {
     settingsGateFixtures().forEach((gate) => {
       const override = gateOverrideFor(gate.gateKey);
@@ -2081,6 +2243,9 @@ function selectInspectorFocus(focusId) {
   if (focusId.startsWith('inbox-draft:')) {
     state.drafts.selectedDraftId = focusId.replace('inbox-draft:', '');
     state.threadId = null;
+  }
+  if (focusId.startsWith('sent-event:')) {
+    state.sentEvents.selectedEventId = focusId.replace('sent-event:', '');
   }
   if (focusId.startsWith('calendar:local:')) {
     state.calendar.selectedProposalId = focusId.replace('calendar:local:', '');
@@ -2421,10 +2586,27 @@ function syncMailboxThreadSelection() {
 }
 
 function renderDraftStatusChip(draft) {
-  const labelText = draft.approval_state === 'approved' ? 'Approved (send blocked)'
-    : draft.approval_state === 'queued' ? 'Awaiting approval'
-      : label(draft.status || 'drafting');
-  return `<span class="thread-status-chip ${draft.approval_state === 'approved' ? 'is-safe' : draft.approval_state === 'queued' ? 'is-warn' : 'is-neutral'}">${escapeHtml(labelText)}</span>`;
+  const labelText = draft.status === 'sent' ? 'Sent (simulated)'
+    : draft.approval_state === 'approved' ? 'Approved (send blocked)'
+      : draft.approval_state === 'queued' ? 'Awaiting approval'
+        : label(draft.status || 'drafting');
+  const chipClass = draft.status === 'sent' ? 'is-safe'
+    : draft.approval_state === 'approved' ? 'is-safe'
+      : draft.approval_state === 'queued' ? 'is-warn' : 'is-neutral';
+  return `<span class="thread-status-chip ${chipClass}">${escapeHtml(labelText)}</span>`;
+}
+
+function renderPostSendPreview(draft) {
+  const steps = draft.status === 'sent' && draft.post_send_plan?.length
+    ? draft.post_send_plan.map((step) => step.summary || step)
+    : sendConsequencePreview(draft);
+  return `
+    <details class="inbox-reading-details post-send-preview" open>
+      <summary>${draft.status === 'sent' ? 'Post-send plan (executed dry-run)' : 'Send consequence preview (dry-run)'}</summary>
+      <ul class="post-send-plan-list">${steps.map((step) => `<li>${escapeHtml(typeof step === 'string' ? step : step.summary)}</li>`).join('')}</ul>
+      <p class="form-hint">Tier 1 preview only. Provider send and runtime automation execution remain blocked.</p>
+    </details>
+  `;
 }
 
 function renderDraftReadingPane(draft) {
@@ -2465,13 +2647,16 @@ function renderDraftReadingPane(draft) {
             <button class="inbox-action-btn" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(draft.id)}">Approve for send</button>
             <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
           ` : ''}
-          ${draft.approval_state === 'approved' ? `
-            <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked (Tier 1)</button>
+          ${draft.approval_state === 'approved' && draft.status !== 'sent' ? `
+            <button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-simulate-send" data-draft-id="${escapeHtml(draft.id)}">Simulate send (dry-run)</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Provider send blocked</button>
             <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
           ` : ''}
+          ${draft.status === 'sent' ? `<p class="form-hint">Simulated send complete. Open Receipts lane for sent-event ledger.</p>` : ''}
           <button class="inbox-action-btn is-danger" type="button" data-inbox-action="draft-delete" data-draft-id="${escapeHtml(draft.id)}">Delete draft</button>
         </div>
       </form>
+      ${['queued', 'approved', 'sent'].includes(draft.status) || ['queued', 'approved'].includes(draft.approval_state) ? renderPostSendPreview(draft) : ''}
     </section>
   `;
 }
@@ -3927,6 +4112,18 @@ function renderReceiptLedger(section) {
             </button>
           `;
         }).join('')}
+        ${allSentEvents().map((event, index) => {
+          const focusId = `sent-event:${event.id}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="receipt-ledger-row is-inspector-focusable is-local-sent ${focused ? 'is-inspector-focused' : ''}" type="button" role="row" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <span class="receipt-kind receipt-kind-send" role="cell">send_sim</span>
+              <strong role="cell">${escapeHtml(event.subject || 'Simulated send')}</strong>
+              <span role="cell">draft:${escapeHtml(event.draft_id || '')}</span>
+              <span class="receipt-state" role="cell">${escapeHtml(label('dry_run_only'))}</span>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -4210,20 +4407,46 @@ function activeInspectorModel() {
         ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
         : 'Draft receipt appears after save or approval action.',
       preSendChecks: checks,
-      sendConsequences: 'If sent (Tier 2): local receipt, post-send task/calendar proposals, automation dry-run plan.',
+      sendConsequences: draft?.status === 'sent'
+        ? (draft.post_send_plan || []).map((step) => step.summary || step)
+        : sendConsequencePreview(draft),
+    };
+  }
+
+  if (focusItem?.id?.startsWith('sent-event:')) {
+    const eventId = focusItem.id.replace('sent-event:', '');
+    const event = sentEventById(eventId);
+    const receipts = (state.sentEvents.receipts || []).filter((entry) => entry.eventId === eventId);
+    return {
+      kind: 'sent',
+      mode: 'sent',
+      title: event?.subject || 'Simulated send event',
+      summary: `Dry-run ${event?.created_at || ''}. No provider delivery.`,
+      context: `Sent-event ${eventId} from draft ${event?.draft_id || 'unknown'}.`,
+      why: 'Post-send fan-out creates local proposals and receipts only in Tier 1.',
+      evidence: (event?.post_send_plan || []).map((step) => step.summary).join('; ') || 'No plan recorded.',
+      safeNext: 'Review linked task/calendar proposals; runtime sync remains blocked.',
+      blocked: 'Provider send replay, disclose, and runtime mutation remain blocked.',
+      ibalProposal: laneInspector.ibalProposal,
+      receipts: receipts.length
+        ? receipts.map((entry) => `${entry.title}: ${entry.summary}`).join(' ')
+        : 'Sent-event receipt recorded on simulate.',
     };
   }
 
   if (state.laneId === 'receipts') {
+    const events = allSentEvents();
     return {
       kind: 'sent',
       mode: 'sent',
       title: activeLaneContent().title || 'Receipts',
-      summary: 'Sent-event and receipt ledger preview (fixture + local receipts).',
-      context: 'Post-send outcomes and audit trail. No provider delivery confirmed in Tier 1.',
+      summary: `Sent-event ledger: ${events.length} simulated send(s). Fixture receipts below.`,
+      context: events.length
+        ? `Latest: ${events[0].subject || events[0].id} (${events[0].created_at}).`
+        : 'No simulated sends yet. Approve a draft and run Simulate send in Approval Queue.',
       why: 'Receipts prove controlled egress boundaries; sent events fan out downstream proposals.',
-      evidence: 'Local receipts in lane namespaces; fixture receipt samples in payload.',
-      safeNext: 'Review receipt ledger; follow-up automations remain dry-run only.',
+      evidence: 'Local receipts in drafts/sentEvents namespaces; fixture samples in payload.',
+      safeNext: events.length ? 'Select a sent event row to inspect post-send plan.' : 'Complete draft → approve → simulate send workflow.',
       blocked: 'Provider send replay, disclose, and runtime mutation remain blocked.',
       ibalProposal: laneInspector.ibalProposal,
       receipts: laneInspector.receipts || 'Receipt expectation documented per action.',
@@ -4442,10 +4665,12 @@ function renderInboxCommandRail(mode, inspector) {
       <div class="inbox-action-toolbar" role="toolbar" aria-label="Draft actions">
         ${draft.approval_state === 'none' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-queue" data-draft-id="${escapeHtml(draft.id)}">Submit for approval</button>` : ''}
         ${draft.approval_state === 'queued' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(draft.id)}">Approve for send</button>` : ''}
-        ${draft.approval_state === 'approved' ? `<button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>` : ''}
-        ${['queued', 'approved'].includes(draft.approval_state) ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>` : ''}
+        ${draft.approval_state === 'approved' && draft.status !== 'sent' ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-simulate-send" data-draft-id="${escapeHtml(draft.id)}">Simulate send</button>` : ''}
+        ${draft.approval_state === 'approved' && draft.status !== 'sent' ? `<button class="inbox-action-btn is-blocked" type="button" disabled>Provider send blocked</button>` : ''}
+        ${['queued', 'approved'].includes(draft.approval_state) && draft.status !== 'sent' ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>` : ''}
       </div>
       ${inspector.preSendChecks?.length ? `<ul class="rail-check-list">${inspector.preSendChecks.map((check) => `<li>${escapeHtml(check)}</li>`).join('')}</ul>` : ''}
+      ${inspector.sendConsequences?.length ? `<ul class="rail-check-list">${inspector.sendConsequences.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
     `;
   }
   if (mode === 'thread' && state.threadId) {
@@ -4487,7 +4712,7 @@ function renderInspector() {
         ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
         ${renderInspectorBlock('Why it matters', inspector.why || 'Context helps determine the next safe action without runtime writes.')}
         ${renderInspectorBlock('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.')}
-        ${inspector.sendConsequences ? renderInspectorBlock('Send consequences (preview)', inspector.sendConsequences) : ''}
+        ${inspector.sendConsequences?.length ? renderInspectorBlock('Send consequences (preview)', inspector.sendConsequences.join('; ')) : ''}
         <section class="inspector-block">
           <h3>Blocked actions</h3>
           <p>${escapeHtml(inspector.blocked || 'Draft creation may be previewed. Send, forward, delete, disclose, publish, deploy, and provider mutation remain blocked.')}</p>
@@ -5068,6 +5293,14 @@ function handleInboxAction(action, threadId, mailboxView, draftId) {
   if (action === 'draft-batch-approve-all') {
     if (window.confirm('Approve all queued drafts locally? Send remains blocked in Tier 1.')) {
       approveAllQueuedDrafts();
+      renderShell();
+    }
+    return;
+  }
+  if (action === 'draft-simulate-send') {
+    if (window.confirm('Simulate send locally (dry-run)? No provider delivery will occur.')) {
+      simulateSendDraft(draftId || state.drafts.selectedDraftId);
+      syncMailboxThreadSelection();
       renderShell();
     }
     return;

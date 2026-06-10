@@ -427,11 +427,16 @@ input:focus-visible {
 }
 
 .rail-check-list,
-.rail-risk-list {
+.rail-risk-list,
+.post-send-plan-list {
   margin: 0.5rem 0 0;
   padding-left: 1.1rem;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.receipt-ledger-row.is-local-sent {
+  border-left: 2px solid var(--accent, #5b9fd4);
 }
 
 .lane-header {

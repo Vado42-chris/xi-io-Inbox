@@ -88,7 +88,7 @@ drafting | needs_review | approved | queued | sent | blocked | archived | reusab
 
 Canonical key: `xiioInbox.preview.state` (schemaVersion 3 — `drafts` namespace shipped in UI-007B-R2).
 
-Allowed new namespaces: `drafts`, `approvalQueue`, `sentEvents`, `files`, `projects` (document migration in UI-007B).
+Allowed new namespaces: `drafts`, `approvalQueue`, `sentEvents` (shipped UI-007C), `files`, `projects` (UI-007D).
 
 Forbidden in storage: credentials, tokens, secrets, real private bodies, runtime provider IDs, provider file contents.
 
