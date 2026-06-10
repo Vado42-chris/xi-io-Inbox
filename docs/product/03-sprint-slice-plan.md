@@ -28,22 +28,28 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 | SLICE-UI-004E | Provider Gates and Settings polish | make provider/privacy/policy gates legible and trustworthy | Settings / Provider Gates, related Extensions gate states | OAuth, credentials, provider reads/writes | UI-004B | provider blocks, permission states, policy defaults clear | provider gate review | `docs/ui/reviews/ui-004e-provider-gates-receipt.md` | if connection path appears live, block | blocked | not started | 1 pass |
 | SLICE-UI-004F | Calendar and Tasks polish | polish time/work lanes around proposals, sources, and status | Calendar and Tasks lanes | provider writes, external task mutation | UI-004B, Inbox source pattern | source links and proposal states clear | wargame + visual QA | `docs/ui/reviews/ui-004f-calendar-tasks-receipt.md` | if proposal appears confirmed, block | blocked | not started | 1 to 2 passes |
 | SLICE-UI-004G | Automations and Extensions polish | polish dry-run rules and provider/tool control center | Automations and Extensions lanes | automation execution, OAuth, credentials | UI-004B, provider gate pattern | dry-run and blocked provider states clear | dry-run/provider gate review | `docs/ui/reviews/ui-004g-automation-extensions-receipt.md` | if automation appears runnable, block | blocked | not started | 1 pass |
+| SLICE-UI-005A | operability architecture | define human-operable shell, Ibal concierge model, local operability contract | docs under `docs/ui/`, governance updates | product UI code, runtime, provider work | UI-003E preliminary fail, UI-004 complete | three UI-005 docs + receipt + gate updates | doc review, npm check | `docs/ui/reviews/ui-005a-operability-architecture-receipt.md` | if Tier 2 implied or UI code changed, block | ready | not started | 1 pass |
+| SLICE-UI-005B | Inbox operability | compose, reply draft, triage, local state | Inbox lane UI only | send, provider, runtime | UI-005A pass | WG-005-003 pass, local draft receipt | route smoke, keyboard | `docs/ui/reviews/ui-005b-inbox-operability-receipt.md` | send enabled or fixture mutated without doc, block | blocked | not started | 1 to 2 passes |
+| SLICE-UI-005C | Calendar operability | local event proposal create/edit | Calendar lane | provider write | UI-005B patterns | WG-005-004 pass | route smoke | `docs/ui/reviews/ui-005c-calendar-operability-receipt.md` | confirmed event implied, block | blocked | not started | 1 pass |
+| SLICE-UI-005D | Tasks operability | create/edit tasks, inbox ingress UI | Tasks + cross-lane | provider/repo write | UI-005B patterns | WG-005-005 pass | route smoke | `docs/ui/reviews/ui-005d-tasks-operability-receipt.md` | external sync implied, block | blocked | not started | 1 pass |
+| SLICE-UI-005E | Automations operability | rule builder, dry-run only | Automations lane | execution | UI-005A contract | WG-005-006 pass | dry-run review | `docs/ui/reviews/ui-005e-automations-operability-receipt.md` | enable/run works, block | blocked | not started | 1 pass |
+| SLICE-UI-005F | Extensions operability | install/remove/detail preview UI | Extensions lane | OAuth, credentials | UI-005A contract | preview install/remove local only | provider gate review | `docs/ui/reviews/ui-005f-extensions-operability-receipt.md` | live connect path, block | blocked | not started | 1 pass |
+| SLICE-UI-005G | Settings operability | editable gate/policy forms | Settings lane | runtime provider change | UI-005A contract | local settings overlay | form smoke | `docs/ui/reviews/ui-005g-settings-operability-receipt.md` | runtime policy apply implied, block | blocked | not started | 1 pass |
+| SLICE-UI-005H | Ibal concierge shell | concierge drawer, command integration, remove Ibal lane | shell + concierge | execution, model routing | UI-005A Ibal model | WG-005-001/002 pass | keyboard/focus | `docs/ui/reviews/ui-005h-ibal-concierge-receipt.md` | Ibal lane restored as primary, block | blocked | not started | 1 to 2 passes |
+| SLICE-UI-005I | Account/session shell | workspace switch, preview login UI | top bar/account | real auth backend | UI-005A contract | preview session switch only | smoke | `docs/ui/reviews/ui-005i-account-session-receipt.md` | OAuth/credential storage, block | blocked | not started | 1 pass |
 | SLICE-ARCH-002 | Android build proof | prove Thunderbird Android upstream build or classify failure | local upstream build proof, evidence comment | runtime import, fork identity implementation | existing ARCH-002 packet | build success or classified failure recorded | build proof receipt | `docs/reports/arch-002-build-proof-receipt.md` | if build cannot run, classify failure | planned | not started | 1 to 3 passes |
 | SLICE-ARCH-004 | platform/runtime decision | decide runtime/platform envelope before Pass 4 | decision receipt covering storage, secrets, sync, local cloud, surfaces | implementation | UI proof, Android proof inputs where relevant | ARCH-004 decision receipt complete | architecture review | `docs/reports/arch-004-runtime-decision-receipt.md` | unresolved platform/security boundary blocks runtime | blocked | not started | 1 to 2 passes |
 | SLICE-PASS-004 | Pass 4 runtime skeleton | create minimal buildable runtime skeleton after gates clear | skeleton, schema validation, example events/proposals, tests, CI | provider credentials, real sends, automation execution | ARCH-002, ARCH-004, UI visual proof | build/test/CI evidence complete | build/test receipt | `docs/reports/pass-4-runtime-skeleton-receipt.md` | if any build gate fails, do not start | blocked | not started | unknown until gates clear |
 
 ## Near-Term Order
 
-1. SLICE-PLAN-001A
-2. SLICE-UI-004A6
-3. SLICE-UI-004B
-4. SLICE-UI-004C
-5. SLICE-UI-004D
-6. SLICE-UI-004E
-7. SLICE-UI-004F
-8. SLICE-UI-004G
-9. SLICE-ARCH-002 and SLICE-ARCH-004 as separate architecture tracks
-10. SLICE-PASS-004 only after gates clear
+1. SLICE-PLAN-001A — complete
+2. SLICE-UI-004A6 through SLICE-UI-004G — complete
+3. SLICE-UI-005A — operability architecture (docs only)
+4. SLICE-UI-005B through SLICE-UI-005I — human-operable shell implementation
+5. UI-003E owner visual proof re-run
+6. SLICE-ARCH-002 and SLICE-ARCH-004 as separate architecture tracks
+7. SLICE-PASS-004 only after gates clear
 
 ## Slice Rules
 

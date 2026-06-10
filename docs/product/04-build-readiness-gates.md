@@ -17,7 +17,8 @@ Define explicit gates that control when UI implementation, visual proof, runtime
 
 | ID | Gate Name | Required Completed Docs | Required Evidence | Evidence Artifact | Blocking Issues | Forbidden Actions While Blocked | State | Risk References | Next Review Trigger |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| GATE-UI-IMPLEMENT-001 | UI implementation allowed | PLAN-001A, UI-004A.6 receipt | wargame failures/TODOs recorded | `docs/ui/reviews/ui-004a6-wargame-review.md` | none for UI-004B repair scope | page-specific polish before UI-004B | pass for UI-004B only | RISK-002 | start UI-004B |
+| GATE-LOCAL-OPERABILITY-001 | Tier 1 local operability allowed | UI-005A architecture docs, local operability contract | Tier 1/Tier 2 boundary explicit; no runtime claims in Tier 1 | `docs/ui/reviews/ui-005a-operability-architecture-receipt.md` | UI-005A incomplete | Tier 2 provider/runtime actions in Tier 1 UI | blocked until UI-005A pass | RISK-004, RISK-009 | UI-005A pass |
+| GATE-UI-IMPLEMENT-001 | UI implementation allowed | PLAN-001A, UI-004A.6 receipt | wargame failures/TODOs recorded | `docs/ui/reviews/ui-004a6-wargame-review.md` | none for UI-004B repair scope | page-specific polish before UI-004B | pass for UI-004B–G; UI-005B+ requires GATE-LOCAL-OPERABILITY-001 | RISK-002 | start UI-005B after GATE-LOCAL-OPERABILITY-001 |
 | GATE-UI-VISUAL-001 | UI visual proof allowed | UI-004B and page-specific polish receipts | visual QA thresholds met, owner review ready | `docs/ui/ui-002-local-proof-status.md` | visual polish incomplete | mark visual proof complete, PR ready-for-review | blocked | RISK-002 | after UI-004 polish receipts |
 | GATE-PR12-DRAFT-001 | PR #12 draft exit allowed | UI visual proof, CI, TODO clean for scope | owner/framework visual proof pass | PR #12 body/comment receipt | visual proof incomplete | merge PR #12, mark ready | blocked | RISK-002 | after owner visual proof |
 | GATE-RUNTIME-001 | runtime skeleton allowed | ARCH-002 evidence, ARCH-004 decision, UI proof | build/platform decisions and UI acceptance | `docs/reports/pass-4-runtime-skeleton-receipt.md` | ARCH-002, ARCH-004, visual proof | runtime skeleton/import | blocked | RISK-003 | after ARCH/UI gates pass |
@@ -40,6 +41,7 @@ Define explicit gates that control when UI implementation, visual proof, runtime
 | RISK-006 | Android mail spine import happens before upstream build proof/license/provider identity proof. | high | medium | ARCH-002 and ARCH-003 remain blockers. | active | GATE-ANDROID-001 |
 | RISK-007 | Local cloud/home server scope is invented before security boundary exists. | high | medium | ARCH-004 must decide role/auth/storage/sync/backup. | active | GATE-LOCAL-CLOUD-001 |
 | RISK-008 | Compliance evidence remains fragmented and failures are missed. | high | medium | compliance validation index centralizes status and evidence artifacts. | active | GATE-MVP-001 |
+| RISK-009 | Local operability UI leaks into runtime/provider/platform claims. | critical | medium | GATE-LOCAL-OPERABILITY-001, Tier 1 contract, blocked escalation patterns, receipt labeling. | active | GATE-LOCAL-OPERABILITY-001 |
 
 ## Evidence Artifact Naming
 

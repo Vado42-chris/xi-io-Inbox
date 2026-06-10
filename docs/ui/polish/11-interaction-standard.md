@@ -7,7 +7,8 @@ Define interaction behavior for UI-004B and later polish without adding runtime 
 ## Route Switching
 
 - Hash routes remain the current static preview route model.
-- Supported routes: `#/home`, `#/inbox`, `#/calendar`, `#/tasks`, `#/automations`, `#/extensions`, `#/receipts`, `#/ibal`, `#/settings`.
+- Supported routes (UI-004): `#/home`, `#/inbox`, `#/calendar`, `#/tasks`, `#/automations`, `#/extensions`, `#/receipts`, `#/ibal`, `#/settings`.
+- Supported routes (UI-005B+): `#/ibal` removed; Ibal accessed via concierge entry only (see `docs/ui/ui-005-ibal-concierge-model.md`).
 - Route changes update active lane, page header, main content, and inspector.
 - Unknown routes return to Home or a safe not-found state.
 
@@ -103,6 +104,58 @@ Escape must not hide persistent safety state.
 - Ibal cannot run providers, mutate repositories, execute automations, or send messages.
 - Ibal recommendations must expose source lanes and blockers.
 
+## Opening Ibal Concierge (UI-005B+)
+
+- Top bar concierge control and command entry open Ibal concierge drawer/panel.
+- Concierge available from any route; does not require `#/ibal` navigation.
+- Opening concierge preserves underlying lane selection context.
+- Escape closes concierge and restores focus to invoking control.
+- Concierge focus is trapped while open; tab order remains deterministic.
+
+## Submitting a Local Prompt / Proposal (UI-005B+)
+
+- User prompt submitted via command entry or concierge input.
+- Response is fixture/proposal-shaped in Tier 1; no live model-provider claim.
+- Each response includes evidence, blockers, and receipt expectation where applicable.
+- User may convert proposal to local draft via explicit action (never auto-applied).
+
+## Creating Local Draft / Proposal State (UI-005B+)
+
+- Forms save to client overlay per `docs/ui/ui-005-local-operability-contract.md`.
+- Save actions use explicit labels: "Save local draft", "Save proposal" — not "Send" or "Create event".
+- Saved state updates inspector and may append local receipt preview.
+- Unsaved edits must be visible before navigation away when feasible.
+
+## Cancelling Local Unsaved State (UI-005B+)
+
+- Cancel discards in-form edits not yet saved to overlay.
+- Navigation away from dirty form should confirm when implementation adds forms.
+- Cancel never triggers provider, repo, or network side effects.
+
+## Restoring Preview State (UI-005B+)
+
+- On load, client overlay merges with fixture seed data.
+- Restore defaults reloads fixture baseline and clears or replaces overlay per user control.
+- Status message confirms restore outcome.
+
+## Clearing Local Preview Data (UI-005B+)
+
+- Explicit "Clear local preview data" control required (Settings or global).
+- Confirm dialog before clear; focus managed; textual status after.
+- Clear removes overlay drafts/proposals/local edits; does not mutate repo or fixtures.
+
+## Blocked Runtime Escalation (UI-005B+)
+
+- Tier 2 actions (send, connect, execute, provider write) remain disabled or absent.
+- If shown for education, disabled controls have no handler and show XiOperabilityGate reason.
+- Attempted escalation surfaces gate ID, blocker, and receipt implication — no silent fail.
+
+## Evidence-First Proposal Review (UI-005B+)
+
+- Ibal and lane proposals must show evidence before primary action buttons.
+- User reviews why, sources, and blockers before saving local draft.
+- Proposal without evidence is a wargame fail for non-trivial recommendations.
+
 ## No-Runtime-Write Behavior
 
 The following remain absent or disabled:
@@ -155,5 +208,5 @@ The following remain absent or disabled:
 ## Decision
 
 ```text
-UI_004A_INTERACTION_STANDARD_REQUIRED_BEFORE_VISUAL_POLISH_IMPLEMENTATION
+UI_005A_INTERACTION_STANDARD_EXTENDED_FOR_LOCAL_OPERABILITY
 ```

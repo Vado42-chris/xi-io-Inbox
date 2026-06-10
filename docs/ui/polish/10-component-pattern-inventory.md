@@ -335,8 +335,127 @@ Reuse component behavior and hierarchy. Do not reuse visual templates when a lan
 - Safety/egress: no runtime command execution in preview.
 - Polish: quiet, not dominant.
 
+## UI-005 Operability Patterns
+
+### XiIbalConcierge
+
+- Purpose: persistent Ibal conductor access without a primary lane page.
+- Where used: top bar entry, concierge drawer/panel (UI-005H).
+- Reuse when: user needs cross-lane synthesis or safe-next guidance.
+- Do not reuse when: lane-specific form is sufficient without AI augmentation.
+- Anatomy: concierge trigger, conversation/proposal area, evidence, blockers, receipt expectation.
+- Hierarchy: augmenting, not replacing lane work.
+- Interaction: open/close, ask, review proposal, convert to local draft (Tier 1).
+- Accessibility: focus trap in drawer, escape close, labeled proposal state.
+- Safety/egress: proposal-only; no execution.
+- Polish: conductor intelligence, not chatbot widget.
+
+### XiCommandEntry
+
+- Purpose: unified command/search entry integrated with Ibal concierge.
+- Where used: top bar.
+- Reuse when: global ask/command/navigation assist is needed.
+- Do not reuse for: lane filters or provider search.
+- Anatomy: label, input, submit, optional scope hint.
+- Hierarchy: secondary to product identity; primary utility for concierge.
+- Interaction: submit opens/focuses Ibal concierge with parsed intent.
+- Accessibility: explicit label, keyboard submit.
+- Safety/egress: no runtime command execution.
+- Polish: coherent toolbar element.
+
+### XiContextProposal
+
+- Purpose: selection-scoped Ibal or lane proposal with evidence and blockers.
+- Where used: concierge, inspector, Home priority.
+- Reuse when: selected object needs recommended next step.
+- Do not reuse as: generic dashboard filler.
+- Anatomy: recommendation, why, evidence refs, blockers, source lanes, receipt expectation.
+- Hierarchy: proposal content over status badges.
+- Interaction: inspect, accept as local draft (Tier 1).
+- Accessibility: proposed/not-executed state textual.
+- Safety/egress: no auto-apply.
+- Polish: evidence-first orchestration.
+
+### XiLocalDraftComposer
+
+- Purpose: human-entered compose/reply draft without send.
+- Where used: Inbox (UI-005B).
+- Reuse when: user creates or edits message-shaped local draft.
+- Do not reuse for: task/calendar forms (use XiLocalProposalForm).
+- Anatomy: to/subject/body fields, save draft, cancel, blocked send affordance.
+- Hierarchy: primary Inbox operability surface.
+- Interaction: edit, save local, cancel unsaved.
+- Accessibility: labeled fields, keyboard save/cancel.
+- Safety/egress: send absent or disabled with gate reason.
+- Polish: mail-client compose rhythm.
+
+### XiLocalProposalForm
+
+- Purpose: create/edit local proposals (calendar event, task, automation rule, settings).
+- Where used: Calendar, Tasks, Automations, Settings slices.
+- Reuse when: user enters structured proposal data locally.
+- Do not reuse for: free-text compose (use XiLocalDraftComposer).
+- Anatomy: form fields, save proposal, cancel, preview receipt hint.
+- Hierarchy: lane-primary operability.
+- Interaction: validate locally, save overlay, cancel.
+- Accessibility: labels, error text, focus management.
+- Safety/egress: no provider write implied.
+- Polish: native lane form rhythm.
+
+### XiOperabilityGate
+
+- Purpose: explain why runtime/provider action is blocked when user escalates.
+- Where used: forms, concierge, inspector, safe-action bars.
+- Reuse when: user attempts Tier 2 action from Tier 1 UI.
+- Do not reuse for: neutral metadata.
+- Anatomy: action attempted, gate ID, reason, unlock requirement, receipt implication.
+- Hierarchy: adjacent to blocked control.
+- Interaction: inspect only; no bypass.
+- Accessibility: reason text required.
+- Safety/egress: explicit no-write.
+- Polish: calm guardrail, not alarm slab.
+
+### XiPreviewPersistenceState
+
+- Purpose: manage local preview overlay (save, restore, clear).
+- Where used: Settings, global preview controls.
+- Reuse when: localStorage or client overlay is active.
+- Do not reuse when: fixture-only read path suffices.
+- Anatomy: state summary, restore defaults, clear all, last saved indicator.
+- Hierarchy: settings/global utility.
+- Interaction: confirm before clear; status message after.
+- Accessibility: confirm dialog focus, textual status.
+- Safety/egress: no repo mutation; no credential storage.
+- Polish: quiet data-ownership control.
+
+### XiProposalReceipt
+
+- Purpose: preview receipt for local draft/proposal/dry-run/Ibal proposal.
+- Where used: Receipts lane, inspector, post-action feedback.
+- Reuse when: Tier 1 action creates auditable local artifact.
+- Do not reuse as: runtime proof.
+- Anatomy: type, title, source, timestamp, state, limitation note.
+- Hierarchy: supports trust, not decoration.
+- Interaction: inspect; cannot authorize execution.
+- Accessibility: receipt type and state textual.
+- Safety/egress: preview provenance labeled.
+- Polish: credible local audit entry.
+
+### XiHumanActionPanel
+
+- Purpose: primary human-operable actions for a lane (create, edit, triage, dry-run).
+- Where used: each lane header or primary object area.
+- Reuse when: lane requires user entry beyond selection.
+- Do not reuse as: read-only status report.
+- Anatomy: primary create/edit, secondary triage, blocked runtime actions grouped.
+- Hierarchy: enables lane operability without overpowering content.
+- Interaction: open forms, save local, cancel.
+- Accessibility: action labels, disabled reasons.
+- Safety/egress: Tier 1 only; runtime actions gated.
+- Polish: tool-like, not dashboard KPI row.
+
 ## Decision
 
 ```text
-UI_004A_COMPONENT_PATTERN_INVENTORY_READY_FOR_SHELL_IMPLEMENTATION
+UI_005A_COMPONENT_PATTERN_INVENTORY_EXTENDED_FOR_OPERABILITY
 ```

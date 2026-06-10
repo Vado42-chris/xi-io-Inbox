@@ -239,17 +239,132 @@ maturity_level_impact:
 - Framework components: XiLaneNav, XiContextInspector, XiStatusToken.
 - Maturity impact: required for Level 2 on every lane.
 
+## UI-005 Operability Scenarios
+
+### WG-005-001: User opens Ibal from command/concierge entry
+
+- Lane: global / concierge
+- User goal: ask for help without navigating to an Ibal lane page.
+- Starting route: any (e.g. `#/inbox`)
+- Expected path: top bar concierge or command entry -> Ibal drawer opens -> contextual proposal.
+- Expected visible objects: concierge trigger, command field, proposal with evidence/blockers.
+- Expected inspector response: compact contextual proposal for selected object if applicable.
+- Expected blocked actions: send, execute, provider connect.
+- Expected receipt/proposal state: Ibal proposal receipt preview optional.
+- Fail conditions: `#/ibal` required, chatbot with no evidence, auto-apply proposal.
+- Framework components: XiIbalConcierge, XiCommandEntry, XiContextProposal.
+- Maturity impact: required for UI-005H and shell operability.
+
+### WG-005-002: User asks what to do next
+
+- Lane: concierge / Home
+- User goal: get safe-next recommendation with evidence.
+- Starting route: `#/home` or any with selection
+- Expected path: open concierge -> ask -> proposal with why/evidence/blockers.
+- Expected visible objects: recommendation, source lanes, blocked runtime note.
+- Expected inspector response: aligned safe-next snippet.
+- Expected blocked actions: execution, send, provider mutation.
+- Expected receipt/proposal state: proposal-only.
+- Fail conditions: recommendation without evidence, implies execution.
+- Framework components: XiContextProposal, XiSafeNextAction, XiProposalReceipt.
+- Maturity impact: required for Ibal concierge Level 3.
+
+### WG-005-003: User creates local draft proposal without sending
+
+- Lane: Inbox
+- User goal: compose reply draft locally.
+- Starting route: `#/inbox`
+- Expected path: compose -> edit -> save local draft -> receipt preview -> send blocked.
+- Expected visible objects: XiLocalDraftComposer, draft state, disabled send with gate.
+- Expected inspector response: draft metadata, blocked send, receipt expectation.
+- Expected blocked actions: send, forward, provider write.
+- Expected receipt/proposal state: local draft receipt.
+- Fail conditions: draft looks sent, no save/cancel, send enabled.
+- Framework components: XiLocalDraftComposer, XiHumanActionPanel, XiOperabilityGate.
+- Maturity impact: required for UI-005B.
+
+### WG-005-004: User creates local calendar proposal without provider write
+
+- Lane: Calendar
+- User goal: propose event locally without calendar mutation.
+- Starting route: `#/calendar`
+- Expected path: create proposal form -> save -> agenda shows proposal state.
+- Expected visible objects: XiLocalProposalForm, proposal badge, source link optional.
+- Expected inspector response: proposal-only, provider write blocked.
+- Expected blocked actions: provider calendar write, invite send.
+- Expected receipt/proposal state: event proposal receipt.
+- Fail conditions: event appears confirmed on provider, no proposal labeling.
+- Framework components: XiLocalProposalForm, XiProposalReceipt.
+- Maturity impact: required for UI-005C.
+
+### WG-005-005: User creates local task proposal
+
+- Lane: Tasks / Inbox
+- User goal: create task from human entry or inbox ingress.
+- Starting route: `#/tasks` or `#/inbox`
+- Expected path: create task or ingress UI -> save local -> source ref preserved.
+- Expected visible objects: task form, inbox source link, local saved state.
+- Expected inspector response: source evidence, safe next, blocked provider write.
+- Expected blocked actions: provider task write, repo mutation.
+- Expected receipt/proposal state: task proposal receipt.
+- Fail conditions: task appears externally synced, source missing.
+- Framework components: XiLocalProposalForm, XiHumanActionPanel, XiCrossLaneLink.
+- Maturity impact: required for UI-005D.
+
+### WG-005-006: User dry-runs automation without enabling it
+
+- Lane: Automations
+- User goal: build and inspect rule without execution.
+- Starting route: `#/automations`
+- Expected path: rule builder -> dry-run -> approval gate -> execution blocked.
+- Expected visible objects: trigger chain, dry-run output, disabled enable/run.
+- Expected inspector response: dry-run result, execution gate, receipt requirement.
+- Expected blocked actions: enable, run, provider/repo mutation.
+- Expected receipt/proposal state: dry-run receipt.
+- Fail conditions: rule appears enabled, no dry-run path.
+- Framework components: XiLocalProposalForm, XiDryRunRuleCard, XiOperabilityGate.
+- Maturity impact: required for UI-005E.
+
+### WG-005-007: User clears local preview state
+
+- Lane: Settings / global
+- User goal: reset local drafts and proposals.
+- Starting route: `#/settings`
+- Expected path: preview data control -> confirm clear -> status message -> fixtures baseline.
+- Expected visible objects: XiPreviewPersistenceState, confirm dialog, clear confirmation.
+- Expected inspector response: explains what was cleared; no credential impact.
+- Expected blocked actions: repo mutation, provider action.
+- Expected receipt/proposal state: clear/restore receipt optional.
+- Fail conditions: silent clear, no confirm, credentials affected.
+- Framework components: XiPreviewPersistenceState, XiProposalReceipt.
+- Maturity impact: required for all UI-005 slices using localStorage.
+
+### WG-005-008: User tries blocked runtime action and sees why
+
+- Lane: any
+- User goal: understand why send/connect/execute is unavailable.
+- Starting route: any with draft or proposal
+- Expected path: attempt blocked action -> XiOperabilityGate -> receipt/blocker explanation.
+- Expected visible objects: disabled control, gate reason, tier boundary note.
+- Expected inspector response: gate ID, unlock requirement, receipt implication.
+- Expected blocked actions: action does not execute.
+- Expected receipt/proposal state: blocked action receipt optional.
+- Fail conditions: action executes, silent disable, no tier boundary.
+- Framework components: XiOperabilityGate, XiOperabilityGate (Tier 2 boundary).
+- Maturity impact: required for every UI-005 slice.
+
 ## Acceptance
 
 The matrix is valid when:
 
 - every lane has at least one scenario,
 - cross-lane scenarios cover Inbox -> Calendar, Inbox -> Tasks, Ibal -> source lanes, and Receipts -> source lanes,
+- UI-005 operability scenarios cover concierge, local drafts, dry-run, clear state, and blocked escalation,
 - safety and egress failure conditions are explicit,
 - maturity impact is recorded.
 
 ## Decision
 
 ```text
-UI_004A5_WARGAME_SCENARIO_MATRIX_REQUIRED_BEFORE_UI_004B
+UI_005A_WARGAME_SCENARIO_MATRIX_EXTENDED_FOR_OPERABILITY
 ```
