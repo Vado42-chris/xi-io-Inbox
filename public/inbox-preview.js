@@ -296,6 +296,26 @@ function inspectableItemsForLane(laneId) {
         }));
       });
     }
+    if (section.type === 'settings-gates') {
+      (section.gates || []).forEach((gate, index) => pushItem(index, 'policy gate', {
+        title: gate.label,
+        summary: gate.summary,
+        state: gate.state,
+        meta: gate.control,
+        safeNext: 'Review gate policy before any future provider or runtime action.',
+        blocked: gate.control,
+      }));
+    }
+    if (section.type === 'policy-list') {
+      (section.policies || []).forEach((policy, index) => pushItem(index, 'policy default', {
+        title: policy.label,
+        summary: policy.summary,
+        state: policy.value,
+        meta: policy.value,
+        safeNext: 'Policy default remains fixture-only in static preview.',
+        blocked: 'No policy write path exists in this preview.',
+      }));
+    }
     if (section.type === 'next-safe-action' && section.action) {
       pushItem('action', 'safe action', section.action);
     }
@@ -914,37 +934,52 @@ function renderIbalChanges(section) {
 }
 
 function renderSettingsGates(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section settings-gates" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="settings-grid">
-        ${(section.gates || []).map((gate) => `
-          <article>
-            <header>
-              <strong>${escapeHtml(gate.label)}</strong>
-              ${renderPill(gate.state || 'runtime_blocked')}
-            </header>
-            <p>${escapeHtml(gate.summary)}</p>
-            <small>${escapeHtml(gate.control)}</small>
-          </article>
-        `).join('')}
+      <div class="policy-gate-list">
+        ${(section.gates || []).map((gate, index) => {
+          const focusId = `${state.laneId}:settings-gates:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="policy-gate-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <div class="policy-gate-copy">
+                <strong>${escapeHtml(gate.label)}</strong>
+                <p>${escapeHtml(gate.summary)}</p>
+              </div>
+              <div class="policy-gate-meta">
+                <span class="policy-gate-control">${escapeHtml(gate.control)}</span>
+                <span class="policy-gate-state">${escapeHtml(label(gate.state || 'runtime_blocked'))}</span>
+              </div>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
 }
 
 function renderPolicyList(section) {
+  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
   return `
     <section class="lane-section policy-list" aria-label="${escapeHtml(section.title)}">
       ${renderSectionHeader(section)}
-      <div class="policy-list-grid">
-        ${(section.policies || []).map((policy) => `
-          <article>
-            <span>${escapeHtml(policy.label)}</span>
-            <strong>${escapeHtml(policy.value)}</strong>
-            <p>${escapeHtml(policy.summary)}</p>
-          </article>
-        `).join('')}
+      <div class="policy-default-table">
+        <div class="policy-default-head">
+          <span>Policy</span><span>Value</span><span>Reason</span>
+        </div>
+        ${(section.policies || []).map((policy, index) => {
+          const focusId = `${state.laneId}:policy-list:${sectionIndex}:${index}`;
+          const focused = state.focusId === focusId;
+          return `
+            <button class="policy-default-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+              <span>${escapeHtml(policy.label)}</span>
+              <strong>${escapeHtml(policy.value)}</strong>
+              <span>${escapeHtml(policy.summary)}</span>
+            </button>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -1011,7 +1046,7 @@ function renderMainLane() {
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>
 
-      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}">
+      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}">
         ${(content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
