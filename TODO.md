@@ -140,6 +140,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Implement UI-004F Calendar and Tasks polish next.
 - [x] Implement UI-004G Automations and Extensions polish next.
 - [x] Record preliminary UI-003E owner review failure (one-way reporting; not human-operable; Ibal model wrong).
+- [x] Reconcile local agent vs ChatGPT guidance; confirm stale UI-004B prompt must not be rerun (`docs/ui/reviews/ui-003e-agent-reconciliation.md`).
+- [ ] Run UI-005A operability architecture + Ibal model correction (docs/governance) before UI-005B implementation.
 - [ ] Run UI-005 human-operable interactive shell phase before next UI-003E visual proof attempt.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-005 operability work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
