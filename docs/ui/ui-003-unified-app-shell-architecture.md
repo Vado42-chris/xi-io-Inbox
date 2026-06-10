@@ -515,10 +515,19 @@ Required UI-004A planning docs:
 - `docs/ui/polish/11-interaction-standard.md`
 - `docs/ui/polish/12-visual-qa-rubric.md`
 
+UI-004A.5 adds the missing process layer required before implementation:
+
+- `docs/ui/polish/13-page-leveling-and-wargame-standard.md`
+- `docs/ui/polish/14-ui-wargame-scenario-matrix.md`
+- `docs/ui/polish/15-framework-engine-hook-plan.md`
+- `docs/ui/polish/16-white-label-framework-feedback-plan.md`
+
+UI-004A.5 confirms that the UI-004A packet was necessary but not sufficient. It defines page maturity levels, simulated wargame scenarios, framework hook candidates, and white-label feedback candidates for `xi-io.net#239`.
+
 Next slice:
 
 ```text
-UI-004B: shell, topbar, lane navigation, safety/trust treatment, and right inspector system polish only.
+UI-004A.6: simulated wargame review against the current shell before UI-004B implementation.
 ```
 
 ## Decision value

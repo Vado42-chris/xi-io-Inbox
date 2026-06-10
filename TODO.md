@@ -115,7 +115,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Record 2026-06-10 owner screenshot review failure for visual polish.
 - [x] Add initial partial UI-004 shared polish standards and per-page polish plan docs.
 - [x] Complete UI-004A docs/design-director packet by normalizing the partial docs into the numbered polish plan set.
-- [ ] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only.
+- [x] Complete UI-004A.5 page leveling, wargame scenario, engine hook, and white-label framework planning.
+- [ ] Run UI-004A.6 simulated wargame review against the current UI-003B/UI-003C/UI-003D shell.
+- [ ] Implement UI-004B shell/topbar/lane navigation/safety/inspector system polish only after UI-004A.6.
 - [ ] Implement page-specific polish after UI-004B.
 - [ ] Run UI-003E owner/framework visual proof recording and merge-readiness decision after UI-004 polish work.
 - [ ] Run redesigned local visual proof and record evidence in `docs/ui/ui-002-local-proof-status.md`.
@@ -136,4 +138,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 7 remaining passes after UI-004A planning, because shell/navigation/inspector polish, page-specific polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain. Product UI code must not be polished until the UI-004A design-director packet is complete.
+Current estimated work to complete documentation, code commenting, compliance, UI adoption, two-way framework freshness, platform/runtime decision coverage, and reopened UI redesign for initial MVP: 4 to 7 remaining passes after UI-004A.5 planning, because simulated wargame review, shell/navigation/inspector polish, page-specific polish, owner visual proof, merge-readiness decision, and framework freshness follow-up remain. Product UI code must not be polished until UI-004A.6 wargame review is complete.
