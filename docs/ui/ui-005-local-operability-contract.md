@@ -151,9 +151,9 @@ Each operability slice must record:
 
 | Gate | Requirement |
 | --- | --- |
-| GATE-LOCAL-OPERABILITY-001 | Tier 1 contract documented; Tier 2 not implied |
-| GATE-UI-IMPLEMENT-001 | UI-005A pass; UI-005B scoped |
-| GATE-UI-VISUAL-001 | Still blocked until UI-005 + UI-003E |
+| GATE-LOCAL-OPERABILITY-001 | Pass — UI-005A–I complete |
+| GATE-UI-IMPLEMENT-001 | Pass for UI-005 scope |
+| GATE-UI-VISUAL-001 | Partial — owner visual re-review pending (`ui-003e-owner-visual-proof-packet.md`) |
 | GATE-RUNTIME-001 | Still blocked |
 | GATE-PROVIDER-001 | Still blocked |
 
