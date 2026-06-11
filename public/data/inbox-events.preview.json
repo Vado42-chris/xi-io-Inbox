@@ -651,9 +651,9 @@
       }
     },
     "receipts": {
-      "eyebrow": "receipts",
-      "title": "Audit trail",
-      "summary": "Audit-first preview lane with confirmed action placeholders, proposals, drafts, provider gate changes, local proof receipts, runtime evidence placeholder, and blocked events.",
+      "eyebrow": "activity",
+      "title": "Activity",
+      "summary": "What happened, what was proposed, what was blocked, and why. Receipts are the underlying audit objects.",
       "proofState": "preview_only",
       "layout": "receipt-ledger-layout",
       "metrics": [

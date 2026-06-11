@@ -193,6 +193,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-011E Tasks / epics / stories / bugs / backlog proof — `docs/ui/reviews/ui-011e-tasks-planning-proof-receipt.md`.
 - [x] UI-011F Automations visual builder + reusable action library — `docs/ui/reviews/ui-011f-automations-builder-proof-receipt.md`.
 - [x] UI-011G Extensions taxonomy and provider cards — `docs/ui/reviews/ui-011g-extensions-taxonomy-proof-receipt.md`.
+- [x] UI-011H Activity / Receipts user-facing repair — `docs/ui/reviews/ui-011h-activity-receipts-user-facing-repair-receipt.md`.
 - [x] UI-012 visual polish governance locked — `docs/ui/polish/ui-012-visual-polish-governance.md`.
 - [ ] UI-012A Rabbit_mod parity brief content (peer review fills checklist).
 - [ ] UI-012B–F visual polish implementation — **after UI-011I**.
@@ -215,4 +216,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-10): UI-011G complete. **UI-011H–I** (~2–5 passes). **UI-012A** brief content (parallel). **UI-012B–F** (~2–4 passes) after 011I. Owner UI-003E blocked until 011I+012. PR #12 draft.
+Current estimated work (2026-06-10): UI-011H complete. **UI-011I** (~1 pass). **UI-012A** docs (parallel). **UI-012B–F** (~2–4 passes) after 011I. Owner UI-003E blocked until 011I+012. PR #12 draft.

@@ -2,7 +2,7 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 9;
+const STORAGE_SCHEMA_VERSION = 10;
 
 const EXTENSION_CATEGORY_CATALOG = [
   { id: 'internal-xiio', label: 'Internal xi-io', summary: 'First-party capabilities built into the product.' },
@@ -25,7 +25,7 @@ const EXTENSION_STATUS_FILTERS = [
 
 const EXTENSION_PROVIDER_CATALOG = [
   { id: 'internal-ibal', name: 'Ibal', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Contextual assistant proposals across lanes.', whyItMatters: 'Surfaces cross-lane suggestions without executing actions.', permissions: 'Local fixture context only', dataTouched: 'Lane focus, proposal text', currentGate: 'Runtime assistant blocked in Tier 1', allowedPreviewAction: 'View Ibal proposals in preview lanes', blockedRuntimeAction: 'Execute sends, provider writes, or automations', relatedAreas: ['Home', 'Mail', 'Tasks', 'Automations'], receiptExpectations: ['Ibal proposal viewed', 'Context receipt (preview)'] },
-  { id: 'internal-activity', name: 'Activity / Receipts', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'User-facing ledger of preview actions and gates.', whyItMatters: 'Shows what happened locally and what remains blocked.', permissions: 'Local preview receipts only', dataTouched: 'Action summaries, gate labels', currentGate: 'Full drill-down deferred UI-011H', allowedPreviewAction: 'Open Activity lane · filter fixtures', blockedRuntimeAction: 'Export to external systems', relatedAreas: ['Activity', 'Settings'], receiptExpectations: ['Gate viewed', 'Action blocked receipt'] },
+  { id: 'internal-activity', name: 'Activity / Receipts', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'User-facing ledger of preview actions and gates.', whyItMatters: 'Shows what happened locally and what remains blocked.', permissions: 'Local preview receipts only', dataTouched: 'Action summaries, gate labels', currentGate: 'Export to cloud blocked in Tier 1', allowedPreviewAction: 'Open Activity · filter · source links', blockedRuntimeAction: 'Real export upload · provider sync', relatedAreas: ['Activity', 'Settings'], receiptExpectations: ['Gate viewed', 'Action blocked receipt'] },
   { id: 'internal-draft-workbench', name: 'Draft Workbench', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Compose, reply, and approval-queue drafts locally.', whyItMatters: 'Prepare outbound mail without provider write.', permissions: 'Local draft storage only', dataTouched: 'Draft metadata, subject, local body placeholder', currentGate: 'Gmail draft write blocked · send blocked', allowedPreviewAction: 'Create/edit local drafts · approval queue', blockedRuntimeAction: 'Provider draft sync · send', relatedAreas: ['Mail', 'Drafts', 'Approval Queue'], receiptExpectations: ['Draft saved (local)', 'Send blocked'] },
   { id: 'internal-evidence-packets', name: 'Evidence Packets', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Link artifacts and export placeholders to work items.', whyItMatters: 'Supports audit trails without cloud upload.', permissions: 'Local artifact refs only', dataTouched: 'Artifact paths, redaction flags (preview)', currentGate: 'Cloud evidence upload blocked', allowedPreviewAction: 'Attach local placeholders to stories/bugs', blockedRuntimeAction: 'Cloud upload · custody chain runtime', relatedAreas: ['Tasks', 'Activity'], receiptExpectations: ['Evidence placeholder added', 'Upload blocked'] },
   { id: 'internal-automation-recipes', name: 'Automation Recipes', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Internal When→If→Then rules with dry-run only.', whyItMatters: 'Differs from Zapier/Make — local recipes never execute externally.', permissions: 'Local rule storage', dataTouched: 'Rule definitions, dry-run steps', currentGate: 'Automation execution blocked', allowedPreviewAction: 'Build rules · dry-run · save actions to library', blockedRuntimeAction: 'Enable rules · provider mutation', relatedAreas: ['Automations', 'Activity'], receiptExpectations: ['Dry-run receipt', 'Execution blocked'] },
@@ -279,7 +279,24 @@ function defaultSentEventsOps() {
 }
 
 function defaultActivityOps() {
-  return { filter: 'user' };
+  return {
+    filter: 'user',
+    accountFilter: 'all',
+    sourceFilter: 'all',
+    typeFilter: 'all',
+    statusFilter: 'all',
+    scopeFilter: 'all',
+    outcomeFilter: 'all',
+    selectedEntryId: null,
+    searchQuery: '',
+  };
+}
+
+function migrateActivityOps(activity) {
+  return {
+    ...defaultActivityOps(),
+    ...(activity || {}),
+  };
 }
 
 function laneDisplayLabel(laneId, fallback) {
@@ -409,10 +426,7 @@ function applyPreviewEnvelope(stored) {
     events: stored.sentEvents?.events || [],
     receipts: stored.sentEvents?.receipts || [],
   };
-  state.activity = {
-    ...defaultActivityOps(),
-    ...(stored.activity || {}),
-  };
+  state.activity = migrateActivityOps(stored.activity);
   if (state.laneId === IBAL_LEGACY_LANE) {
     state.laneId = DEFAULT_LANE;
     state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
@@ -483,6 +497,13 @@ function upgradePreviewEnvelope(envelope) {
       sentEvents: envelope.sentEvents || defaultSentEventsOps(),
       activity: envelope.activity || defaultActivityOps(),
     });
+  }
+  if (envelope.schemaVersion === 9) {
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      activity: migrateActivityOps(envelope.activity),
+    };
   }
   if (envelope.schemaVersion === 8) {
     return {
@@ -3318,6 +3339,304 @@ function inspectorRailModeLabel(mode) {
   return labels[String(mode || 'lane')] || 'Overview';
 }
 
+const ACTIVITY_TYPE_LABELS = {
+  draft_saved: 'Draft saved',
+  draft_approval_blocked: 'Draft approval blocked',
+  send_blocked: 'Send blocked',
+  calendar_proposal: 'Calendar proposal',
+  task_proposal: 'Task update',
+  automation_dry_run: 'Automation dry-run',
+  provider_gate_viewed: 'Provider gate viewed',
+  extension_connect_blocked: 'Connect blocked',
+  evidence_linked: 'Evidence linked',
+  settings_gate_changed: 'Settings gate changed',
+  local_state_changed: 'Local preview changed',
+  send_simulated: 'Send simulated',
+  build_evidence: 'Build evidence',
+  proposal: 'Proposal',
+  blocked: 'Blocked',
+};
+
+const ACTIVITY_SCOPE_FILTERS = [
+  { id: 'all', label: 'All scopes' },
+  { id: 'internal', label: 'Internal xi-io' },
+  { id: 'external', label: 'External provider' },
+  { id: 'local', label: 'Local only' },
+  { id: 'build', label: 'Build evidence' },
+];
+
+const ACTIVITY_OUTCOME_FILTERS = [
+  { id: 'all', label: 'All outcomes' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'proposed', label: 'Proposed' },
+  { id: 'completed', label: 'Completed' },
+  { id: 'recorded', label: 'Recorded' },
+];
+
+function activityTypeLabel(type) {
+  return ACTIVITY_TYPE_LABELS[type] || activityKindLabel(type) || label(type);
+}
+
+function activityOutcomeFor(stateValue, type) {
+  if (['runtime_blocked', 'action_blocked', 'provider_blocked', 'send_blocked', 'blocked'].includes(String(stateValue))) return 'blocked';
+  if (type === 'send_simulated' || type === 'send_sim') return 'completed';
+  if (['proposal_only', 'dry_run_only', 'proposal'].includes(String(stateValue))) return 'proposed';
+  if (type === 'build_evidence' || type === 'proof') return 'recorded';
+  return 'recorded';
+}
+
+function activityScopeFor(area, type) {
+  if (type === 'build_evidence' || type === 'proof') return 'build';
+  if (area === 'extensions' || area === 'settings') return 'external';
+  if (area === 'evidence' || area === 'export') return 'local';
+  return 'internal';
+}
+
+function activityRiskLevel(outcome, type) {
+  if (outcome === 'blocked' || type === 'send_blocked') return 'medium';
+  if (type === 'send_simulated' || type === 'send_sim') return 'medium';
+  if (type === 'build_evidence') return 'low';
+  return 'low';
+}
+
+function activityEntryFromReceipt(receipt, area, defaults = {}) {
+  const type = defaults.activityType || receipt.type || 'local_state_changed';
+  const outcome = defaults.outcome || activityOutcomeFor(receipt.state, type);
+  const id = `${area}:${receipt.id}`;
+  return {
+    id,
+    activityType: type,
+    title: receipt.title || defaults.title || 'Activity recorded',
+    summary: receipt.summary || defaults.summary || '',
+    status: receipt.state || defaults.status || 'preview_only',
+    outcome,
+    createdAt: receipt.createdAt || defaults.createdAt || new Date().toISOString(),
+    account: defaults.account || 'Preview account',
+    sourceObject: defaults.sourceObject || receipt.summary || area,
+    sourceLink: defaults.sourceLink || null,
+    blockedReason: defaults.blockedReason || (outcome === 'blocked' ? (receipt.limitations || 'Action blocked in Tier 1 preview.') : ''),
+    receiptId: receipt.id,
+    eventType: receipt.type || type,
+    riskLevel: activityRiskLevel(outcome, type),
+    relatedGate: defaults.relatedGate || '',
+    capabilityArea: defaults.capabilityArea || area,
+    safeNext: defaults.safeNext || 'Review source object or adjust local preview state.',
+    scope: defaults.scope || activityScopeFor(area, type),
+    advanced: defaults.advanced || null,
+    focusId: defaults.focusId || `activity:${id}`,
+    isBuildEvidence: type === 'build_evidence' || type === 'proof',
+  };
+}
+
+function mapDraftReceiptToActivity(receipt) {
+  const typeMap = {
+    save: 'draft_saved',
+    queue: 'draft_approval_blocked',
+    approve: 'draft_saved',
+    reject: 'draft_approval_blocked',
+    send_blocked: 'send_blocked',
+    send_sim: 'send_simulated',
+  };
+  const type = typeMap[receipt.type] || 'draft_saved';
+  const draft = receipt.draftId ? draftById(receipt.draftId) : null;
+  const mailboxView = draft?.approval_state && draft.approval_state !== 'none' ? 'approval-queue' : 'drafts';
+  return activityEntryFromReceipt(receipt, 'drafts', {
+    activityType: type,
+    sourceObject: draft?.subject || receipt.draftId || 'Draft',
+    sourceLink: receipt.draftId ? { lane: 'inbox', mailboxView, draftId: receipt.draftId, label: mailboxView === 'approval-queue' ? 'Open Approval Queue' : 'Open draft' } : null,
+    capabilityArea: 'Mail / Drafts',
+    relatedGate: type === 'send_blocked' ? 'Send blocked in Tier 1' : 'Draft write local only',
+    safeNext: type === 'send_blocked' ? 'Review approval queue; provider send remains blocked.' : 'Edit draft or queue for approval.',
+    blockedReason: type === 'send_blocked' ? 'Provider send and runtime egress remain disabled.' : '',
+    outcome: activityOutcomeFor(receipt.state, type),
+  });
+}
+
+function collectUnifiedActivityEntries() {
+  const entries = [];
+  (state.drafts.receipts || []).forEach((r) => entries.push(mapDraftReceiptToActivity(r)));
+  (state.inbox.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'inbox', {
+    activityType: r.type === 'send_blocked' ? 'send_blocked' : 'local_state_changed',
+    capabilityArea: 'Mail',
+    sourceLink: r.threadId ? { lane: 'inbox', threadId: r.threadId, label: 'Open in Mail' } : null,
+    sourceObject: r.threadId || 'Mail thread',
+    relatedGate: 'Provider mail read/write blocked',
+  })));
+  (state.calendar.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'calendar', {
+    activityType: 'calendar_proposal',
+    capabilityArea: 'Calendar',
+    sourceLink: r.proposalId ? { lane: 'calendar', proposalId: r.proposalId, label: 'Open calendar proposal' } : null,
+    sourceObject: r.proposalId || 'Calendar proposal',
+    relatedGate: 'Provider calendar write blocked',
+    outcome: 'proposed',
+  })));
+  (state.tasks.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'tasks', {
+    activityType: r.type === 'evidence' ? 'evidence_linked' : 'task_proposal',
+    capabilityArea: 'Tasks',
+    sourceLink: r.taskId ? { lane: 'tasks', taskId: r.taskId, label: 'Open task/story' } : null,
+    sourceObject: r.taskId || 'Task',
+    relatedGate: 'External tracker sync blocked',
+  })));
+  (state.automations.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'automations', {
+    activityType: r.type === 'dry-run' ? 'automation_dry_run' : 'local_state_changed',
+    capabilityArea: 'Automations',
+    sourceLink: r.ruleId ? { lane: 'automations', ruleId: r.ruleId, label: 'Open automation rule' } : null,
+    sourceObject: r.ruleId || 'Automation rule',
+    relatedGate: 'Automation execution blocked',
+    outcome: r.type === 'dry-run' ? 'proposed' : 'recorded',
+  })));
+  (state.extensions.receipts || []).forEach((r) => {
+    const install = r.installId ? allExtensionInstalls().find((entry) => entry.id === r.installId) : null;
+    entries.push(activityEntryFromReceipt(r, 'extensions', {
+      activityType: r.type === 'gate' ? 'provider_gate_viewed' : 'extension_connect_blocked',
+      capabilityArea: 'Integrations',
+      scope: 'external',
+      sourceLink: install?.providerId
+        ? { lane: 'extensions', providerId: install.providerId, label: 'Open integration' }
+        : (install ? { lane: 'extensions', installId: install.id, label: 'Open integration' } : null),
+      sourceObject: r.summary || 'Integration',
+      relatedGate: 'Provider connect blocked',
+      blockedReason: 'OAuth and provider runtime remain disabled in browser preview.',
+    }));
+  });
+  (state.settings.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'settings', {
+    activityType: 'settings_gate_changed',
+    capabilityArea: 'Settings',
+    scope: 'external',
+    sourceLink: r.key ? { lane: 'settings', settingsKey: r.key, label: 'Open settings gate' } : null,
+    sourceObject: r.key || 'Settings',
+    relatedGate: 'Runtime gate apply blocked',
+  })));
+  (state.sentEvents.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'sentEvents', {
+    activityType: 'send_simulated',
+    capabilityArea: 'Mail / Approval Queue',
+    outcome: 'completed',
+    sourceLink: r.eventId ? { lane: 'inbox', mailboxView: 'approval-queue', label: 'Open Approval Queue' } : null,
+  })));
+  allSentEvents().forEach((event) => {
+    entries.push({
+      id: `sentEvents:event:${event.id}`,
+      activityType: 'send_simulated',
+      title: event.subject || 'Simulated send',
+      summary: `Dry-run send for draft ${event.draft_id || 'unknown'}`,
+      status: 'dry_run_only',
+      outcome: 'completed',
+      createdAt: event.created_at || new Date().toISOString(),
+      account: 'Preview account',
+      sourceObject: event.draft_id ? `draft:${event.draft_id}` : 'Approval Queue',
+      sourceLink: event.draft_id ? { lane: 'inbox', mailboxView: 'approval-queue', draftId: event.draft_id, label: 'Open Approval Queue' } : { lane: 'inbox', mailboxView: 'approval-queue', label: 'Open Approval Queue' },
+      blockedReason: 'Provider delivery not executed.',
+      receiptId: event.id,
+      eventType: 'send_sim',
+      riskLevel: 'medium',
+      relatedGate: 'Send blocked at provider',
+      capabilityArea: 'Mail / Approval Queue',
+      safeNext: 'Review post-send proposals in Calendar/Tasks.',
+      scope: 'internal',
+      advanced: null,
+      focusId: `sent-event:${event.id}`,
+      isBuildEvidence: false,
+    });
+  });
+  (state.evidence.items || []).forEach((item) => {
+    entries.push({
+      id: `evidence:${item.id}`,
+      activityType: 'evidence_linked',
+      title: item.title || 'Evidence placeholder',
+      summary: item.summary || 'Local artifact reference (no cloud upload).',
+      status: item.storageState || 'preview_only',
+      outcome: 'proposed',
+      createdAt: item.createdAt || new Date().toISOString(),
+      account: 'Preview account',
+      sourceObject: item.storyId ? `story:${item.storyId}` : 'Evidence',
+      sourceLink: item.storyId ? { lane: 'tasks', storyId: item.storyId, label: 'Open story' } : null,
+      blockedReason: 'Cloud storage and file upload blocked.',
+      receiptId: item.id,
+      eventType: 'evidence',
+      riskLevel: 'low',
+      relatedGate: 'CAP-EVD cloud upload blocked',
+      capabilityArea: 'Tasks / Evidence',
+      safeNext: 'Review artifact placeholder; export packet remains preview-only.',
+      scope: 'local',
+      advanced: null,
+      focusId: `evidence:${item.id}`,
+      isBuildEvidence: false,
+    });
+  });
+  const content = activeLaneContent();
+  const section = sectionByType(content, 'receipt-ledger');
+  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
+  (section?.rows || []).forEach((row, index) => {
+    const kind = row.kind || 'proof';
+    entries.push({
+      id: `fixture:ledger:${index}`,
+      activityType: kind === 'proof' ? 'build_evidence' : (kind === 'gate' || kind === 'blocked' ? 'blocked' : kind),
+      title: row.title,
+      summary: row.source || '',
+      status: row.state || 'documented',
+      outcome: activityOutcomeFor(row.state, kind),
+      createdAt: 'Fixture sample',
+      account: 'Build / CI',
+      sourceObject: row.source || 'Fixture',
+      sourceLink: parseActivitySource(row.source),
+      blockedReason: kind === 'blocked' || kind === 'gate' ? 'Blocked in Tier 1 preview.' : '',
+      receiptId: `fixture-${index}`,
+      eventType: kind,
+      riskLevel: 'low',
+      relatedGate: row.state === 'provider_blocked' ? 'Provider connect' : '',
+      capabilityArea: 'Build / validation',
+      safeNext: 'Developer context only — not required for daily workflow.',
+      scope: 'build',
+      advanced: kind === 'proof' ? { commitSha: /[a-f0-9]{7,}/i.test(row.source || '') ? row.source : null, sliceId: row.title, validation: 'Route smoke / npm run check' } : null,
+      focusId: `receipts:receipt-ledger:${sectionIndex}:${index}`,
+      isBuildEvidence: kind === 'proof',
+    });
+  });
+  return entries.sort((a, b) => {
+    if (a.createdAt === 'Fixture sample' && b.createdAt !== 'Fixture sample') return 1;
+    if (b.createdAt === 'Fixture sample' && a.createdAt !== 'Fixture sample') return -1;
+    return String(b.createdAt).localeCompare(String(a.createdAt));
+  });
+}
+
+function activityPrimaryFilterMatches(entry, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'build') return entry.isBuildEvidence || entry.scope === 'build';
+  if (filter === 'user') return !entry.isBuildEvidence && entry.scope !== 'build';
+  if (filter === 'proposals') return entry.outcome === 'proposed';
+  if (filter === 'blocked') return entry.outcome === 'blocked';
+  if (filter === 'sent') return entry.activityType === 'send_simulated';
+  return true;
+}
+
+function activitySecondaryFilterMatches(entry) {
+  const q = (state.activity.searchQuery || '').trim().toLowerCase();
+  if (state.activity.accountFilter !== 'all' && entry.account !== state.activity.accountFilter) return false;
+  if (state.activity.typeFilter !== 'all' && entry.activityType !== state.activity.typeFilter) return false;
+  if (state.activity.statusFilter !== 'all' && entry.status !== state.activity.statusFilter) return false;
+  if (state.activity.scopeFilter !== 'all' && entry.scope !== state.activity.scopeFilter) return false;
+  if (state.activity.outcomeFilter !== 'all' && entry.outcome !== state.activity.outcomeFilter) return false;
+  if (state.activity.sourceFilter !== 'all' && entry.capabilityArea !== state.activity.sourceFilter) return false;
+  if (!q) return true;
+  const hay = [entry.title, entry.summary, entry.sourceObject, activityTypeLabel(entry.activityType), entry.capabilityArea].join(' ').toLowerCase();
+  return hay.includes(q);
+}
+
+function filteredActivityEntries() {
+  const filter = state.activity.filter || 'user';
+  return collectUnifiedActivityEntries()
+    .filter((entry) => activityPrimaryFilterMatches(entry, filter))
+    .filter((entry) => activitySecondaryFilterMatches(entry));
+}
+
+function selectedActivityEntry() {
+  const id = state.activity.selectedEntryId;
+  if (!id) return filteredActivityEntries()[0] || null;
+  return collectUnifiedActivityEntries().find((entry) => entry.id === id)
+    || filteredActivityEntries().find((entry) => entry.focusId === state.focusId)
+    || null;
+}
+
 function activityKindLabel(kind) {
   const labels = {
     proof: 'Build check',
@@ -3348,6 +3667,14 @@ function parseActivitySource(source) {
     const draftId = text.replace('draft:', '').trim();
     return draftId ? { lane: 'inbox', mailboxView: 'drafts', draftId, label: 'Open draft' } : null;
   }
+  if (text.startsWith('story:')) {
+    const storyId = text.replace('story:', '').trim();
+    return storyId ? { lane: 'tasks', storyId, label: 'Open story' } : null;
+  }
+  if (text.startsWith('calendar:')) {
+    const proposalId = text.replace('calendar:', '').trim();
+    return proposalId ? { lane: 'calendar', proposalId, label: 'Open calendar proposal' } : null;
+  }
   const threadMatch = text.match(/thread-[\w-]+/);
   if (threadMatch) return { lane: 'inbox', threadId: threadMatch[0], label: 'Open in Mail' };
   if (text.startsWith('inbox-thread:')) {
@@ -3357,6 +3684,9 @@ function parseActivitySource(source) {
     const threadId = text.split('inbox/').pop()?.split(/[/?#]/)[0];
     if (threadId?.startsWith('thread-')) return { lane: 'inbox', threadId, label: 'Open in Mail' };
   }
+  if (text === 'Settings' || text.includes('settings')) return { lane: 'settings', label: 'Open Settings' };
+  if (text === 'Calendar') return { lane: 'calendar', label: 'Open Calendar' };
+  if (text === 'Inbox') return { lane: 'inbox', label: 'Open Mail' };
   return null;
 }
 
@@ -3374,6 +3704,36 @@ function openActivitySource(target) {
     state.focusId = `inbox-draft:${target.draftId}`;
     state.inbox.mailboxView = target.mailboxView || 'drafts';
     state.threadId = null;
+  }
+  if (target.proposalId) {
+    state.calendar.selectedProposalId = target.proposalId;
+    state.focusId = `calendar:local:${target.proposalId}`;
+  }
+  if (target.taskId) {
+    state.tasks.selectedTaskId = target.taskId;
+    state.focusId = `tasks:local:${target.taskId}`;
+  }
+  if (target.storyId) {
+    state.tasks.selectedStoryId = target.storyId;
+    state.focusId = `tasks:story:${target.storyId}`;
+  }
+  if (target.ruleId) {
+    state.automations.selectedRuleId = target.ruleId;
+    state.focusId = `automations:local:${target.ruleId}`;
+  }
+  if (target.providerId) {
+    state.extensions.selectedProviderId = target.providerId;
+    state.focusId = `extensions:provider:${target.providerId}`;
+  }
+  if (target.installId) {
+    state.extensions.selectedInstallId = target.installId;
+    state.focusId = `extensions:local:${target.installId}`;
+  }
+  if (target.settingsKey) {
+    state.settings.selectedKey = target.settingsKey;
+    state.focusId = target.settingsKey.startsWith('gate:')
+      ? `settings:local:gate:${target.settingsKey}`
+      : `settings:local:policy:${target.settingsKey}`;
   }
   window.location.hash = `${ROUTE_PREFIX}${target.lane}`;
   saveState();
@@ -3417,6 +3777,10 @@ function defaultFocusIdForLane(laneId) {
     if (state.extensions.selectedProviderId) return `extensions:provider:${state.extensions.selectedProviderId}`;
     const install = selectedExtensionInstall();
     return install ? `extensions:local:${install.id}` : 'lane:extensions';
+  }
+  if (laneId === 'receipts') {
+    const entry = selectedActivityEntry();
+    return entry?.focusId || 'lane:receipts';
   }
   if (laneId === 'settings') {
     const key = state.settings.selectedKey;
@@ -6748,64 +7112,126 @@ function renderSecretBoundary(section) {
 }
 
 function activityKindMatches(kind, filter) {
-  if (filter === 'all') return true;
-  if (filter === 'build') return kind === 'proof';
-  if (filter === 'user') return kind !== 'proof';
-  if (filter === 'proposals') return ['proposal', 'draft'].includes(kind);
-  if (filter === 'blocked') return ['gate', 'blocked'].includes(kind);
-  if (filter === 'sent') return kind === 'send_sim';
-  return true;
+  return activityPrimaryFilterMatches({ isBuildEvidence: kind === 'proof', scope: kind === 'proof' ? 'build' : 'internal', outcome: kind === 'blocked' || kind === 'gate' ? 'blocked' : 'recorded', activityType: kind }, filter);
 }
 
 function activityLedgerRows() {
-  const content = activeLaneContent();
-  const section = sectionByType(content, 'receipt-ledger');
-  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
-  const rows = (section?.rows || []).map((row, index) => ({
-    kind: row.kind || 'proof',
-    title: row.title,
-    source: row.source,
-    state: row.state,
-    focusId: `receipts:receipt-ledger:${sectionIndex}:${index}`,
+  return filteredActivityEntries().map((entry) => ({
+    kind: entry.activityType,
+    title: entry.title,
+    source: entry.sourceObject,
+    state: entry.status,
+    focusId: entry.focusId,
+    entry,
   }));
-  allSentEvents().forEach((event) => {
-    rows.push({
-      kind: 'send_sim',
-      title: event.subject || 'Simulated send',
-      source: `draft:${event.draft_id || ''}`,
-      state: 'dry_run_only',
-      focusId: `sent-event:${event.id}`,
-    });
-  });
-  return rows;
+}
+
+function renderActivityDetailPanel(entry) {
+  if (!entry) {
+    return '<section class="lane-reading-pane is-empty" aria-label="Activity details"><p class="lane-empty-state">Select an activity item to see what happened, why it was blocked, and what to review next.</p></section>';
+  }
+  const sourceLink = entry.sourceLink;
+  return `
+    <section class="lane-reading-pane activity-detail-pane" aria-label="Activity details">
+      <header class="lane-reading-head">
+        <div>
+          <h3>${escapeHtml(entry.title)}</h3>
+          <p class="lane-reading-meta">${escapeHtml(activityTypeLabel(entry.activityType))} · ${escapeHtml(label(entry.outcome))} · ${escapeHtml(activityStateLabel(entry.status))}</p>
+        </div>
+      </header>
+      <dl class="activity-detail-grid">
+        <div><dt>When</dt><dd>${escapeHtml(entry.createdAt)}</dd></div>
+        <div><dt>Account</dt><dd>${escapeHtml(entry.account)}</dd></div>
+        <div><dt>Source object</dt><dd>${escapeHtml(entry.sourceObject)}</dd></div>
+        <div><dt>Capability area</dt><dd>${escapeHtml(entry.capabilityArea)}</dd></div>
+        <div><dt>Explanation</dt><dd>${escapeHtml(entry.summary)}</dd></div>
+        ${entry.blockedReason ? `<div><dt>Why blocked</dt><dd>${escapeHtml(entry.blockedReason)}</dd></div>` : ''}
+        <div><dt>Receipt id</dt><dd><code>${escapeHtml(entry.receiptId)}</code></dd></div>
+        <div><dt>Event type</dt><dd>${escapeHtml(entry.eventType)}</dd></div>
+        <div><dt>Risk level</dt><dd>${escapeHtml(entry.riskLevel)}</dd></div>
+        ${entry.relatedGate ? `<div><dt>Related gate</dt><dd>${escapeHtml(entry.relatedGate)}</dd></div>` : ''}
+        <div><dt>Safe next step</dt><dd>${escapeHtml(entry.safeNext)}</dd></div>
+      </dl>
+      <div class="inbox-action-toolbar">
+        ${sourceLink ? `<button class="inbox-action-btn is-primary" type="button" data-activity-action="open-source" data-lane-id="${escapeHtml(sourceLink.lane)}" ${sourceLink.threadId ? `data-thread-id="${escapeHtml(sourceLink.threadId)}"` : ''} ${sourceLink.draftId ? `data-draft-id="${escapeHtml(sourceLink.draftId)}"` : ''} ${sourceLink.mailboxView ? `data-mailbox-view="${escapeHtml(sourceLink.mailboxView)}"` : ''} ${sourceLink.proposalId ? `data-proposal-id="${escapeHtml(sourceLink.proposalId)}"` : ''} ${sourceLink.taskId ? `data-task-id="${escapeHtml(sourceLink.taskId)}"` : ''} ${sourceLink.storyId ? `data-story-id="${escapeHtml(sourceLink.storyId)}"` : ''} ${sourceLink.ruleId ? `data-rule-id="${escapeHtml(sourceLink.ruleId)}"` : ''} ${sourceLink.providerId ? `data-provider-id="${escapeHtml(sourceLink.providerId)}"` : ''} ${sourceLink.installId ? `data-install-id="${escapeHtml(sourceLink.installId)}"` : ''} ${sourceLink.settingsKey ? `data-settings-key="${escapeHtml(sourceLink.settingsKey)}"` : ''}>${escapeHtml(sourceLink.label)}</button>` : ''}
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Export requires storage gate and redaction review">Export Activity Packet (preview blocked)</button>
+      </div>
+      ${entry.advanced ? `
+        <details class="lane-reading-details activity-advanced">
+          <summary>Build evidence (developer)</summary>
+          <ul class="activity-advanced-list">
+            ${entry.advanced.sliceId ? `<li><strong>Slice / check:</strong> ${escapeHtml(entry.advanced.sliceId)}</li>` : ''}
+            ${entry.advanced.commitSha ? `<li><strong>Commit SHA:</strong> <code>${escapeHtml(entry.advanced.commitSha)}</code></li>` : ''}
+            ${entry.advanced.validation ? `<li><strong>Validation:</strong> ${escapeHtml(entry.advanced.validation)}</li>` : ''}
+          </ul>
+        </details>
+      ` : ''}
+    </section>
+  `;
+}
+
+function renderActivitySecondaryFilters() {
+  const a = state.activity;
+  const types = [...new Set(collectUnifiedActivityEntries().map((e) => e.activityType))];
+  const areas = [...new Set(collectUnifiedActivityEntries().map((e) => e.capabilityArea))];
+  return `
+    <div class="activity-secondary-filters" aria-label="Refine activity">
+      <form class="activity-search-form" data-activity-form="search">
+        <label class="visually-hidden" for="activity-search-input">Search activity</label>
+        <input id="activity-search-input" class="activity-search-input" type="search" name="query" value="${escapeHtml(a.searchQuery || '')}" placeholder="Search activity" />
+        ${a.searchQuery ? '<button class="inbox-action-btn" type="button" data-activity-action="clear-search">Clear</button>' : ''}
+      </form>
+      <label class="activity-filter-select-label">Source area
+        <select data-activity-action="set-source-filter">
+          <option value="all" ${a.sourceFilter === 'all' ? 'selected' : ''}>All areas</option>
+          ${areas.map((area) => `<option value="${escapeHtml(area)}" ${a.sourceFilter === area ? 'selected' : ''}>${escapeHtml(area)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="activity-filter-select-label">Action type
+        <select data-activity-action="set-type-filter">
+          <option value="all" ${a.typeFilter === 'all' ? 'selected' : ''}>All types</option>
+          ${types.map((type) => `<option value="${escapeHtml(type)}" ${a.typeFilter === type ? 'selected' : ''}>${escapeHtml(activityTypeLabel(type))}</option>`).join('')}
+        </select>
+      </label>
+      <div class="activity-chip-row" aria-label="Scope filters">
+        ${ACTIVITY_SCOPE_FILTERS.map((entry) => `
+          <button class="activity-filter-btn is-compact ${a.scopeFilter === entry.id ? 'is-active' : ''}" type="button" aria-pressed="${a.scopeFilter === entry.id ? 'true' : 'false'}" data-activity-action="set-scope-filter" data-scope-filter="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>
+        `).join('')}
+      </div>
+      <div class="activity-chip-row" aria-label="Outcome filters">
+        ${ACTIVITY_OUTCOME_FILTERS.map((entry) => `
+          <button class="activity-filter-btn is-compact ${a.outcomeFilter === entry.id ? 'is-active' : ''}" type="button" aria-pressed="${a.outcomeFilter === entry.id ? 'true' : 'false'}" data-activity-action="set-outcome-filter" data-outcome-filter="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function renderActivityLedgerTable() {
-  const filter = state.activity.filter || 'user';
-  const rows = activityLedgerRows().filter((row) => activityKindMatches(row.kind, filter));
+  const rows = activityLedgerRows();
+  const selected = selectedActivityEntry();
   return `
-    <div class="receipt-ledger-table" role="table" aria-label="Activity ledger">
+    <div class="receipt-ledger-table" role="table" aria-label="Activity feed">
       <div class="receipt-ledger-head" role="row">
         <span role="columnheader">Type</span>
         <span role="columnheader">What happened</span>
         <span role="columnheader">Source</span>
-        <span role="columnheader">State</span>
+        <span role="columnheader">Outcome</span>
       </div>
       ${rows.length ? rows.map((row) => {
-    const focused = state.focusId === row.focusId;
-    const sourceTarget = parseActivitySource(row.source);
+    const entry = row.entry;
+    const focused = selected?.id === entry.id || state.focusId === row.focusId;
     return `
         <div class="receipt-ledger-row-wrap ${focused ? 'is-inspector-focused' : ''}" role="row">
-          <button class="receipt-ledger-row is-inspector-focusable ${row.kind === 'send_sim' ? 'is-local-sent' : ''} ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(row.focusId)}" aria-selected="${focused ? 'true' : 'false'}">
-            <span class="receipt-kind receipt-kind-${escapeHtml(row.kind)}" role="cell">${escapeHtml(activityKindLabel(row.kind))}</span>
+          <button class="receipt-ledger-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" data-activity-action="select-entry" data-entry-id="${escapeHtml(entry.id)}" data-inspector-focus="${escapeHtml(row.focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+            <span class="receipt-kind receipt-kind-${escapeHtml(row.kind)}" role="cell">${escapeHtml(activityTypeLabel(entry.activityType))}</span>
             <strong role="cell">${escapeHtml(demoteMailDisplayText(row.title))}</strong>
             <span role="cell">${escapeHtml(demoteMailDisplayText(row.source))}</span>
-            <span class="receipt-state" role="cell">${escapeHtml(activityStateLabel(row.state || 'preview_only'))}</span>
+            <span class="receipt-state" role="cell">${escapeHtml(label(entry.outcome))}</span>
           </button>
-          ${sourceTarget ? `<button class="inbox-action-btn activity-source-btn" type="button" data-activity-action="open-source" data-lane-id="${escapeHtml(sourceTarget.lane)}" ${sourceTarget.threadId ? `data-thread-id="${escapeHtml(sourceTarget.threadId)}"` : ''} ${sourceTarget.draftId ? `data-draft-id="${escapeHtml(sourceTarget.draftId)}"` : ''} ${sourceTarget.mailboxView ? `data-mailbox-view="${escapeHtml(sourceTarget.mailboxView)}"` : ''}>${escapeHtml(sourceTarget.label)}</button>` : ''}
         </div>
       `;
-  }).join('') : '<p class="lane-empty-state">No entries for this filter.</p>'}
+  }).join('') : '<p class="lane-empty-state">No activity for this filter. Try another tab or clear filters.</p>'}
     </div>
   `;
 }
@@ -6813,23 +7239,32 @@ function renderActivityLedgerTable() {
 function renderActivityWorkspace() {
   const filter = state.activity.filter || 'user';
   const groupsSection = sectionByType(activeLaneContent(), 'receipt-groups');
+  const selected = selectedActivityEntry();
   return `
     <div class="lane-workspace activity-workspace">
+      <header class="activity-page-head">
+        <h3 class="activity-page-title">Activity</h3>
+        <p class="activity-subtitle">Receipts and audit trail — what happened, what was proposed, what was blocked, and why.</p>
+      </header>
       <div class="lane-toolbar" role="toolbar" aria-label="Activity filters">
-        <div class="activity-filter-bar" role="tablist" aria-label="Filter activity">
+        <div class="activity-filter-bar" role="tablist" aria-label="Primary activity filter">
           ${ACTIVITY_FILTERS.map((entry) => `
             <button class="activity-filter-btn ${filter === entry.id ? 'is-active' : ''}" type="button" role="tab" aria-selected="${filter === entry.id ? 'true' : 'false'}" data-activity-action="set-filter" data-activity-filter="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>
           `).join('')}
         </div>
       </div>
-      <p class="form-hint activity-subtitle">Your history of drafts, sends, and blocked actions. Build checks are under <strong>Build evidence</strong>.</p>
-      ${renderActivityLedgerTable()}
+      ${renderActivitySecondaryFilters()}
+      <div class="activity-workspace-grid">
+        <div class="activity-feed-pane">${renderActivityLedgerTable()}</div>
+        ${renderActivityDetailPanel(selected)}
+      </div>
       ${groupsSection ? `
         <details class="lane-reading-details activity-advanced">
-          <summary>What we record (advanced)</summary>
+          <summary>Receipt classes (advanced)</summary>
           ${renderReceiptGroups(groupsSection)}
         </details>
       ` : ''}
+      <p class="form-hint activity-export-hint">Export Activity Packet remains preview-only until storage, redaction, and provider gates pass. No file write or cloud upload in this build.</p>
     </div>
   `;
 }
@@ -7151,7 +7586,7 @@ function activeInspectorModel() {
       kind: 'sent',
       mode: 'sent',
       title: 'Activity',
-      summary: `Audit trail: ${events.length} simulated send(s). Filter by type above.`,
+      summary: `Unified activity feed from local receipts across Mail, Calendar, Tasks, Automations, and Integrations. ${collectUnifiedActivityEntries().length} entries visible before filters.`,
       context: events.length
         ? `Latest: ${events[0].subject || events[0].id} (${events[0].created_at}).`
         : 'No simulated sends yet. Approve a draft and run Simulate send in Approval Queue.',
@@ -8150,9 +8585,66 @@ function handleHomeAction(action, laneId, threadId, mailboxView, settingsKey, dr
   }
 }
 
-function handleActivityAction(action, filterId, laneId, threadId, mailboxView, draftId) {
+function handleActivityAction(action, params = {}) {
+  const {
+    activityFilter: filterId,
+    entryId,
+    laneId,
+    threadId,
+    mailboxView,
+    draftId,
+    proposalId,
+    taskId,
+    storyId,
+    ruleId,
+    providerId,
+    installId,
+    settingsKey,
+    scopeFilter,
+    outcomeFilter,
+    sourceFilter,
+    typeFilter,
+  } = params;
   if (action === 'set-filter' && filterId) {
     state.activity.filter = filterId;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'set-scope-filter') {
+    state.activity.scopeFilter = scopeFilter || 'all';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'set-outcome-filter') {
+    state.activity.outcomeFilter = outcomeFilter || 'all';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'set-source-filter') {
+    state.activity.sourceFilter = sourceFilter || 'all';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'set-type-filter') {
+    state.activity.typeFilter = typeFilter || 'all';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'clear-search') {
+    state.activity.searchQuery = '';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-entry' && entryId) {
+    state.activity.selectedEntryId = entryId;
+    const entry = collectUnifiedActivityEntries().find((item) => item.id === entryId);
+    if (entry) state.focusId = entry.focusId;
     saveState();
     renderShell();
     return;
@@ -8163,6 +8655,13 @@ function handleActivityAction(action, filterId, laneId, threadId, mailboxView, d
       threadId: threadId || null,
       mailboxView: mailboxView || null,
       draftId: draftId || null,
+      proposalId: proposalId || null,
+      taskId: taskId || null,
+      storyId: storyId || null,
+      ruleId: ruleId || null,
+      providerId: providerId || null,
+      installId: installId || null,
+      settingsKey: settingsKey || null,
       label: 'Open',
     });
   }
@@ -8571,6 +9070,16 @@ function bindEvents() {
       return;
     }
 
+    const activityForm = event.target.closest?.('[data-activity-form]');
+    if (activityForm) {
+      event.preventDefault();
+      const formData = new FormData(activityForm);
+      state.activity.searchQuery = String(formData.get('query') || '').trim();
+      saveState();
+      renderShell();
+      return;
+    }
+
     const calendarForm = event.target.closest?.('[data-calendar-form]');
     if (calendarForm) {
       event.preventDefault();
@@ -8691,14 +9200,7 @@ function bindEvents() {
     const activityAction = event.target.closest?.('[data-activity-action]');
     if (activityAction?.dataset.activityAction) {
       event.preventDefault();
-      handleActivityAction(
-        activityAction.dataset.activityAction,
-        activityAction.dataset.activityFilter,
-        activityAction.dataset.laneId,
-        activityAction.dataset.threadId,
-        activityAction.dataset.mailboxView,
-        activityAction.dataset.draftId,
-      );
+      handleActivityAction(activityAction.dataset.activityAction, activityAction.dataset);
       return;
     }
 
@@ -8754,6 +9256,15 @@ function bindEvents() {
   document.addEventListener('change', (event) => {
     if (event.target?.id === 'tasks-project-picker') {
       handleTasksAction('select-project', { projectId: event.target.value });
+      return;
+    }
+    const activitySelect = event.target.closest?.('[data-activity-action]');
+    if (activitySelect?.dataset.activityAction === 'set-source-filter') {
+      handleActivityAction('set-source-filter', { sourceFilter: activitySelect.value });
+      return;
+    }
+    if (activitySelect?.dataset.activityAction === 'set-type-filter') {
+      handleActivityAction('set-type-filter', { typeFilter: activitySelect.value });
     }
   });
 
