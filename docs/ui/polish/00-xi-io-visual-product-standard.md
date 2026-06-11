@@ -15,7 +15,7 @@ UI-003D structural readiness: pass
 Owner visual polish review: fail
 UI-004A design-director packet: required
 UI-004B implementation: blocked until UI-004A is complete
-UI-003E visual proof: blocked until UI-004 implementation passes review
+UI-003E visual proof: blocked until UI-011I capability + UI-012 visual polish (see `ui-012-visual-polish-governance.md`)
 ```
 
 ## References

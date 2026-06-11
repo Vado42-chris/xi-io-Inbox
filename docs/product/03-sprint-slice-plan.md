@@ -50,8 +50,10 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 
 1. SLICE-UI-011A — Product Capability Gap Matrix — **complete**
 2. SLICE-UI-011B–I — capability repairs per `docs/product/ui-011a-product-capability-gap-matrix.md`
-3. UI-003E owner visual proof re-run (after UI-011B–I)
-4. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
+3. SLICE-UI-012A — Rabbit_mod visual parity brief (docs; parallel peer review) — **structure locked**
+4. SLICE-UI-012B–F — visual polish implementation — **after UI-011I**
+5. UI-003E owner visual proof re-run (after UI-011I + UI-012F)
+6. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
 5. GMAIL-001C smoke (optional parallel; local CLI only)
 6. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
 7. SLICE-PASS-004 only after gates clear

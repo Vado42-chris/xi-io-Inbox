@@ -236,6 +236,19 @@ Report after UI-010J–K polish (2026-06-10):
 
 Operator: post condensed UI-009/010 summary to `xi-io.net#239` on push (no new framework files required).
 
+## UI-012 visual polish candidates (after UI-011I + UI-012B proof)
+
+Reference: [`xi-io-Rabbit_mod`](https://github.com/Vado42-chris/xi-io-Rabbit_mod). Governance: `ui-012-visual-polish-governance.md`. Brief: `ui-012a-rabbit-mod-visual-parity-brief.md`.
+
+| Candidate | Reusable value | Inbox proof | #239 timing |
+| --- | --- | --- | --- |
+| XiVisualTokens | shared color/type/spacing across xi-io products | UI-012B shell | after UI-012F |
+| XiIconGrammar | when icon vs text; sizes; a11y labels | UI-012B–C | after UI-012F |
+| XiMailListRow | mail-like density + unread + attachment affordance | UI-012C Mail | after UI-012F |
+| XiNavDensity | folder/label nav rhythm | UI-012C Mail nav | after UI-012F |
+
+Do not promote until UI-012A brief scored and UI-012B+ local proof exists.
+
 ## Acceptance
 
 This plan is valid when:
