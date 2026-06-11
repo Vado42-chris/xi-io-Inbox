@@ -606,13 +606,13 @@
     "extensions": {
       "eyebrow": "extensions",
       "title": "Providers, tools, and add-ons",
-      "summary": "Extensions preview lane with provider status, local server placeholder, permissions, and secret boundary summary.",
+      "summary": "Integrations taxonomy: internal xi-io, email, cloud storage, automation connectors, communication, local tools, and developer paths. All providers gated; no browser connection.",
       "proofState": "provider_blocked",
-      "layout": "extensions-matrix-layout",
+      "layout": "extensions-taxonomy-layout",
       "metrics": [
-        { "label": "Connected", "value": "0", "note": "No provider connection." },
-        { "label": "Permission gates", "value": "required", "note": "Before real data or action." },
-        { "label": "Secrets", "value": "absent", "note": "No credentials in preview." }
+        { "label": "Connected", "value": "0", "note": "No provider connection in browser preview." },
+        { "label": "Categories", "value": "7", "note": "Internal · email · cloud · automation · comms · local · developer." },
+        { "label": "Secrets", "value": "absent", "note": "OAuth client JSON under secrets/ only; not in UI." }
       ],
       "sections": [
         {

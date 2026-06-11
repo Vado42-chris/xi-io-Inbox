@@ -2,7 +2,50 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 8;
+const STORAGE_SCHEMA_VERSION = 9;
+
+const EXTENSION_CATEGORY_CATALOG = [
+  { id: 'internal-xiio', label: 'Internal xi-io', summary: 'First-party capabilities built into the product.' },
+  { id: 'email', label: 'Email providers', summary: 'External mail sync and send paths.' },
+  { id: 'cloud-storage', label: 'Cloud storage', summary: 'Remote file and backup providers.' },
+  { id: 'automation-connectors', label: 'Automation connectors', summary: 'External automation platforms.' },
+  { id: 'communication', label: 'Communication', summary: 'Team chat and notification connectors.' },
+  { id: 'local-tools', label: 'Local tools', summary: 'On-device export, archive, and redaction.' },
+  { id: 'developer', label: 'Developer / advanced', summary: 'Operator CLI paths and advanced integrations.' },
+];
+
+const EXTENSION_STATUS_FILTERS = [
+  { id: 'all', label: 'All statuses' },
+  { id: 'preview_only', label: 'Preview only' },
+  { id: 'metadata_only', label: 'Metadata only' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'requires_oauth', label: 'Requires OAuth' },
+  { id: 'unavailable', label: 'Unavailable' },
+];
+
+const EXTENSION_PROVIDER_CATALOG = [
+  { id: 'internal-ibal', name: 'Ibal', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Contextual assistant proposals across lanes.', whyItMatters: 'Surfaces cross-lane suggestions without executing actions.', permissions: 'Local fixture context only', dataTouched: 'Lane focus, proposal text', currentGate: 'Runtime assistant blocked in Tier 1', allowedPreviewAction: 'View Ibal proposals in preview lanes', blockedRuntimeAction: 'Execute sends, provider writes, or automations', relatedAreas: ['Home', 'Mail', 'Tasks', 'Automations'], receiptExpectations: ['Ibal proposal viewed', 'Context receipt (preview)'] },
+  { id: 'internal-activity', name: 'Activity / Receipts', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'User-facing ledger of preview actions and gates.', whyItMatters: 'Shows what happened locally and what remains blocked.', permissions: 'Local preview receipts only', dataTouched: 'Action summaries, gate labels', currentGate: 'Full drill-down deferred UI-011H', allowedPreviewAction: 'Open Activity lane · filter fixtures', blockedRuntimeAction: 'Export to external systems', relatedAreas: ['Activity', 'Settings'], receiptExpectations: ['Gate viewed', 'Action blocked receipt'] },
+  { id: 'internal-draft-workbench', name: 'Draft Workbench', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Compose, reply, and approval-queue drafts locally.', whyItMatters: 'Prepare outbound mail without provider write.', permissions: 'Local draft storage only', dataTouched: 'Draft metadata, subject, local body placeholder', currentGate: 'Gmail draft write blocked · send blocked', allowedPreviewAction: 'Create/edit local drafts · approval queue', blockedRuntimeAction: 'Provider draft sync · send', relatedAreas: ['Mail', 'Drafts', 'Approval Queue'], receiptExpectations: ['Draft saved (local)', 'Send blocked'] },
+  { id: 'internal-evidence-packets', name: 'Evidence Packets', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Link artifacts and export placeholders to work items.', whyItMatters: 'Supports audit trails without cloud upload.', permissions: 'Local artifact refs only', dataTouched: 'Artifact paths, redaction flags (preview)', currentGate: 'Cloud evidence upload blocked', allowedPreviewAction: 'Attach local placeholders to stories/bugs', blockedRuntimeAction: 'Cloud upload · custody chain runtime', relatedAreas: ['Tasks', 'Activity'], receiptExpectations: ['Evidence placeholder added', 'Upload blocked'] },
+  { id: 'internal-automation-recipes', name: 'Automation Recipes', category: 'internal-xiio', marker: 'internal', status: 'preview_only', summary: 'Internal When→If→Then rules with dry-run only.', whyItMatters: 'Differs from Zapier/Make — local recipes never execute externally.', permissions: 'Local rule storage', dataTouched: 'Rule definitions, dry-run steps', currentGate: 'Automation execution blocked', allowedPreviewAction: 'Build rules · dry-run · save actions to library', blockedRuntimeAction: 'Enable rules · provider mutation', relatedAreas: ['Automations', 'Activity'], receiptExpectations: ['Dry-run receipt', 'Execution blocked'] },
+  { id: 'local-redacted-export', name: 'Local Export / Redacted Packet Builder', category: 'local-tools', marker: 'local', status: 'preview_only', summary: 'Build redacted export packets on device.', whyItMatters: 'Safe sharing without cloud providers.', permissions: 'Local filesystem planning only', dataTouched: 'Redaction flags, export manifest (preview)', currentGate: 'No real file write in browser preview', allowedPreviewAction: 'Plan export packet contents', blockedRuntimeAction: 'Auto-upload to cloud · undisclosed export', relatedAreas: ['Activity', 'Tasks'], receiptExpectations: ['Export planned (preview)', 'Upload blocked'] },
+  { id: 'email-gmail', name: 'Gmail', category: 'email', marker: 'external', status: 'metadata_only', summary: 'Google mail when gates pass. Metadata adapter exists as operator CLI only.', whyItMatters: 'Organize mail without exposing bodies in Tier 1 preview.', permissions: 'Metadata scopes · send requires approval', dataTouched: 'Thread metadata, labels, counts — not message bodies in preview', currentGate: 'Body read blocked · draft write blocked · send blocked · browser not connected', allowedPreviewAction: 'View gate status · operator CLI metadata adapter (tools/gmail)', blockedRuntimeAction: 'OAuth in browser · body read · draft write · send', relatedAreas: ['Mail', 'Drafts', 'Activity'], receiptExpectations: ['Provider gate viewed', 'Connect blocked', 'OAuth pending'], adapterNote: 'GMAIL-001C metadata CLI under tools/gmail/. Tokens stay in gitignored secrets/. Browser preview is not connected.', requiresOAuth: true, fixtureLabel: 'Gmail' },
+  { id: 'email-outlook', name: 'Outlook / Microsoft Graph', category: 'email', marker: 'external', status: 'blocked', summary: 'Microsoft mail and calendar graph sync.', whyItMatters: 'Future enterprise mail path.', permissions: 'Mail read/write (future)', dataTouched: 'Mail metadata and calendar refs', currentGate: 'Provider blocked · ARCH-004 open', allowedPreviewAction: 'View blocked card and permissions', blockedRuntimeAction: 'Connect · sync · send', relatedAreas: ['Mail', 'Calendar'], receiptExpectations: ['Connect blocked', 'Gate viewed'], requiresOAuth: true },
+  { id: 'email-imap', name: 'IMAP (later)', category: 'email', marker: 'external', status: 'unavailable', summary: 'Generic IMAP mail access planned post-gate.', whyItMatters: 'Non-Gmail mailboxes without Google OAuth.', permissions: 'TBD after security review', dataTouched: 'Not defined in preview', currentGate: 'Unavailable in Tier 1', allowedPreviewAction: 'Read planning copy only', blockedRuntimeAction: 'All connection paths', relatedAreas: ['Mail', 'Settings'], receiptExpectations: ['Unavailable notice'] },
+  { id: 'cloud-google-drive', name: 'Google Drive', category: 'cloud-storage', marker: 'external', status: 'blocked', summary: 'Attach and archive files from Drive when allowed.', whyItMatters: 'Evidence and draft attachments without local-only limits.', permissions: 'File read (future) · upload gated', dataTouched: 'File metadata, not contents in preview', currentGate: 'Cloud upload/download blocked', allowedPreviewAction: 'View gated workflows: attach to draft, evidence storage', blockedRuntimeAction: 'Upload · download · link live files', relatedAreas: ['Drafts', 'Tasks', 'Evidence'], receiptExpectations: ['Storage gate viewed', 'Upload blocked'] },
+  { id: 'cloud-onedrive', name: 'OneDrive', category: 'cloud-storage', marker: 'external', status: 'blocked', summary: 'Microsoft cloud file storage.', whyItMatters: 'Enterprise file workflows.', permissions: 'File read/write (future)', dataTouched: 'File metadata only in preview', currentGate: 'Cloud connection blocked', allowedPreviewAction: 'View blocked card', blockedRuntimeAction: 'Connect · upload · backup', relatedAreas: ['Drafts', 'Evidence'], receiptExpectations: ['Connect blocked'], requiresOAuth: true },
+  { id: 'cloud-dropbox', name: 'Dropbox', category: 'cloud-storage', marker: 'external', status: 'blocked', summary: 'Dropbox file sync and sharing.', whyItMatters: 'Cross-platform file handoff.', permissions: 'File read/write (future)', dataTouched: 'File metadata only in preview', currentGate: 'Cloud connection blocked', allowedPreviewAction: 'View blocked card', blockedRuntimeAction: 'Connect · upload', relatedAreas: ['Evidence'], receiptExpectations: ['Connect blocked'], requiresOAuth: true },
+  { id: 'local-filesystem-export', name: 'Local filesystem / export', category: 'local-tools', marker: 'local', status: 'preview_only', summary: 'Export packets and indexes to local disk.', whyItMatters: 'Keep custody on-device without cloud.', permissions: 'Local export planning only', dataTouched: 'Export manifest, redaction state', currentGate: 'Browser preview does not write files', allowedPreviewAction: 'Plan local export from Activity/Tasks', blockedRuntimeAction: 'Silent filesystem writes', relatedAreas: ['Activity', 'Tasks'], receiptExpectations: ['Export planned', 'Write blocked'] },
+  { id: 'auto-internal', name: 'Internal xi-io Automations', category: 'automation-connectors', marker: 'internal', status: 'preview_only', summary: 'Local dry-run automation recipes in Automations lane.', whyItMatters: 'Differs from Zapier — no external execution.', permissions: 'Local rules only', dataTouched: 'Trigger/condition/action definitions', currentGate: 'Execution blocked', allowedPreviewAction: 'Build · dry-run · action library', blockedRuntimeAction: 'Runtime enable · external webhooks', relatedAreas: ['Automations', 'Activity'], receiptExpectations: ['Dry-run receipt', 'Enable blocked'] },
+  { id: 'auto-zapier', name: 'Zapier', category: 'automation-connectors', marker: 'external', status: 'blocked', summary: 'External no-code automation platform.', whyItMatters: 'Hand off to external zaps after explicit gates.', permissions: 'Webhook/API (future)', dataTouched: 'Automation metadata only in preview', currentGate: 'External automation execution blocked', allowedPreviewAction: 'Compare with internal dry-run recipes', blockedRuntimeAction: 'Trigger external zaps', relatedAreas: ['Automations', 'Extensions'], receiptExpectations: ['External automation blocked'] },
+  { id: 'auto-make', name: 'Make', category: 'automation-connectors', marker: 'external', status: 'blocked', summary: 'Visual automation scenarios (Integromat).', whyItMatters: 'Enterprise automation alternative to Zapier.', permissions: 'API scenarios (future)', dataTouched: 'Scenario metadata only', currentGate: 'External execution blocked', allowedPreviewAction: 'View blocked card', blockedRuntimeAction: 'Run external scenarios', relatedAreas: ['Automations'], receiptExpectations: ['External automation blocked'] },
+  { id: 'auto-n8n', name: 'n8n', category: 'automation-connectors', marker: 'external', status: 'blocked', summary: 'Self-hosted workflow automation.', whyItMatters: 'Operator-controlled automation path.', permissions: 'Workflow hooks (future)', dataTouched: 'Workflow metadata only', currentGate: 'External execution blocked', allowedPreviewAction: 'View blocked card', blockedRuntimeAction: 'Execute workflows', relatedAreas: ['Automations', 'Developer'], receiptExpectations: ['External automation blocked'] },
+  { id: 'comm-discord', name: 'Discord', category: 'communication', marker: 'external', status: 'blocked', summary: 'Team chat notifications and bot actions.', whyItMatters: 'Future comms bridge for alerts.', permissions: 'Bot/webhook (future)', dataTouched: 'Channel metadata only in preview', currentGate: 'Outbound communication blocked', allowedPreviewAction: 'View blocked card', blockedRuntimeAction: 'Send messages · post alerts', relatedAreas: ['Activity', 'Automations'], receiptExpectations: ['Outbound blocked'] },
+  { id: 'comm-slack', name: 'Slack', category: 'communication', marker: 'external', status: 'blocked', summary: 'Workspace notifications and slash commands.', whyItMatters: 'Enterprise comms integration.', permissions: 'Bot scopes (future)', dataTouched: 'Channel metadata only', currentGate: 'Outbound communication blocked', allowedPreviewAction: 'View blocked card', blockedRuntimeAction: 'Post messages · run commands', relatedAreas: ['Activity', 'Automations'], receiptExpectations: ['Outbound blocked'], requiresOAuth: true },
+  { id: 'dev-github', name: 'GitHub', category: 'developer', marker: 'external', status: 'blocked', summary: 'Repository notifications and review reminders.', whyItMatters: 'Link code workflow to inbox tasks.', permissions: 'Read-only notifications (future)', dataTouched: 'Issue/PR metadata only', currentGate: 'Provider blocked · no repo mutation', allowedPreviewAction: 'View fixture notification refs', blockedRuntimeAction: 'Connect · mutate repositories', relatedAreas: ['Tasks', 'Activity'], receiptExpectations: ['Connect blocked'], fixtureLabel: 'GitHub' },
+  { id: 'dev-gmail-cli', name: 'Gmail metadata CLI (operator)', category: 'developer', marker: 'developer', status: 'metadata_only', summary: 'Local operator adapter for metadata-only Gmail probes.', whyItMatters: 'Separate from browser connect — tokens never enter product UI.', permissions: 'Operator CLI · gitignored token file', dataTouched: 'Profile, labels, counts, drafts metadata', currentGate: 'Not connected without secrets/ · no body/send', allowedPreviewAction: 'Documented in tools/gmail · status not connected by default', blockedRuntimeAction: 'Body read · draft write · send · UI token storage', relatedAreas: ['Mail', 'Settings'], receiptExpectations: ['Metadata-only sync (CLI)', 'OAuth pending'] },
+];
 
 const AUTOMATION_TRIGGER_CATALOG = [
   { id: 'mail-urgent', label: 'Urgent mail arrives', summary: 'When a thread is marked urgent in Mail.' },
@@ -158,9 +201,24 @@ function defaultAutomationsOps() {
 function defaultExtensionsOps() {
   return {
     selectedInstallId: null,
+    selectedProviderId: null,
+    categoryFilter: 'all',
+    statusFilter: 'all',
+    searchQuery: '',
     installs: [],
     receipts: [],
     formOpen: false,
+  };
+}
+
+function migrateExtensionsOps(ext) {
+  return {
+    ...defaultExtensionsOps(),
+    ...(ext || {}),
+    categoryFilter: ext?.categoryFilter || 'all',
+    statusFilter: ext?.statusFilter || 'all',
+    searchQuery: ext?.searchQuery || '',
+    selectedProviderId: ext?.selectedProviderId || null,
   };
 }
 
@@ -314,12 +372,7 @@ function applyPreviewEnvelope(stored) {
     receipts: stored.automations?.receipts || [],
     lastDryRun: stored.automations?.lastDryRun || null,
   };
-  state.extensions = {
-    ...defaultExtensionsOps(),
-    ...(stored.extensions || {}),
-    installs: stored.extensions?.installs || [],
-    receipts: stored.extensions?.receipts || [],
-  };
+  state.extensions = migrateExtensionsOps(stored.extensions);
   state.settings = {
     ...defaultSettingsOps(),
     ...(stored.settings || {}),
@@ -431,16 +484,23 @@ function upgradePreviewEnvelope(envelope) {
       activity: envelope.activity || defaultActivityOps(),
     });
   }
-  if (envelope.schemaVersion === 7) {
+  if (envelope.schemaVersion === 8) {
     return {
       ...envelope,
       schemaVersion: STORAGE_SCHEMA_VERSION,
+      extensions: migrateExtensionsOps(envelope.extensions),
+    };
+  }
+  if (envelope.schemaVersion === 7) {
+    return upgradePreviewEnvelope({
+      ...envelope,
+      schemaVersion: 8,
       automations: {
         ...defaultAutomationsOps(),
         ...(envelope.automations || {}),
         actionLibrary: envelope.automations?.actionLibrary || [],
       },
-    };
+    });
   }
   if (envelope.schemaVersion === 6) {
     const mapTaskStatus = (status) => ({
@@ -468,6 +528,7 @@ function upgradePreviewEnvelope(envelope) {
         ...(envelope.automations || {}),
         actionLibrary: envelope.automations?.actionLibrary || [],
       },
+      extensions: migrateExtensionsOps(envelope.extensions),
     };
   }
   if (envelope.schemaVersion === 5) {
@@ -1790,6 +1851,77 @@ function clearAutomationsPreviewState() {
   setStatusMessage('All local Automations preview state cleared. Starter library re-seeded.', 'automations');
 }
 
+function extensionCategoryById(categoryId) {
+  return EXTENSION_CATEGORY_CATALOG.find((entry) => entry.id === categoryId) || null;
+}
+
+function allExtensionProviders() {
+  const fixtures = extensionFixturesRaw();
+  return EXTENSION_PROVIDER_CATALOG.map((provider) => {
+    const fixture = fixtures.find((entry) => entry.label === provider.fixtureLabel);
+    return {
+      ...provider,
+      fixtureId: fixture ? `ext-fixture:${fixtures.indexOf(fixture)}` : null,
+      focusId: `extensions:provider:${provider.id}`,
+    };
+  });
+}
+
+function extensionProviderById(providerId) {
+  return allExtensionProviders().find((entry) => entry.id === providerId) || null;
+}
+
+function extensionMarkerLabel(marker) {
+  return ({
+    internal: 'Internal xi-io',
+    external: 'External provider',
+    local: 'Local tool',
+    developer: 'Developer / advanced',
+  }[marker] || label(marker));
+}
+
+function filteredExtensionProviders() {
+  const query = (state.extensions.searchQuery || '').trim().toLowerCase();
+  const category = state.extensions.categoryFilter || 'all';
+  const status = state.extensions.statusFilter || 'all';
+  return allExtensionProviders().filter((provider) => {
+    if (category !== 'all' && provider.category !== category) return false;
+    if (status !== 'all' && provider.status !== status) return false;
+    if (!query) return true;
+    const haystack = [
+      provider.name,
+      provider.summary,
+      provider.whyItMatters,
+      provider.permissions,
+      extensionMarkerLabel(provider.marker),
+      extensionCategoryById(provider.category)?.label,
+    ].join(' ').toLowerCase();
+    return haystack.includes(query);
+  });
+}
+
+function installForProvider(providerId) {
+  return allExtensionInstalls().find((entry) => entry.providerId === providerId)
+    || allExtensionInstalls().find((entry) => {
+      const provider = extensionProviderById(providerId);
+      return provider?.fixtureId && entry.fixtureId === provider.fixtureId;
+    })
+    || null;
+}
+
+function extensionExpectedReceipts(provider) {
+  return (provider?.receiptExpectations || []).map((title) => ({
+    title,
+    summary: 'Recorded in Activity when action occurs (preview/local)',
+  }));
+}
+
+function extensionFixturesRaw() {
+  const extensions = getPayload().laneContent?.extensions || {};
+  const section = sectionByType(extensions, 'extension-matrix');
+  return section?.providers || [];
+}
+
 function extensionFixtures() {
   const extensions = getPayload().laneContent?.extensions || {};
   const section = sectionByType(extensions, 'extension-matrix');
@@ -1832,16 +1964,26 @@ function addExtensionReceipt({ type, title, installId, summary }) {
   return receipt;
 }
 
-function previewInstallExtension(fixtureId) {
-  const fixture = extensionFixtures().find((entry) => entry.fixtureId === fixtureId);
-  if (!fixture || installForFixture(fixtureId)) return;
+function previewInstallExtension(providerId, fixtureId) {
+  const provider = providerId ? extensionProviderById(providerId) : null;
+  const fixture = fixtureId
+    ? extensionFixtures().find((entry) => entry.fixtureId === fixtureId)
+    : (provider?.fixtureLabel
+      ? extensionFixtures().find((entry) => entry.label === provider.fixtureLabel)
+      : null);
+  const resolvedProviderId = providerId || (fixture
+    ? allExtensionProviders().find((entry) => entry.fixtureLabel === fixture.label)?.id
+    : null);
+  if ((!provider && !fixture) || (resolvedProviderId && installForProvider(resolvedProviderId))) return;
   const id = createLocalId('ext');
   const now = new Date().toISOString();
+  const label = provider?.name || fixture?.label || 'Integration';
   const install = {
     id,
-    fixtureId,
-    label: fixture.label,
-    permissions: fixture.permissions,
+    providerId: resolvedProviderId,
+    fixtureId: fixture?.fixtureId || provider?.fixtureId || null,
+    label,
+    permissions: provider?.permissions || fixture?.permissions || '',
     provisionNotes: '',
     state: 'preview_installed',
     installedAt: now,
@@ -1849,15 +1991,17 @@ function previewInstallExtension(fixtureId) {
   };
   state.extensions.installs = [install, ...(state.extensions.installs || [])];
   state.extensions.selectedInstallId = id;
-  state.focusId = `extensions:local:${id}`;
+  state.extensions.selectedProviderId = resolvedProviderId;
+  if (resolvedProviderId) state.focusId = `extensions:provider:${resolvedProviderId}`;
+  else if (fixture) state.focusId = fixture.focusId;
   addExtensionReceipt({
     type: 'install',
     title: 'Local preview install recorded',
     installId: id,
-    summary: `${fixture.label} — preview only, not connected.`,
+    summary: `${label} — preview only, not connected.`,
   });
   saveState();
-  setStatusMessage(`Preview install recorded for ${fixture.label}. No provider connection.`, 'extensions');
+  setStatusMessage(`Preview install recorded for ${label}. No provider connection.`, 'extensions');
 }
 
 function removeExtensionInstall(installId) {
@@ -1900,7 +2044,19 @@ function saveExtensionProvision(formData, installId) {
 function clearExtensionsPreviewState() {
   state.extensions = defaultExtensionsOps();
   saveState();
-  setStatusMessage('All local Extensions preview state cleared. Fixture providers unchanged.', 'extensions');
+  setStatusMessage('All local Extensions preview state cleared. Provider catalog unchanged.', 'extensions');
+}
+
+function recordExtensionGateView(providerId) {
+  const provider = extensionProviderById(providerId);
+  if (!provider) return;
+  addExtensionReceipt({
+    type: 'gate',
+    title: 'Provider gate viewed',
+    installId: installForProvider(providerId)?.id || null,
+    summary: `${provider.name} — ${label(provider.status)} · ${provider.currentGate}`,
+  });
+  saveState();
 }
 
 function settingsLaneContent() {
@@ -3258,6 +3414,7 @@ function defaultFocusIdForLane(laneId) {
     return rule ? `automations:local:${rule.id}` : 'lane:automations';
   }
   if (laneId === 'extensions') {
+    if (state.extensions.selectedProviderId) return `extensions:provider:${state.extensions.selectedProviderId}`;
     const install = selectedExtensionInstall();
     return install ? `extensions:local:${install.id}` : 'lane:extensions';
   }
@@ -3356,6 +3513,19 @@ function inspectableItemsForLane(laneId) {
   }
 
   if (laneId === 'extensions') {
+    filteredExtensionProviders().forEach((provider) => {
+      items.push({
+        id: provider.focusId,
+        kind: extensionMarkerLabel(provider.marker),
+        title: provider.name,
+        summary: provider.summary,
+        meta: `${extensionCategoryById(provider.category)?.label || provider.category} · ${label(provider.status)}`,
+        state: provider.status,
+        safeNext: provider.allowedPreviewAction,
+        blocked: provider.blockedRuntimeAction,
+        receipt: (provider.receiptExpectations || []).join('; '),
+      });
+    });
     allExtensionInstalls().forEach((install) => {
       items.push({
         id: `extensions:local:${install.id}`,
@@ -3564,6 +3734,9 @@ function selectInspectorFocus(focusId) {
   }
   if (focusId.startsWith('automations:local:')) {
     state.automations.selectedRuleId = focusId.replace('automations:local:', '');
+  }
+  if (focusId.startsWith('extensions:provider:')) {
+    state.extensions.selectedProviderId = focusId.replace('extensions:provider:', '');
   }
   if (focusId.startsWith('extensions:local:')) {
     state.extensions.selectedInstallId = focusId.replace('extensions:local:', '');
@@ -5997,6 +6170,141 @@ function renderDryRun(section) {
   `;
 }
 
+function renderExtensionsTaxonomyBanner() {
+  return `
+    <div class="extensions-taxonomy-banner" role="note">
+      <strong>Integration taxonomy</strong>
+      <span>Internal xi-io capabilities are built in. External providers require OAuth and gates. Local tools stay on-device. Nothing in this preview connects to live providers.</span>
+    </div>
+  `;
+}
+
+function renderExtensionsFilterBar() {
+  const category = state.extensions.categoryFilter || 'all';
+  const status = state.extensions.statusFilter || 'all';
+  const query = state.extensions.searchQuery || '';
+  return `
+    <div class="extensions-filter-bar" role="search">
+      <div class="extensions-category-tabs" role="tablist" aria-label="Extension categories">
+        <button class="extensions-filter-chip ${category === 'all' ? 'is-active' : ''}" type="button" role="tab" aria-selected="${category === 'all' ? 'true' : 'false'}" data-extensions-action="filter-category" data-category-id="all">All</button>
+        ${EXTENSION_CATEGORY_CATALOG.map((entry) => `
+          <button class="extensions-filter-chip ${category === entry.id ? 'is-active' : ''}" type="button" role="tab" aria-selected="${category === entry.id ? 'true' : 'false'}" data-extensions-action="filter-category" data-category-id="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>
+        `).join('')}
+      </div>
+      <div class="extensions-status-filters" aria-label="Status filters">
+        ${EXTENSION_STATUS_FILTERS.map((entry) => `
+          <button class="extensions-filter-chip is-compact ${status === entry.id ? 'is-active' : ''}" type="button" aria-pressed="${status === entry.id ? 'true' : 'false'}" data-extensions-action="filter-status" data-status-id="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>
+        `).join('')}
+      </div>
+      <form class="extensions-search-form" data-extensions-form="search" aria-label="Search extensions">
+        <label class="visually-hidden" for="extensions-search-input">Search extensions</label>
+        <input id="extensions-search-input" class="extensions-search-input" type="search" name="query" autocomplete="off" placeholder="Search providers and tools" value="${escapeHtml(query)}" />
+        ${query ? '<button class="inbox-action-btn" type="button" data-extensions-action="clear-search">Clear</button>' : ''}
+        <button class="inbox-action-btn" type="submit">Search</button>
+      </form>
+    </div>
+  `;
+}
+
+function renderExtensionProviderCard(provider) {
+  const install = installForProvider(provider.id);
+  const isSelected = state.extensions.selectedProviderId === provider.id
+    || state.focusId === provider.focusId
+    || (install && state.focusId === `extensions:local:${install.id}`);
+  return `
+    <button class="extensions-provider-card ${isSelected ? 'is-selected' : ''}" type="button" data-extensions-action="select-provider" data-provider-id="${escapeHtml(provider.id)}" data-inspector-focus="${escapeHtml(provider.focusId)}" aria-pressed="${isSelected ? 'true' : 'false'}">
+      <header class="extensions-provider-card-head">
+        <strong>${escapeHtml(provider.name)}</strong>
+        <span class="extensions-marker extensions-marker-${escapeHtml(provider.marker)}">${escapeHtml(extensionMarkerLabel(provider.marker))}</span>
+      </header>
+      <p>${escapeHtml(demoteMailDisplayText(provider.summary))}</p>
+      <div class="extensions-provider-card-meta">
+        <span>${escapeHtml(extensionCategoryById(provider.category)?.label || provider.category)}</span>
+        <em>${escapeHtml(label(provider.status))}</em>
+        ${install ? '<span class="extensions-install-badge">Preview added</span>' : ''}
+      </div>
+    </button>
+  `;
+}
+
+function renderExtensionsProviderCatalog() {
+  const providers = filteredExtensionProviders();
+  const category = state.extensions.categoryFilter || 'all';
+  if (!providers.length) {
+    return '<p class="form-hint">No extensions match the current filters.</p>';
+  }
+  if (category === 'all') {
+    return EXTENSION_CATEGORY_CATALOG.map((cat) => {
+      const inCategory = providers.filter((entry) => entry.category === cat.id);
+      if (!inCategory.length) return '';
+      return `
+        <section class="extensions-category-section" aria-label="${escapeHtml(cat.label)}">
+          <header class="extensions-category-head">
+            <h3>${escapeHtml(cat.label)}</h3>
+            <p>${escapeHtml(cat.summary)}</p>
+          </header>
+          <div class="extensions-provider-grid">${inCategory.map(renderExtensionProviderCard).join('')}</div>
+        </section>
+      `;
+    }).join('');
+  }
+  return `<div class="extensions-provider-grid">${providers.map(renderExtensionProviderCard).join('')}</div>`;
+}
+
+function renderExtensionProviderDetail(provider) {
+  const install = installForProvider(provider.id);
+  const expectedReceipts = extensionExpectedReceipts(provider);
+  const boundaryItems = extensionSecretBoundaryItems();
+  return `
+    <section class="lane-reading-pane" aria-label="Extension details">
+      <header class="lane-reading-head">
+        <div>
+          <h3>${escapeHtml(provider.name)}</h3>
+          <p class="lane-reading-meta">${escapeHtml(extensionMarkerLabel(provider.marker))} · ${escapeHtml(label(provider.status))}${install ? ' · preview added locally' : ''}</p>
+        </div>
+      </header>
+      <dl class="extensions-detail-grid">
+        <div><dt>Category</dt><dd>${escapeHtml(extensionCategoryById(provider.category)?.label || provider.category)}</dd></div>
+        <div><dt>What it does</dt><dd>${escapeHtml(provider.summary)}</dd></div>
+        <div><dt>Why it matters</dt><dd>${escapeHtml(provider.whyItMatters)}</dd></div>
+        <div><dt>Permissions required</dt><dd>${escapeHtml(provider.permissions)}</dd></div>
+        <div><dt>Data touched</dt><dd>${escapeHtml(provider.dataTouched)}</dd></div>
+        <div><dt>Current gate</dt><dd>${escapeHtml(provider.currentGate)}</dd></div>
+        <div><dt>Allowed now (preview)</dt><dd>${escapeHtml(provider.allowedPreviewAction)}</dd></div>
+        <div><dt>Blocked runtime</dt><dd>${escapeHtml(provider.blockedRuntimeAction)}</dd></div>
+        <div><dt>Related areas</dt><dd>${escapeHtml((provider.relatedAreas || []).join(' · '))}</dd></div>
+      </dl>
+      ${provider.adapterNote ? `<p class="form-hint extensions-adapter-note">${escapeHtml(provider.adapterNote)}</p>` : ''}
+      ${provider.requiresOAuth ? '<p class="form-hint">Requires OAuth when enabled — tokens never stored in product UI.</p>' : ''}
+      <div class="inbox-action-toolbar">
+        ${install
+    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(install.id)}">View install notes</button>`
+    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-provider-id="${escapeHtml(provider.id)}">Add preview install</button>`}
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="${escapeHtml(provider.blockedRuntimeAction)}">Connect blocked</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Run blocked</button>
+        <button class="inbox-action-btn" type="button" data-extensions-action="open-activity">Open Activity</button>
+      </div>
+      <details class="lane-reading-details">
+        <summary>Activity / receipt expectations</summary>
+        <ul class="extensions-expected-receipts">
+          ${expectedReceipts.map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong> — ${escapeHtml(entry.summary)}</li>`).join('')}
+        </ul>
+      </details>
+      ${boundaryItems.length ? `
+        <details class="lane-reading-details">
+          <summary>Secret boundary</summary>
+          <ul class="extensions-boundary-list">${boundaryItems.map((item) => `
+            <li><strong>${escapeHtml(item.title)}</strong> — ${escapeHtml(item.summary)}</li>
+          `).join('')}</ul>
+        </details>
+      ` : ''}
+      ${install && (state.extensions.receipts || []).filter((r) => r.installId === install.id).length ? `
+        <details class="lane-reading-details"><summary>Receipts</summary>${renderExtensionsLocalReceipts(install.id)}</details>
+      ` : ''}
+    </section>
+  `;
+}
+
 function renderExtensionsLocalReceipts(installId) {
   const receipts = (state.extensions.receipts || []).filter((entry) => !installId || entry.installId === installId);
   if (!receipts.length) return '<p class="form-hint">No local extension receipts yet.</p>';
@@ -6043,25 +6351,28 @@ function renderExtensionsProvisionSheet() {
 }
 
 function renderExtensionsReadingPane() {
-  const fixtures = extensionFixtures();
   const install = selectedExtensionInstall();
-  const fixture = fixtures.find((entry) => entry.focusId === state.focusId);
-  const boundaryItems = extensionSecretBoundaryItems();
+  const provider = state.extensions.selectedProviderId
+    ? extensionProviderById(state.extensions.selectedProviderId)
+    : allExtensionProviders().find((entry) => entry.focusId === state.focusId);
   if (install && state.focusId === `extensions:local:${install.id}`) {
+    const linkedProvider = install.providerId ? extensionProviderById(install.providerId) : null;
     return `
       <section class="lane-reading-pane" aria-label="Install details">
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(install.label)}</h3>
-            <p class="lane-reading-meta">Added locally · not connected</p>
+            <p class="lane-reading-meta">Preview added locally · not connected${linkedProvider ? ` · ${label(linkedProvider.status)}` : ''}</p>
           </div>
         </header>
-        <p><strong>Access:</strong> ${escapeHtml(install.permissions || 'Not set')}</p>
+        <p><strong>Permissions:</strong> ${escapeHtml(install.permissions || 'Not set')}</p>
         ${install.provisionNotes ? `<p><strong>Notes:</strong> ${escapeHtml(install.provisionNotes)}</p>` : ''}
+        <p class="form-hint">Install records planning intent only. OAuth, credentials, and provider runtime remain blocked.</p>
         <div class="inbox-action-toolbar">
           <button class="inbox-action-btn is-primary" type="button" data-extensions-action="edit-provision" data-install-id="${escapeHtml(install.id)}">Edit notes</button>
           <button class="inbox-action-btn" type="button" data-extensions-action="remove-install" data-install-id="${escapeHtml(install.id)}">Remove</button>
           <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
+          <button class="inbox-action-btn" type="button" data-extensions-action="open-activity">Open Activity</button>
         </div>
         ${(state.extensions.receipts || []).filter((r) => r.installId === install.id).length ? `
           <details class="lane-reading-details"><summary>Receipts</summary>${renderExtensionsLocalReceipts(install.id)}</details>
@@ -6069,43 +6380,16 @@ function renderExtensionsReadingPane() {
       </section>
     `;
   }
-  if (fixture) {
-    const localInstall = installForFixture(fixture.fixtureId);
-    return `
-      <section class="lane-reading-pane" aria-label="Integration details">
-        <header class="lane-reading-head">
-          <div>
-            <h3>${escapeHtml(fixture.label)}</h3>
-            <p class="lane-reading-meta">${localInstall ? 'Added locally' : 'Not connected'}</p>
-          </div>
-        </header>
-        <p>${escapeHtml(demoteMailDisplayText(fixture.summary || ''))}</p>
-        <p class="form-hint">Access: ${escapeHtml(fixture.permissions || 'Standard permissions')}</p>
-        <div class="inbox-action-toolbar">
-          ${localInstall
-    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(localInstall.id)}">View details</button>`
-    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-fixture-id="${escapeHtml(fixture.fixtureId)}">Add integration</button>`}
-          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect</button>
-        </div>
-        ${boundaryItems.length ? `
-          <details class="lane-reading-details">
-            <summary>Secret boundary</summary>
-            <ul class="extensions-boundary-list">${boundaryItems.map((item) => `
-              <li><strong>${escapeHtml(item.title)}</strong> — ${escapeHtml(item.summary)}</li>
-            `).join('')}</ul>
-          </details>
-        ` : ''}
-      </section>
-    `;
+  if (provider) {
+    return renderExtensionProviderDetail(provider);
   }
-  return `<section class="lane-reading-pane is-empty" aria-label="Integration details"><p class="lane-empty-state">Select an integration to view details.</p></section>`;
+  return `<section class="lane-reading-pane is-empty" aria-label="Integration details"><p class="lane-empty-state">Select an extension or provider to view gates, permissions, and blocked actions.</p></section>`;
 }
 
 function renderExtensionsWorkspace() {
-  const fixtures = extensionFixtures();
-  const selectedId = state.extensions.selectedInstallId;
   return `
     <div class="lane-workspace extensions-workspace">
+      ${renderExtensionsTaxonomyBanner()}
       <div class="lane-toolbar" role="toolbar" aria-label="Extensions actions">
         <div id="extensionsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'extensions' ? state.statusMessage : '')}</div>
         <details class="lane-toolbar-overflow">
@@ -6113,25 +6397,14 @@ function renderExtensionsWorkspace() {
           <button class="inbox-action-btn is-danger" type="button" data-extensions-action="clear-all">Clear local extensions state</button>
         </details>
       </div>
-      <div class="extensions-marketplace-grid" aria-label="Integrations">
-          ${fixtures.map((fixture) => {
-            const install = installForFixture(fixture.fixtureId);
-            const isSelected = state.focusId === fixture.focusId
-              || (install && (selectedId === install.id || state.focusId === `extensions:local:${install.id}`));
-            return `
-            <button class="extensions-market-card ${isSelected ? 'is-selected' : ''}" type="button" data-extensions-action="select-fixture" data-fixture-id="${escapeHtml(fixture.fixtureId)}" data-inspector-focus="${escapeHtml(fixture.focusId)}">
-              <header>
-                <strong>${escapeHtml(fixture.label)}</strong>
-                <span class="extensions-market-badge">${install ? 'Added' : 'Available'}</span>
-              </header>
-              <p>${escapeHtml(demoteMailDisplayText(fixture.summary || fixture.permissions || ''))}</p>
-              <span class="form-hint">${install ? 'Added locally' : 'Connect when runtime is enabled'}</span>
-            </button>
-          `;
-          }).join('')}
-      </div>
-      <div class="extensions-detail-pane">
-        ${renderExtensionsReadingPane()}
+      ${renderExtensionsFilterBar()}
+      <div class="extensions-workspace-layout">
+        <div class="extensions-catalog-pane" aria-label="Extension catalog">
+          ${renderExtensionsProviderCatalog()}
+        </div>
+        <div class="extensions-detail-pane">
+          ${renderExtensionsReadingPane()}
+        </div>
       </div>
       ${renderExtensionsProvisionSheet()}
     </div>
@@ -7455,11 +7728,48 @@ function handleSettingsAction(action, settingsKey) {
   }
 }
 
-function handleExtensionsAction(action, installId, fixtureId) {
+function handleExtensionsAction(action, params = {}) {
+  const {
+    installId, fixtureId, providerId, categoryId, statusId,
+  } = params;
+  if (action === 'filter-category') {
+    state.extensions.categoryFilter = categoryId || 'all';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'filter-status') {
+    state.extensions.statusFilter = statusId || 'all';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'clear-search') {
+    state.extensions.searchQuery = '';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-provider') {
+    if (!providerId) return;
+    state.extensions.selectedProviderId = providerId;
+    state.focusId = `extensions:provider:${providerId}`;
+    const install = installForProvider(providerId);
+    state.extensions.selectedInstallId = install?.id || null;
+    recordExtensionGateView(providerId);
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'select-fixture') {
     if (!fixtureId) return;
     const fixture = extensionFixtures().find((entry) => entry.fixtureId === fixtureId);
     if (!fixture) return;
+    const provider = allExtensionProviders().find((entry) => entry.fixtureLabel === fixture.label);
+    if (provider) {
+      handleExtensionsAction('select-provider', { providerId: provider.id });
+      return;
+    }
     state.focusId = fixture.focusId;
     const install = installForFixture(fixtureId);
     state.extensions.selectedInstallId = install?.id || null;
@@ -7483,7 +7793,7 @@ function handleExtensionsAction(action, installId, fixtureId) {
     return;
   }
   if (action === 'preview-install') {
-    previewInstallExtension(fixtureId);
+    previewInstallExtension(providerId, fixtureId);
     renderShell();
     return;
   }
@@ -7496,6 +7806,15 @@ function handleExtensionsAction(action, installId, fixtureId) {
     if (!installId) return;
     state.extensions.selectedInstallId = installId;
     state.focusId = `extensions:local:${installId}`;
+    const install = allExtensionInstalls().find((entry) => entry.id === installId);
+    if (install?.providerId) state.extensions.selectedProviderId = install.providerId;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-activity') {
+    state.laneId = 'receipts';
+    ensureRoute();
     saveState();
     renderShell();
     return;
@@ -8216,6 +8535,12 @@ function bindEvents() {
     if (extensionsForm) {
       event.preventDefault();
       const formData = new FormData(extensionsForm);
+      if (extensionsForm.dataset.extensionsForm === 'search') {
+        state.extensions.searchQuery = String(formData.get('query') || '').trim();
+        saveState();
+        renderShell();
+        return;
+      }
       const installId = String(formData.get('installId') || '').trim();
       saveExtensionProvision(formData, installId);
       renderShell();
@@ -8326,11 +8651,7 @@ function bindEvents() {
     const extensionsAction = event.target.closest?.('[data-extensions-action]');
     if (extensionsAction?.dataset.extensionsAction && extensionsAction.dataset.extensionsAction !== 'provision-save') {
       event.preventDefault();
-      handleExtensionsAction(
-        extensionsAction.dataset.extensionsAction,
-        extensionsAction.dataset.installId,
-        extensionsAction.dataset.fixtureId,
-      );
+      handleExtensionsAction(extensionsAction.dataset.extensionsAction, extensionsAction.dataset);
       return;
     }
 
