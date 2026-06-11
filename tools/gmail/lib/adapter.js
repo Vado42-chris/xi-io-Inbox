@@ -14,6 +14,7 @@ const SCOPES = [
 ];
 const LOOPBACK_HOST = '127.0.0.1';
 const LOOPBACK_PORT = Number(process.env.GMAIL_OAUTH_PORT || 8787);
+const DEFAULT_LABEL_COUNTS_MAX = 50;
 
 const BLOCKED_METHODS = new Set([
   'gmail.messages.getBody',
@@ -184,12 +185,17 @@ export async function gmailLabelsList() {
   });
 }
 
-export async function gmailLabelsCounts() {
+export async function gmailLabelsCounts({ maxLabels = DEFAULT_LABEL_COUNTS_MAX } = {}) {
   const gmail = await getGmail();
   const res = await gmail.users.labels.list({ userId: 'me' });
   const labels = res.data.labels || [];
+  const requestedMaxLabels = Number(maxLabels);
+  const labelCountLimit = Number.isFinite(requestedMaxLabels) && requestedMaxLabels > 0
+    ? Math.floor(requestedMaxLabels)
+    : DEFAULT_LABEL_COUNTS_MAX;
+  const labelsForCounts = labels.slice(0, labelCountLimit);
   const counts = {};
-  for (const label of labels) {
+  for (const label of labelsForCounts) {
     const detail = await gmail.users.labels.get({ userId: 'me', id: label.id });
     counts[label.name] = {
       id: label.id,
@@ -203,7 +209,12 @@ export async function gmailLabelsCounts() {
   return envelope({
     success: true,
     method: 'gmail.labels.counts',
-    payload: { labelCount: labels.length, counts },
+    payload: {
+      labelCount: labels.length,
+      countedLabelCount: labelsForCounts.length,
+      skippedLabelCount: labels.length - labelsForCounts.length,
+      counts,
+    },
   });
 }
 

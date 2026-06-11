@@ -20,7 +20,7 @@ Commands:
   wipe
   profile
   labels
-  labels-counts
+  labels-counts [--max N]
   drafts-metadata [--max N]
   search-metadata [--query Q] [--max N]
   blocked <method>   (test blocked escalation)
@@ -62,7 +62,7 @@ async function main() {
         result = await gmailLabelsList();
         break;
       case 'labels-counts':
-        result = await gmailLabelsCounts();
+        result = await gmailLabelsCounts({ maxLabels: flags.max });
         break;
       case 'drafts-metadata':
         result = await gmailDraftsListMetadata({ maxResults: flags.max || 10 });
