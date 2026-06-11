@@ -20,7 +20,7 @@
 ## Account rules
 
 - Owner may use real primary Gmail for **metadata inventory** after GATE-GMAIL-METADATA-001 passes and owner approves the run.
-- Owner may **not** use real primary Gmail for write-scope smoke until **GMAIL-001C** gate passes and token storage is proven.
+- Owner may **not** use real primary Gmail for write-scope smoke until the **GMAIL-001D** draft-write gate passes and token storage is proven.
 - First write-scope test should use **throwaway/test Gmail** unless owner explicitly overrides.
 - Send tests require **separate explicit owner approval** and a dedicated send gate.
 - Bulk historical mining requires a separate query plan and redaction policy.

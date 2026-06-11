@@ -35,7 +35,7 @@ Read first:
 Critical rules:
 - Do not connect Gmail or any email provider.
 - Do not add send, forward, delete, or external disclosure behavior.
-- Do not replace the rail / stream / context pattern with a new local UI shell.
+- Do not reintroduce the retired fixture-account rail / stream / context-only shell; verify the current product shell and lane-level context behavior.
 - Do not weaken draft-only egress language.
 - Do not claim direct framework package reuse is complete.
 - Do not mark visual proof complete unless the preview is actually opened locally.
@@ -57,12 +57,12 @@ http://localhost:4488
 Verify:
 
 - page loads without console errors
-- left rail shows preview accounts and views
-- center stream shows preview events
-- right context shows selected thread context
+- account/connect area has no seeded fixture accounts and offers the Gmail queue / Connect CLI path
+- current product shell lanes render preview content or the designed empty state
+- selected item context/inspector updates when cards are activated
 - clicking cards updates selected context
-- keyboard Tab reaches event cards
-- Enter or Space selects focused event cards
+- keyboard Tab reaches interactive cards
+- Enter or Space selects focused interactive cards
 - warning banner is visible
 - sensitive/privacy status is visible where expected
 - send/runtime actions are blocked or disabled
@@ -82,7 +82,7 @@ npm run dev result:
 Local URL opened:
 Browser:
 Console errors:
-Rail / stream / context verified: yes | no
+Product shell / lane context verified: yes | no
 Click selection verified: yes | no
 Keyboard selection verified: yes | no
 Warning banner verified: yes | no

@@ -9,7 +9,7 @@
 | Account identity | Returned from `gmail.profile.get` — never hard-coded |
 | Default data | Metadata only; bodies blocked |
 | Send | Blocked at adapter and gate |
-| Draft write | Blocked until GMAIL-001C+ gate |
+| Draft write | Blocked until GMAIL-001D draft-write gate |
 
 ## Scope planning (least privilege)
 
