@@ -6,7 +6,7 @@
 
 ## Review status
 
-Docs and static preview review complete. Keep PR as draft until local static preview smoke proof is captured.
+Docs and static preview review complete. UI-009/010 product UX passes complete locally. Keep PR **draft** until owner UI-003E re-review passes (`docs/ui/reviews/ui-003e-owner-visual-proof-packet.md`).
 
 ## Scope correction
 
@@ -60,7 +60,8 @@ This means the adapted-copy/static-preview path used by PR #12 is now covered by
 | Framework consumer contract merged | yes |
 | Stable direct export/package follow-up tracked | yes, `xi-io.net#239` |
 | Platform runtime decision tracked | yes, `xi-io-Inbox#13` |
-| Local static preview smoke proof captured | pending |
+| Local static preview smoke proof captured | pass (`npm run check`) |
+| Owner UI-003E product UX re-review | pending (UI-009/010 ready) |
 
 ## Safety review
 
@@ -88,25 +89,15 @@ check:json
 check:js
 ```
 
-GitHub Actions static preview validation has passed previously for this PR. Local browser/static preview smoke proof remains separate and pending.
+GitHub Actions static preview validation has passed previously for this PR. Local `npm run check` passes on current head.
 
 ## Merge recommendation
 
 Do not merge yet.
 
-Keep draft until local static preview smoke proof confirms:
+Keep draft until owner UI-003E product UX re-review passes (`docs/ui/reviews/ui-003e-owner-visual-proof-packet.md`). UI-009/010 address prior FAIL themes; operator push required before owner visual pass.
 
-- preview opens locally,
-- rail / stream / context renders correctly,
-- click selection works,
-- keyboard selection works,
-- warning banner is visible,
-- blocked actions are visibly blocked,
-- no provider data is connected,
-- no provider/network call is required for preview rendering,
-- screenshot or evidence note is attached.
-
-After local PASS, PR #12 may leave draft only as a static preview PR. Product/runtime testing remains blocked by `ARCH-004`.
+After owner PASS, merge-prep final may update gate receipts. PR may leave draft only as a static preview PR. Product/runtime testing remains blocked by `ARCH-004`.
 
 ## Decision value
 

@@ -217,6 +217,25 @@ Report after UI-007 draft workbench (2026-06-10, local Tier 1):
 
 Backfeed recorded: `xi-io.net` `docs/framework/inbox-ui-consumer-freshness-note.md`, issue `xi-io.net#239`.
 
+Report after UI-009 product UX shell (2026-06-10, Tier 1):
+
+- XiUserSettingsSplit — user settings first; provider/privacy gates collapsed under Advanced,
+- XiAccountConnectWizard — queue real email; CLI/OAuth boundary; no tokens in browser preview,
+- XiCalendarMonthGrid — month navigation + day selection; events on dates,
+- XiKanbanBoard — status columns; local tasks; cross-lane source links,
+- XiActivityLedger — user-facing Activity nav; filter tabs; build evidence demoted,
+- XiMailReadingPolish — `demoteMailDisplayText` pattern; advanced metadata collapsed; user status chips.
+
+Inbox-side receipt: `docs/ui/reviews/ui-009-product-ux-gap-audit.md`. Optional `xi-io.net#239` comment when operator pushes.
+
+Report after UI-010J–K polish (2026-06-10):
+
+- XiCalendarWeekStrip — week row above month grid,
+- XiIbalConciergeCopy — product assistant language,
+- XiMailListDensity — list pane spacing and snippet clamp.
+
+Operator: post condensed UI-009/010 summary to `xi-io.net#239` on push (no new framework files required).
+
 ## Acceptance
 
 This plan is valid when:

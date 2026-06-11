@@ -121,6 +121,76 @@ Follow-up: UI-006A–F complete (2026-06-10, commit `197f25d`). All operable lan
 
 Follow-up: UI-007B-R1 mail navigation graduation (2026-06-10). Inbox is now a 4-column mail workbench: left mail folders (Inbox, Drafts, Approval Queue placeholder), center list|reading, right context rail; outcome lanes demoted under collapsible "Outcomes (preview)". **Owner should re-review Inbox workbench only** before full UI-003E checklist. Full UI-003E PASS remains blocked.
 
+Owner review (2026-06-10, post-push `7d51c3d`):
+
+```text
+UI_003E_FAIL_SIGNIFICANT_POLISH_REQUIRED_BEFORE_COMPLETE
+Reviewer: Chris
+Overall: FAIL (mail workbench scaffold pass only; not product-complete)
+
+Themes:
+- Calendar, Automations, Ibal settings feel missing (outcome lanes demoted/hidden; not product-visible)
+- Settings lane lacks user-valuable controls
+- Drafts empty — no sample ready-to-send drafts or draft→task flows demonstrated
+- Task system not product-visible from mail workbench
+- No user card, provisioning, or account add/edit/remove
+- No combined inbox or multi-inbox strategy surfaced
+- Reading/reply styling functional not top-tier
+- Context rail not aligned with intended user-facing capabilities
+- Better than prior IA fail; requires significant polish before complete
+```
+
+Follow-up: UI-008 agent pass (2026-06-10, uncommitted locally). Restored full primary nav; seeded 3 sample drafts; user card + account CRUD; multi-inbox filter; reading/reply styling; context rail Outcomes block; Settings user preferences. **Owner should re-review** before UI-003E PASS.
+
+Owner review (2026-06-10, screenshots — all lanes):
+
+```text
+UI_003E_FAIL_PRODUCT_UX_NOT_USER_FACING
+```
+
+Themes:
+- Account UX wrong: fake “Personal Gmail preview” fixtures, not real add-account + connection test
+- User card still not product-grade multi-account management
+- Calendar not a calendar (no grid); Tasks not a task/sprint board; no related tasks from mail
+- Automations/Extensions read as dev audit, not usable product surfaces
+- Mail still rudimentary; fixture/jargon copy in primary UI
+- Receipts purpose unclear — should be user-facing Activity/audit, not agent logging
+- Overall below competitor baseline for email+calendar; polish and audit discipline insufficient
+
+See `docs/ui/reviews/ui-009-product-ux-gap-audit.md`.
+
+## UI-009/010 Remedy Map (agent complete — owner re-review required)
+
+| Owner FAIL theme | UI-009/010 remedy | Receipt |
+| --- | --- | --- |
+| Fake fixture accounts | Empty default; Gmail queue + CLI connect path | `ui-009a-account-wizard-receipt.md` |
+| Calendar not a calendar | Month grid + week strip + day events | `ui-009b`, `ui-010-product-ux-pass-receipt.md` |
+| Tasks not a board | Kanban columns + mail source links | `ui-009c-tasks-kanban-receipt.md` |
+| Activity unclear | Activity rename + filters + drill-down | `ui-009d-activity-lane-receipt.md` |
+| Settings engineering panel | User vs Advanced split | `ui-009e-settings-split-receipt.md` |
+| Mail fixture jargon | Reading pane demotion + JSON copy | `ui-009f`, `ui-010J–K` |
+| Dev trust chrome | Help panel; demoted tokens | `ui-010-product-ux-pass-receipt.md` |
+| Home/automations/extensions audit shell | Dashboard, rule flow, marketplace cards | `ui-010-product-ux-pass-receipt.md` |
+
+**Agent status:** UI-009A–F and UI-010A–K complete locally (uncommitted + prior commits). `npm run check` pass. **Not UI-003E PASS.**
+
+## Owner Re-Review Checklist (post UI-009/010)
+
+One pass at `http://localhost:4488` after operator push:
+
+- [ ] Product reads as mail/calendar/tasks app, not dev audit shell
+- [ ] Home dashboard useful; Help panel acceptable (not dominant)
+- [ ] Mail: folders, reading, compose; no fixture jargon in primary pane
+- [ ] Calendar: week strip + month grid; events on days
+- [ ] Tasks: kanban; source links to mail
+- [ ] Automations: When→If→Then flow readable
+- [ ] Integrations: marketplace cards; Connect blocked honestly
+- [ ] Activity: human labels; Open in Mail works
+- [ ] Settings: Preferences + Email accounts first; Advanced collapsed
+- [ ] Account panel: add Gmail queue; no fake seeded accounts
+- [ ] Ibal: assistant copy; no auto-execute
+- [ ] Send/provider connect still blocked (unchanged)
+
 If PASS:
 
 ```text

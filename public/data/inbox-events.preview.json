@@ -5,29 +5,29 @@
   "notice": "Preview data only. No email provider is connected and no runtime actions are executed.",
   "workspace": {
     "workspaceId": "xiio-inbox-preview",
-    "displayName": "Personal operations preview",
+    "displayName": "Personal workspace",
     "activeAccount": "Preview workspace",
     "providerStatus": "provider_blocked",
     "privacyMode": "local_only",
     "ibalStatus": "proposal_only",
-    "commandPlaceholder": "Search preview fixtures only"
+    "commandPlaceholder": "Search mail and commands"
   },
   "lanes": [
     { "id": "home", "label": "Home", "route": "#/home", "description": "Cross-lane operational overview.", "status": "preview_only" },
-    { "id": "inbox", "label": "Inbox", "route": "#/inbox", "description": "Email/message triage preview.", "status": "preview_only" },
-    { "id": "calendar", "label": "Calendar", "route": "#/calendar", "description": "Scheduling and time-awareness preview.", "status": "preview_only" },
-    { "id": "tasks", "label": "Tasks", "route": "#/tasks", "description": "Work tracking preview.", "status": "preview_only" },
-    { "id": "automations", "label": "Automations", "route": "#/automations", "description": "Proposal and dry-run preview.", "status": "runtime_blocked" },
-    { "id": "extensions", "label": "Extensions", "route": "#/extensions", "description": "Provider/tool/add-on gate preview.", "status": "provider_blocked" },
-    { "id": "receipts", "label": "Receipts", "route": "#/receipts", "description": "Audit trail preview.", "status": "preview_only" },
+    { "id": "inbox", "label": "Inbox", "route": "#/inbox", "description": "Read and reply to mail.", "status": "preview_only" },
+    { "id": "calendar", "label": "Calendar", "route": "#/calendar", "description": "Schedule events and reminders.", "status": "preview_only" },
+    { "id": "tasks", "label": "Tasks", "route": "#/tasks", "description": "Track work on a board.", "status": "preview_only" },
+    { "id": "automations", "label": "Automations", "route": "#/automations", "description": "Rules to automate repetitive work.", "status": "runtime_blocked" },
+    { "id": "extensions", "label": "Integrations", "route": "#/extensions", "description": "Connect apps and services.", "status": "provider_blocked" },
+    { "id": "receipts", "label": "Activity", "route": "#/receipts", "description": "History of actions and blocked sends.", "status": "preview_only" },
     { "id": "ibal", "label": "Ibal", "route": "#/ibal", "description": "Conductor/orchestrator preview.", "status": "proposal_only" },
-    { "id": "settings", "label": "Settings / Provider Gates", "route": "#/settings", "description": "Policy, privacy, and provider gate preview.", "status": "runtime_blocked" }
+    { "id": "settings", "label": "Settings", "route": "#/settings", "description": "Accounts, preferences, and privacy.", "status": "runtime_blocked" }
   ],
   "laneContent": {
     "home": {
       "eyebrow": "home",
-      "title": "Operations overview",
-      "summary": "Cross-lane preview of current priorities, provider gates, draft-only egress, urgent ingress, upcoming time pressure, open work, receipts, and Ibal's next safe proposal.",
+      "title": "Home",
+      "summary": "Your mail, calendar, tasks, and activity at a glance.",
       "proofState": "preview_only",
       "layout": "home-operations-layout",
       "metrics": [
@@ -166,10 +166,10 @@
           "threads": [
             {
               "id": "thread-family-safety-preview",
-              "sender": "Personal Gmail preview",
+              "sender": "Family Logistics",
               "receivedAt": "Jun 8, 8:00 AM",
               "title": "Urgent family transport thread",
-              "summary": "Sensitive logistics preview with draft-only response path and calendar proposal source.",
+              "summary": "Transport timing may affect school pickup Friday. Needs your review before replying.",
               "state": "needs_review",
               "selected": true,
               "labels": ["urgent_thread", "privacy_sensitive", "needs_reply"],
@@ -181,9 +181,9 @@
                 { "label": "Next action", "value": "draft proposal" }
               ],
               "messages": [
-                { "from": "Family sender fixture", "meta": "message 1 / body not loaded", "summary": "Preview summary indicates a transport timing problem that may affect family logistics.", "state": "preview_only" },
-                { "from": "You fixture", "meta": "message 2 / prior reply ref", "summary": "Prior reply reference exists as metadata only; no private body is present.", "state": "preview_only" },
-                { "from": "Family sender fixture", "meta": "message 3 / latest", "summary": "Latest preview summary requires human review before any response draft is trusted.", "state": "needs_review" }
+                { "from": "Family", "meta": "message 1", "summary": "Transport timing problem may affect Friday school pickup.", "state": "preview_only" },
+                { "from": "You", "meta": "message 2", "summary": "You asked for confirmation on the pickup window.", "state": "preview_only" },
+                { "from": "Family", "meta": "message 3 · latest", "summary": "Latest update needs your review before replying.", "state": "needs_review" }
               ],
               "evidence": [
                 { "label": "Thread ref", "summary": "provider:gmail/thread-family-safety-preview" },
@@ -214,10 +214,10 @@
             },
             {
               "id": "thread-github-review-preview",
-              "sender": "GitHub notifications preview",
+              "sender": "GitHub",
               "receivedAt": "Jun 8, 10:15 AM",
               "title": "GitHub review reminder",
-              "summary": "Project notification preview that may become a task, not a repository mutation.",
+              "summary": "Review requested on a project repository. Consider adding a task.",
               "state": "preview_only",
               "labels": ["project_ops", "task_candidate"],
               "tags": ["project_ops", "repo_mutation_blocked"],
@@ -228,8 +228,8 @@
                 { "label": "Next action", "value": "task proposal" }
               ],
               "messages": [
-                { "from": "GitHub fixture", "meta": "notification ref", "summary": "Preview notification suggests a review reminder without exposing repository content.", "state": "preview_only" },
-                { "from": "Ibal fixture", "meta": "proposal", "summary": "Create a local task proposal; do not comment, close, merge, or mutate GitHub.", "state": "proposal_only" }
+                { "from": "GitHub", "meta": "notification", "summary": "Review reminder for an open pull request.", "state": "preview_only" },
+                { "from": "Ibal", "meta": "suggestion", "summary": "Consider creating a task to track this review.", "state": "proposal_only" }
               ],
               "evidence": [
                 { "label": "Notification ref", "summary": "provider:github/review-reminder-preview" },
@@ -258,10 +258,10 @@
             },
             {
               "id": "thread-provider-terms-preview",
-              "sender": "Provider gate notice preview",
+              "sender": "xi-io Inbox",
               "receivedAt": "Jun 8, 1:40 PM",
-              "title": "Provider terms notice",
-              "summary": "Provider gate decision preview before any account connection or OAuth credential exists.",
+              "title": "Connect your email",
+              "summary": "Add your Gmail account in Settings to start syncing mail.",
               "state": "provider_blocked",
               "labels": ["provider_gate", "settings_required"],
               "tags": ["provider_blocked", "credentials_absent"],
@@ -272,8 +272,8 @@
                 { "label": "Next action", "value": "review gates" }
               ],
               "messages": [
-                { "from": "Settings fixture", "meta": "gate notice", "summary": "Preview notice says provider permissions must be defined before connection.", "state": "provider_blocked" },
-                { "from": "Ibal fixture", "meta": "proposal", "summary": "Review account connection, permissions, and data boundary before any provider setup.", "state": "proposal_only" }
+                { "from": "xi-io Inbox", "meta": "notice", "summary": "Email sync is not enabled until you connect an account.", "state": "provider_blocked" },
+                { "from": "Ibal", "meta": "suggestion", "summary": "Open Settings → Email accounts to add Gmail.", "state": "proposal_only" }
               ],
               "evidence": [
                 { "label": "Settings ref", "summary": "settings/provider-gates-preview" },
@@ -338,8 +338,8 @@
     },
     "calendar": {
       "eyebrow": "calendar",
-      "title": "Scheduling and time awareness",
-      "summary": "Schedulable preview lane with agenda, pending calendar proposals, conflict placeholder, reminder placeholder, source links, and event receipt placeholder.",
+      "title": "Calendar",
+      "summary": "View your month and week. Create events locally until calendar sync is enabled.",
       "proofState": "preview_only",
       "layout": "calendar-agenda-layout",
       "metrics": [
@@ -354,9 +354,9 @@
           "title": "Today and upcoming",
           "state": "preview_only",
           "items": [
-            { "time": "08:00", "title": "Transport pickup window", "summary": "Proposed from urgent family transport thread.", "tags": ["proposal_only", "source_inbox"] },
-            { "time": "11:30", "title": "Medication reminder placeholder", "summary": "Reminder fixture; no provider calendar exists.", "tags": ["preview_only", "provider_blocked"] },
-            { "time": "15:00", "title": "Framework sync review", "summary": "Task-linked review placeholder for UI framework freshness.", "tags": ["source_tasks", "documented"] }
+            { "time": "08:00", "title": "School pickup window", "summary": "From family transport email.", "tags": ["source_inbox"] },
+            { "time": "11:30", "title": "Medication reminder", "summary": "Daily reminder.", "tags": [] },
+            { "time": "15:00", "title": "Project review block", "summary": "Linked from Tasks.", "tags": ["source_tasks"] }
           ]
         },
         {
@@ -390,8 +390,8 @@
     },
     "tasks": {
       "eyebrow": "tasks",
-      "title": "Trackable work",
-      "summary": "Task preview lane with status groupings, due dates, source references, linked inbox/calendar items, and a next safe action.",
+      "title": "Tasks",
+      "summary": "Kanban board for open work. Link tasks back to mail and calendar.",
       "proofState": "preview_only",
       "layout": "task-board-layout",
       "metrics": [
@@ -410,29 +410,29 @@
               "label": "Proposed",
               "state": "proposal_only",
               "items": [
-                { "title": "Draft family transport reply", "summary": "Create draft text for review only.", "state": "draft_only", "meta": "due today / source inbox" },
-                { "title": "Create calendar proposal", "summary": "Map pickup window to a calendar draft.", "state": "proposal_only", "meta": "source calendar" }
+                { "title": "Reply to family transport email", "summary": "Draft a response for review.", "state": "draft_only", "meta": "due today · from Mail" },
+                { "title": "Add pickup to calendar", "summary": "Schedule school pickup window.", "state": "proposal_only", "meta": "from Calendar" }
               ]
             },
             {
               "label": "Blocked",
               "state": "blocked",
               "items": [
-                { "title": "Connect Gmail provider", "summary": "Blocked until provider identity, permission, and credential plan exists.", "state": "provider_blocked", "meta": "source settings" }
+                { "title": "Connect Gmail", "summary": "Add your account in Settings.", "state": "provider_blocked", "meta": "from Settings" }
               ]
             },
             {
               "label": "Review",
               "state": "needs_review",
               "items": [
-                { "title": "Verify PR #12 remains draft", "summary": "GitHub status must not be marked ready.", "state": "needs_review", "meta": "source receipts" }
+                { "title": "Review GitHub PR reminder", "summary": "Follow up on open review request.", "state": "needs_review", "meta": "from Mail" }
               ]
             },
             {
               "label": "Done",
               "state": "documented",
               "items": [
-                { "title": "Commit UI-003A shell", "summary": "Shell skeleton landed with static check pass.", "state": "documented", "meta": "receipt ff74509" }
+                { "title": "Inbox shell setup", "summary": "Initial app layout complete.", "state": "documented", "meta": "completed" }
               ]
             }
           ]
@@ -471,8 +471,8 @@
     },
     "automations": {
       "eyebrow": "automations",
-      "title": "Safe workflow proposals",
-      "summary": "Automation preview lane with templates, trigger conditions, approval gates, dry-run preview, disabled/active status, and receipt requirements.",
+      "title": "Automations",
+      "summary": "Create rules: when something happens, do an action. Rules do not run automatically in this build.",
       "proofState": "runtime_blocked",
       "layout": "automation-studio-layout",
       "metrics": [
@@ -487,9 +487,9 @@
           "title": "Proposal templates and gates",
           "state": "dry_run_only",
           "templates": [
-            { "title": "Draft reply from urgent thread", "summary": "When a thread is tagged urgent, propose a draft and require human review.", "trigger": "urgent_thread + needs_reply", "gate": "human approval + provider gate", "receipt": "draft proposal receipt", "state": "dry_run_only" },
-            { "title": "Create calendar proposal from email", "summary": "When a thread contains a time window, propose an event draft only.", "trigger": "time_window_detected", "gate": "calendar provider blocked", "receipt": "calendar proposal receipt", "state": "dry_run_only" },
-            { "title": "Create task from blocked provider notice", "summary": "When a provider gate blocks work, propose a follow-up task.", "trigger": "provider_blocked", "gate": "no external mutation", "receipt": "task proposal receipt", "state": "dry_run_only" }
+            { "title": "Draft reply for urgent mail", "summary": "When mail is marked urgent, suggest a draft for your review.", "trigger": "Urgent mail arrives", "gate": "You approve before send", "receipt": "Saved to Activity", "state": "dry_run_only" },
+            { "title": "Add event from email", "summary": "When an email mentions a time, suggest a calendar event.", "trigger": "Time mentioned in mail", "gate": "You confirm the event", "receipt": "Saved to Activity", "state": "dry_run_only" },
+            { "title": "Create task from notice", "summary": "When an account needs setup, add a follow-up task.", "trigger": "Account not connected", "gate": "You review the task", "receipt": "Saved to Activity", "state": "dry_run_only" }
           ]
         },
         {
@@ -531,10 +531,10 @@
           "title": "Provider and tool gates",
           "state": "provider_blocked",
           "providers": [
-            { "label": "Email provider", "summary": "Gmail or other mail provider adapter is represented as a blocked preview fixture.", "permissions": "read thread refs later; no send by default", "state": "provider_blocked" },
-            { "label": "Calendar provider", "summary": "Calendar adapter remains disconnected and cannot read/write events.", "permissions": "event proposals only", "state": "provider_blocked" },
-            { "label": "Task provider", "summary": "Task provider is a static lane fixture only.", "permissions": "local preview references only", "state": "provider_blocked" },
-            { "label": "GitHub/source integration", "summary": "Source integration is visible for project ops but cannot mutate repos.", "permissions": "read-only planning context", "state": "provider_blocked" },
+            { "label": "Gmail", "summary": "Read and organize mail. Connect in Settings.", "permissions": "Mail read · send requires approval", "state": "provider_blocked" },
+            { "label": "Google Calendar", "summary": "Sync events and reminders.", "permissions": "Calendar read/write", "state": "provider_blocked" },
+            { "label": "Tasks", "summary": "Sync tasks with your task provider.", "permissions": "Task read/write", "state": "provider_blocked" },
+            { "label": "GitHub", "summary": "Project notifications and review reminders.", "permissions": "Read-only notifications", "state": "provider_blocked" },
             { "label": "Local cloud/home server", "summary": "Placeholder only. ARCH-004 has not selected local cloud behavior.", "permissions": "undecided boundary", "state": "undecided" },
             { "label": "Framework package export", "summary": "Direct UI reuse remains blocked by xi-io.net#239.", "permissions": "tracked framework follow-up", "state": "direct_export_blocked" }
           ]
@@ -580,10 +580,10 @@
           "rows": [
             { "kind": "proof", "title": "UI-003A shell skeleton commit", "source": "ff74509", "state": "documented" },
             { "kind": "proof", "title": "Static Preview Check success", "source": "GitHub Actions", "state": "documented" },
-            { "kind": "proposal", "title": "Draft reply from transport thread", "source": "Inbox", "state": "proposal_only" },
-            { "kind": "draft", "title": "Calendar event draft placeholder", "source": "Calendar", "state": "proposal_only" },
-            { "kind": "gate", "title": "Provider connection blocked", "source": "Settings", "state": "provider_blocked" },
-            { "kind": "blocked", "title": "Runtime evidence unavailable", "source": "ARCH-004", "state": "runtime_blocked" }
+            { "kind": "proposal", "title": "Draft reply suggested", "source": "thread-family-safety-preview", "state": "proposal_only" },
+            { "kind": "draft", "title": "School pickup event drafted", "source": "Calendar", "state": "proposal_only" },
+            { "kind": "gate", "title": "Gmail connect not enabled", "source": "Settings", "state": "provider_blocked" },
+            { "kind": "blocked", "title": "Send blocked in this build", "source": "Inbox", "state": "runtime_blocked" }
           ]
         },
         {
@@ -685,9 +685,9 @@
       }
     },
     "settings": {
-      "eyebrow": "settings / provider gates",
-      "title": "Policies, privacy, and provider gates",
-      "summary": "Gatekeeper preview lane with account connection state, provider permissions, AI routing, local/cloud data boundary, draft-only egress policy, receipts settings, and disabled dangerous actions.",
+      "eyebrow": "settings",
+      "title": "Settings",
+      "summary": "Manage email accounts and preferences. Advanced provider and privacy controls are preview-only until runtime is enabled.",
       "proofState": "runtime_blocked",
       "layout": "settings-gate-layout",
       "metrics": [

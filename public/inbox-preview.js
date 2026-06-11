@@ -161,6 +161,7 @@ function defaultActivityOps() {
 function laneDisplayLabel(laneId, fallback) {
   if (laneId === 'inbox') return 'Mail';
   if (laneId === 'receipts') return 'Activity';
+  if (laneId === 'extensions') return 'Integrations';
   return fallback;
 }
 
@@ -404,6 +405,51 @@ function label(value) {
   return String(value || 'unknown').replaceAll('_', ' ');
 }
 
+function demoteMailDisplayText(text) {
+  if (text == null || text === '') return '';
+  let value = String(text);
+  const replacements = [
+    [/Personal Gmail preview/gi, 'Personal Gmail'],
+    [/GitHub notifications preview/gi, 'GitHub'],
+    [/Provider gate notice preview/gi, 'Provider notice'],
+    [/Family sender fixture/gi, 'Family'],
+    [/You fixture/gi, 'You'],
+    [/GitHub fixture/gi, 'GitHub'],
+    [/Settings fixture/gi, 'Settings'],
+    [/Ibal fixture/gi, 'Ibal'],
+    [/gmail preview/gi, 'Gmail'],
+    [/github preview/gi, 'GitHub'],
+    [/policy preview/gi, 'Policy'],
+    [/settings fixture/gi, 'Settings'],
+    [/preview-only/gi, ''],
+    [/preview only/gi, ''],
+    [/fixture/gi, ''],
+    [/\s{2,}/g, ' '],
+  ];
+  for (const [pattern, replacement] of replacements) {
+    value = value.replace(pattern, replacement);
+  }
+  return value.trim();
+}
+
+function formatMessageMeta(meta) {
+  if (!meta) return '';
+  return demoteMailDisplayText(String(meta).split('/')[0].trim());
+}
+
+function threadStatusUserLabel(state) {
+  const normalized = String(state || 'preview_only');
+  const labels = {
+    needs_review: 'Needs review',
+    human_required: 'Needs you',
+    urgent_thread: 'Urgent',
+    preview_only: 'Unread',
+    proposal_only: 'Proposal',
+    provider_blocked: 'Not connected',
+  };
+  return labels[normalized] || demoteMailDisplayText(label(normalized)) || 'Unread';
+}
+
 function pillClass(value) {
   const normalized = String(value || 'unknown');
   if (['available', 'preview_ready', 'draft_only', 'local_only', 'documented', 'confirmed'].includes(normalized)) return 'pill pill-ok';
@@ -427,7 +473,7 @@ function renderPillRow(items) {
 function renderThreadStatusChip(state) {
   const normalized = String(state || 'preview_only');
   const tone = ['needs_review', 'human_required', 'urgent_thread'].includes(normalized) ? 'is-urgent' : 'is-neutral';
-  return `<span class="thread-status-chip ${tone}">${escapeHtml(label(normalized))}</span>`;
+  return `<span class="thread-status-chip ${tone}">${escapeHtml(threadStatusUserLabel(normalized))}</span>`;
 }
 
 function renderCompactLabelLine(labels) {
@@ -1179,10 +1225,10 @@ function buildIbalProposalResponse(prompt) {
   const proposal = {
     id: createLocalId('ibal-prop'),
     title: pick?.title || 'Review current selection',
-    recommendation: pick?.summary || focus?.safeNext || 'Review fixture context before any runtime action.',
-    why: focus?.summary || pick?.summary || 'Context-scoped proposal from preview fixtures.',
-    evidence: `Lane: ${state.laneId}. Focus: ${focus?.title || 'none'}. Source: ${pick?.groupLabel || 'fixture'}.`,
-    blockers: focus?.blocked || 'Send, provider connect, automation execution, and repo mutation remain blocked.',
+    recommendation: demoteMailDisplayText(pick?.summary || focus?.safeNext || 'Review what you have selected and choose a next step.'),
+    why: demoteMailDisplayText(focus?.summary || pick?.summary || 'Based on your current view.'),
+    evidence: demoteMailDisplayText(`From ${label(state.laneId)} · ${focus?.title || 'current selection'}`),
+    blockers: demoteMailDisplayText(focus?.blocked || 'Send and automatic actions are not enabled in this build.'),
     sourceLanes: [state.laneId],
     safeNext: focus?.safeNext || pick?.title || 'Save as local draft if applicable.',
     state: 'proposal_only',
@@ -1248,10 +1294,6 @@ function clearIbalPreviewState() {
   saveState();
 }
 
-function accountFixtures() {
-  return getPayload().accounts || [];
-}
-
 function allPreviewAccounts() {
   return state.account.previewAccounts || [];
 }
@@ -1301,7 +1343,7 @@ function seedSampleDraftsIfNeeded() {
       body: 'Acknowledged. Scheduling review block and local task proposal.',
       status: 'approved',
       approval_state: 'approved',
-      task_hint: 'Ready for Simulate send (dry-run)',
+      task_hint: 'Ready to simulate send',
       created_at: now,
       updated_at: now,
     },
@@ -1798,7 +1840,7 @@ function simulateSendDraft(draftId) {
     summary: `Draft ${draft.id} → sent-event ${eventId}. Downstream proposals linked locally.`,
   });
   saveState();
-  setStatusMessage('Send simulated (dry-run). View event in Activity lane.', 'inbox');
+  setStatusMessage('Send simulated. See Activity for the record.', 'inbox');
   return event;
 }
 
@@ -2123,11 +2165,81 @@ function selectInboxThread(threadId) {
   document.querySelector(`[data-thread-id="${CSS.escape(threadId)}"]`)?.focus({ preventScroll: true });
 }
 
-function laneNavHint(status) {
-  const normalized = String(status || 'preview_only');
-  if (['provider_blocked', 'runtime_blocked', 'blocked'].includes(normalized)) return 'gated';
-  if (['proposal_only', 'dry_run_only'].includes(normalized)) return 'proposal';
+function laneNavHint() {
   return '';
+}
+
+function inspectorRailModeLabel(mode) {
+  const labels = {
+    thread: 'Mail',
+    draft: 'Draft',
+    batch: 'Approval',
+    sent: 'Sent',
+    lane: 'Overview',
+  };
+  return labels[String(mode || 'lane')] || 'Overview';
+}
+
+function activityKindLabel(kind) {
+  const labels = {
+    proof: 'Build check',
+    proposal: 'Proposal',
+    draft: 'Draft',
+    gate: 'Blocked',
+    blocked: 'Blocked',
+    send_sim: 'Sent (simulated)',
+  };
+  return labels[kind] || demoteMailDisplayText(label(kind));
+}
+
+function activityStateLabel(state) {
+  const labels = {
+    dry_run_only: 'Simulated',
+    preview_only: 'Recorded',
+    documented: 'Recorded',
+    needs_review: 'Needs review',
+    provider_blocked: 'Not connected',
+  };
+  return labels[state] || threadStatusUserLabel(state);
+}
+
+function parseActivitySource(source) {
+  if (!source) return null;
+  const text = String(source);
+  if (text.startsWith('draft:')) {
+    const draftId = text.replace('draft:', '').trim();
+    return draftId ? { lane: 'inbox', mailboxView: 'drafts', draftId, label: 'Open draft' } : null;
+  }
+  const threadMatch = text.match(/thread-[\w-]+/);
+  if (threadMatch) return { lane: 'inbox', threadId: threadMatch[0], label: 'Open in Mail' };
+  if (text.startsWith('inbox-thread:')) {
+    return { lane: 'inbox', threadId: text.replace('inbox-thread:', ''), label: 'Open in Mail' };
+  }
+  if (text.includes('inbox/')) {
+    const threadId = text.split('inbox/').pop()?.split(/[/?#]/)[0];
+    if (threadId?.startsWith('thread-')) return { lane: 'inbox', threadId, label: 'Open in Mail' };
+  }
+  return null;
+}
+
+function openActivitySource(target) {
+  if (!target) return;
+  state.laneId = target.lane;
+  if (target.mailboxView) state.inbox.mailboxView = target.mailboxView;
+  if (target.threadId) {
+    state.threadId = target.threadId;
+    state.focusId = `inbox-thread:${target.threadId}`;
+    state.inbox.mailboxView = state.inbox.mailboxView || 'inbox';
+  }
+  if (target.draftId) {
+    state.drafts.selectedDraftId = target.draftId;
+    state.focusId = `inbox-draft:${target.draftId}`;
+    state.inbox.mailboxView = target.mailboxView || 'drafts';
+    state.threadId = null;
+  }
+  window.location.hash = `${ROUTE_PREFIX}${target.lane}`;
+  saveState();
+  renderShell();
 }
 
 function trustTokenClass(status) {
@@ -2169,10 +2281,11 @@ function defaultFocusIdForLane(laneId) {
   }
   if (laneId === 'settings') {
     const key = state.settings.selectedKey;
+    if (key === 'user:preferences') return 'settings:local:preferences';
+    if (key === 'user:accounts') return 'settings:local:accounts';
     if (key?.startsWith('gate:')) return `settings:local:gate:${key}`;
     if (key) return `settings:local:policy:${key}`;
-    const firstGate = settingsGateFixtures()[0];
-    return firstGate ? `settings:local:gate:${firstGate.gateKey}` : 'lane:settings';
+    return 'settings:local:preferences';
   }
   return `lane:${laneId}`;
 }
@@ -2488,18 +2601,15 @@ function renderTrustRail() {
   const policy = getPayload().egressPolicy || {};
   const statements = policy.safetyStatements || [];
   return `
-    <section class="trust-rail" role="status" aria-live="polite" aria-label="Preview trust and safety state">
-      <strong>Preview shell</strong>
-      <span>Draft-only egress</span>
-      <span>No provider connection</span>
-      <span>Runtime undecided</span>
-      <details>
-        <summary>Trust details</summary>
+    <details class="trust-help-panel" aria-label="Help and safety">
+      <summary>Help</summary>
+      <div class="trust-help-body">
+        <p>This build saves drafts locally. Live mail sync and send are not enabled yet.</p>
         <ul>
-          ${statements.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+          ${statements.map((item) => `<li>${escapeHtml(demoteMailDisplayText(item))}</li>`).join('')}
         </ul>
-      </details>
-    </section>
+      </div>
+    </details>
   `;
 }
 
@@ -2508,11 +2618,11 @@ function renderTopBar() {
   return `
     <header class="app-topbar" role="banner">
       <section class="brand-block" aria-label="Product identity">
-        <p class="eyebrow">xi-io Inbox</p>
-        <h1>Unified ingress operations</h1>
+        <p class="eyebrow">xi-io</p>
+        <h1>Inbox</h1>
       </section>
 
-      <section class="topbar-context trust-cluster" aria-label="Active workspace and trust state">
+      <section class="topbar-context trust-cluster" aria-label="Account">
         <button class="account-session-trigger user-card-trigger ${state.account.open ? 'is-open' : ''}" type="button" data-account-action="toggle" aria-expanded="${state.account.open ? 'true' : 'false'}" aria-controls="accountSessionPanel">
           <span class="user-card-avatar" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'P').slice(0, 1).toUpperCase())}</span>
           <span class="trust-cluster-line">
@@ -2520,20 +2630,15 @@ function renderTopBar() {
             <span>${escapeHtml(selectedAccountFixture()?.displayName || activeWorkspaceLabel())}</span>
           </span>
         </button>
-        <div class="trust-cluster-line" aria-label="Global trust tokens">
-          ${renderTrustToken('provider gated', workspace.providerStatus || 'provider_blocked')}
-          ${renderTrustToken('privacy local only', workspace.privacyMode || 'local_only')}
-          ${renderTrustToken('ibal proposal only', workspace.ibalStatus || 'proposal_only')}
-        </div>
       </section>
 
-      <section class="topbar-command-cluster" aria-label="Ibal command entry">
+      <section class="topbar-command-cluster" aria-label="Search and Ibal">
         <button class="ibal-concierge-btn ${state.ibal.open ? 'is-open' : ''}" type="button" data-ibal-action="toggle" aria-expanded="${state.ibal.open ? 'true' : 'false'}" aria-controls="ibalConciergeDrawer">
-          Ibal concierge
+          Ask Ibal
         </button>
         <form class="command-box" data-ibal-form="command" aria-label="Search and command entry">
-          <span>Search / command</span>
-          <input type="search" name="prompt" autocomplete="off" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Ask Ibal (preview only)')}" value="${escapeHtml(state.ibal.prompt || '')}" />
+          <span>Search</span>
+          <input type="search" name="prompt" autocomplete="off" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Search mail and commands')}" value="${escapeHtml(state.ibal.prompt || '')}" />
         </form>
       </section>
 
@@ -2578,7 +2683,7 @@ function renderInboxMailNav() {
           <span>${escapeHtml(account.displayName)}</span>
           <strong>${account.counts?.unread ?? 0}</strong>
         </button>
-      `).join('') : '<p class="form-hint mail-nav-hint">No accounts connected. Add Gmail in user card.</p>'}
+      `).join('') : '<p class="form-hint mail-nav-hint">No accounts connected. Add Gmail in Settings.</p>'}
     </div>
   `;
 }
@@ -2586,7 +2691,7 @@ function renderInboxMailNav() {
 function renderNavigation() {
   return `
     <nav class="lane-nav mail-nav-pane" aria-label="Primary navigation">
-      <p class="lane-nav-label">Workbench</p>
+      <p class="lane-nav-label">Menu</p>
       ${navLanes().map((lane) => {
         const hint = laneNavHint(lane.status);
         return `
@@ -2713,6 +2818,58 @@ function renderNextSafeAction(section) {
   `;
 }
 
+function homeDashboardStats() {
+  const draftCount = allDraftItems().filter((draft) => draft.approval_state === 'none').length;
+  const approvalCount = allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state)).length;
+  return [
+    { label: 'Unread conversations', value: inboxThreads().length, action: 'open-lane', lane: 'inbox' },
+    { label: 'Drafts', value: draftCount, action: 'open-mailbox', lane: 'inbox', mailboxView: 'drafts' },
+    { label: 'Awaiting approval', value: approvalCount, action: 'open-mailbox', lane: 'inbox', mailboxView: 'approval-queue' },
+    { label: 'Open tasks', value: allLocalTasks().length, action: 'open-lane', lane: 'tasks' },
+    { label: 'Upcoming events', value: allCalendarProposals().length, action: 'open-lane', lane: 'calendar' },
+    { label: 'Email accounts', value: allPreviewAccounts().length, action: 'open-lane', lane: 'settings', settingsKey: 'user:accounts' },
+  ];
+}
+
+function renderHomeWorkspace() {
+  const urgentThread = inboxThreads().find((thread) => thread.state === 'needs_review') || inboxThreads()[0];
+  const stats = homeDashboardStats();
+  return `
+    <div class="lane-workspace home-workspace">
+      <div class="home-stats-grid" aria-label="At a glance">
+        ${stats.map((stat) => `
+          <button class="home-stat-card" type="button" data-home-action="${escapeHtml(stat.action)}" data-lane-id="${escapeHtml(stat.lane)}" ${stat.mailboxView ? `data-mailbox-view="${escapeHtml(stat.mailboxView)}"` : ''} ${stat.settingsKey ? `data-settings-key="${escapeHtml(stat.settingsKey)}"` : ''}>
+            <strong>${escapeHtml(String(stat.value))}</strong>
+            <span>${escapeHtml(stat.label)}</span>
+          </button>
+        `).join('')}
+      </div>
+      <section class="home-priority-panel" aria-label="Needs attention">
+        <h3>Needs attention</h3>
+        ${urgentThread ? `
+          <article class="home-priority-card">
+            <div>
+              <strong>${escapeHtml(demoteMailDisplayText(urgentThread.title))}</strong>
+              <p>${escapeHtml(demoteMailDisplayText(urgentThread.summary))}</p>
+            </div>
+            <button class="inbox-action-btn is-primary" type="button" data-home-action="open-thread" data-thread-id="${escapeHtml(urgentThread.id)}">Open in Mail</button>
+          </article>
+        ` : '<p class="lane-empty-state">No urgent items right now.</p>'}
+        <div class="home-quick-links">
+          <button class="inbox-action-btn" type="button" data-home-action="open-lane" data-lane-id="calendar">Calendar</button>
+          <button class="inbox-action-btn" type="button" data-home-action="open-lane" data-lane-id="tasks">Tasks</button>
+          <button class="inbox-action-btn" type="button" data-home-action="open-lane" data-lane-id="receipts">Activity</button>
+          <button class="inbox-action-btn" type="button" data-home-action="open-lane" data-lane-id="settings">Settings</button>
+        </div>
+      </section>
+      <details class="lane-reading-details home-advanced">
+        <summary>How this build works (advanced)</summary>
+        <p class="form-hint">Local preview with sample mail data. Connect Gmail in Settings when ready. Send and provider sync are not enabled in this build.</p>
+      </details>
+    </div>
+  `;
+}
+
 function renderLocalTriageChip(threadId) {
   const triage = inboxTriageFor(threadId);
   if (triage.deferred) return '<span class="thread-status-chip is-neutral">deferred locally</span>';
@@ -2750,7 +2907,7 @@ function renderInboxComposeSheet() {
           <input id="compose-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(compose.subject || '')}" />
           <label for="compose-body">Message</label>
           <textarea id="compose-body" name="body" rows="8">${escapeHtml(compose.body || '')}</textarea>
-          <p class="form-hint">Draft only — not sent. No provider connection.</p>
+          <p class="form-hint">Saved as a draft. Send is not enabled in this build.</p>
           <div class="inbox-form-actions">
             <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="compose-save">Save draft</button>
             <button class="inbox-action-btn" type="button" data-inbox-action="compose-clear">Discard</button>
@@ -2806,10 +2963,13 @@ function renderPostSendPreview(draft) {
     ? draft.post_send_plan.map((step) => step.summary || step)
     : sendConsequencePreview(draft);
   return `
-    <details class="inbox-reading-details post-send-preview" open>
-      <summary>${draft.status === 'sent' ? 'Post-send plan (executed dry-run)' : 'Send consequence preview (dry-run)'}</summary>
-      <ul class="post-send-plan-list">${steps.map((step) => `<li>${escapeHtml(typeof step === 'string' ? step : step.summary)}</li>`).join('')}</ul>
-      <p class="form-hint">Tier 1 preview only. Provider send and runtime automation execution remain blocked.</p>
+    <details class="inbox-reading-details post-send-preview">
+      <summary>${draft.status === 'sent' ? 'After send' : 'If you send'}</summary>
+      <ul class="post-send-plan-list">${steps.map((step) => `<li>${escapeHtml(demoteMailDisplayText(typeof step === 'string' ? step : step.summary))}</li>`).join('')}</ul>
+      <details class="inbox-reading-details mail-advanced-details">
+        <summary>Preview limitations (advanced)</summary>
+        <p class="form-hint">Simulated send only. Provider delivery and automation execution remain blocked in this preview.</p>
+      </details>
     </details>
   `;
 }
@@ -2834,7 +2994,7 @@ function renderDraftReadingPane(draft) {
         </div>
         ${renderDraftStatusChip(draft)}
       </header>
-      ${draft.task_hint ? `<p class="draft-task-hint-banner">${escapeHtml(draft.task_hint)}</p>` : ''}
+      ${draft.task_hint ? `<p class="draft-task-hint-banner">${escapeHtml(demoteMailDisplayText(draft.task_hint))}</p>` : ''}
       <form class="inbox-draft-form" data-inbox-form="draft-edit" aria-label="Edit draft">
         <input type="hidden" name="draftId" value="${escapeHtml(draft.id)}" />
         <label for="draft-to-${escapeHtml(draft.id)}">To</label>
@@ -2843,7 +3003,6 @@ function renderDraftReadingPane(draft) {
         <input id="draft-subject-${escapeHtml(draft.id)}" name="subject" type="text" autocomplete="off" value="${escapeHtml(draft.subject || '')}" />
         <label for="draft-body-${escapeHtml(draft.id)}">Message</label>
         <textarea id="draft-body-${escapeHtml(draft.id)}" name="body" rows="10">${escapeHtml(draft.body || '')}</textarea>
-        <p class="form-hint">Draft object in local storage (schema v3). Send and provider writes remain blocked.</p>
         <div class="inbox-form-actions">
           <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="draft-save">Save draft</button>
           ${draft.approval_state === 'none' ? `
@@ -2854,14 +3013,18 @@ function renderDraftReadingPane(draft) {
             <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
           ` : ''}
           ${draft.approval_state === 'approved' && draft.status !== 'sent' ? `
-            <button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-simulate-send" data-draft-id="${escapeHtml(draft.id)}">Simulate send (dry-run)</button>
-            <button class="inbox-action-btn is-blocked" type="button" disabled>Provider send blocked</button>
+            <button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-simulate-send" data-draft-id="${escapeHtml(draft.id)}">Simulate send</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>
             <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
           ` : ''}
-          ${draft.status === 'sent' ? `<p class="form-hint">Simulated send complete. Open Activity lane for sent-event ledger.</p>` : ''}
+          ${draft.status === 'sent' ? `<p class="form-hint">Simulated send complete. See Activity for the record.</p>` : ''}
           <button class="inbox-action-btn is-danger" type="button" data-inbox-action="draft-delete" data-draft-id="${escapeHtml(draft.id)}">Delete draft</button>
         </div>
       </form>
+      <details class="inbox-reading-details mail-advanced-details">
+        <summary>Draft details (advanced)</summary>
+        <p class="form-hint">Saved locally in this preview. Send and provider sync are not enabled.</p>
+      </details>
       ${['queued', 'approved', 'sent'].includes(draft.status) || ['queued', 'approved'].includes(draft.approval_state) ? renderPostSendPreview(draft) : ''}
     </section>
   `;
@@ -2888,8 +3051,8 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
     <section class="inbox-reading-pane mail-reading-pane" aria-label="Message reading pane">
       <header class="inbox-reading-head">
         <div>
-          <h3>${escapeHtml(thread.title)}</h3>
-          <p class="inbox-reading-meta">${escapeHtml(thread.sender || '')} · ${escapeHtml(thread.receivedAt || '')}</p>
+          <h3>${escapeHtml(demoteMailDisplayText(thread.title))}</h3>
+          <p class="inbox-reading-meta">${escapeHtml(demoteMailDisplayText(thread.sender || ''))} · ${escapeHtml(thread.receivedAt || '')}</p>
         </div>
         ${renderThreadStatusChip(thread.state || 'needs_review')}
       </header>
@@ -2897,19 +3060,24 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
         ${messages.map((message) => `
           <article class="message-row">
             <header class="message-row-head">
-              <strong>${escapeHtml(message.from)}</strong>
-              <small>${escapeHtml(message.meta)}</small>
+              <strong>${escapeHtml(demoteMailDisplayText(message.from))}</strong>
+              ${formatMessageMeta(message.meta) ? `<small>${escapeHtml(formatMessageMeta(message.meta))}</small>` : ''}
             </header>
-            <p class="message-body">${escapeHtml(message.summary)}</p>
+            <p class="message-body">${escapeHtml(demoteMailDisplayText(message.summary))}</p>
           </article>
         `).join('')}
       </div>
+      ${attachments.length ? `
+        <ul class="mail-attachment-list" aria-label="Attachments">
+          ${attachments.map((item) => `<li>${escapeHtml(item.label)}</li>`).join('')}
+        </ul>
+      ` : ''}
       ${state.inbox.replyOpen ? `
         <form class="inbox-draft-form inbox-reply-sheet" data-inbox-form="reply" aria-label="Reply draft">
           <label for="reply-to">To</label>
-          <input id="reply-to" name="to" type="text" autocomplete="off" value="${escapeHtml(reply.to || thread.sender || '')}" />
+          <input id="reply-to" name="to" type="text" autocomplete="off" value="${escapeHtml(reply.to || demoteMailDisplayText(thread.sender || ''))}" />
           <label for="reply-subject">Subject</label>
-          <input id="reply-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(reply.subject || (thread.title ? `Re: ${thread.title}` : ''))}" />
+          <input id="reply-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(reply.subject || (thread.title ? `Re: ${demoteMailDisplayText(thread.title)}` : ''))}" />
           <label for="reply-body">Message</label>
           <textarea id="reply-body" name="body" rows="6">${escapeHtml(reply.body || '')}</textarea>
           <div class="inbox-form-actions">
@@ -2919,19 +3087,19 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
           </div>
         </form>
       ` : ''}
-      <details class="inbox-reading-details">
-        <summary>Details and attachments</summary>
+      <details class="inbox-reading-details mail-advanced-details">
+        <summary>More about this conversation</summary>
         <dl class="thread-metadata-grid">
           ${(thread.fields || thread.detailFields || []).map((field) => `
-            <div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(field.value)}</dd></div>
+            <div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(demoteMailDisplayText(field.value))}</dd></div>
           `).join('')}
         </dl>
-        ${evidence.length ? `<ul class="detail-list">${evidence.map((item) => `<li>${escapeHtml(item.label)}: ${escapeHtml(item.summary)}</li>`).join('')}</ul>` : ''}
-        ${attachments.length ? `<p class="form-hint">Attachments: ${attachments.map((item) => escapeHtml(item.label)).join(', ')} (provider blocked)</p>` : ''}
+        ${evidence.length ? `<ul class="detail-list">${evidence.map((item) => `<li>${escapeHtml(item.label)}: ${escapeHtml(demoteMailDisplayText(item.summary))}</li>`).join('')}</ul>` : ''}
+        <p class="form-hint">Preview data only. Live mail sync and send are not enabled.</p>
       </details>
       ${(localReceiptsForThread(threadId).length || localProposalsForThread(threadId).length) ? `
         <details class="inbox-reading-details">
-          <summary>Local drafts and receipts</summary>
+          <summary>Related activity</summary>
           ${renderLocalReceiptsPanel(threadId)}
         </details>
       ` : ''}
@@ -2983,11 +3151,11 @@ function renderInboxWorkspace() {
             <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <div class="thread-row-main">
                 <div class="thread-row-top">
-                  <strong class="thread-sender">${escapeHtml(thread.sender || thread.title)}</strong>
+                  <strong class="thread-sender">${escapeHtml(demoteMailDisplayText(thread.sender || thread.title))}</strong>
                   <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
                 </div>
-                <span class="thread-subject">${escapeHtml(thread.title)}</span>
-                <p class="thread-snippet">${escapeHtml(thread.summary)}</p>
+                <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
+                <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
               </div>
               <div class="thread-row-meta">
                 ${renderLocalTriageChip(thread.id)}
@@ -3030,11 +3198,11 @@ function renderInboxLayout(section) {
             <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
               <div class="thread-row-main">
                 <div class="thread-row-top">
-                  <strong class="thread-sender">${escapeHtml(thread.sender || thread.title)}</strong>
+                  <strong class="thread-sender">${escapeHtml(demoteMailDisplayText(thread.sender || thread.title))}</strong>
                   <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
                 </div>
-                <span class="thread-subject">${escapeHtml(thread.title)}</span>
-                <p class="thread-snippet">${escapeHtml(thread.summary)}</p>
+                <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
+                <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
               </div>
               <div class="thread-row-meta">
                 ${renderThreadStatusChip(thread.state || 'preview_only')}
@@ -3410,7 +3578,7 @@ function renderCalendarReadingPane() {
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(proposal.title)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(proposal.dateTime || 'No time set')} · local proposal</p>
+            <p class="lane-reading-meta">${escapeHtml(proposal.dateTime || 'No time set')}</p>
           </div>
         </header>
         <p>${escapeHtml(proposal.notes || 'No notes.')}</p>
@@ -3434,7 +3602,7 @@ function renderCalendarReadingPane() {
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(agenda.title)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(agenda.time)} · preview fixture</p>
+            <p class="lane-reading-meta">${escapeHtml(agenda.time)}</p>
           </div>
         </header>
         <p>${escapeHtml(agenda.summary)}</p>
@@ -3472,6 +3640,40 @@ function renderCalendarReadingPane() {
   return `<section class="lane-reading-pane is-empty" aria-label="Event details"><p class="lane-empty-state">Select a day or event, or create one.</p></section>`;
 }
 
+function renderCalendarWeekStrip() {
+  const { year, month } = calendarViewMonthParts();
+  const today = new Date();
+  const inViewMonth = today.getFullYear() === year && today.getMonth() === month;
+  const anchorDay = state.calendar.selectedDay || (inViewMonth ? today.getDate() : 1);
+  const anchor = new Date(year, month, anchorDay);
+  const mondayOffset = anchor.getDay() === 0 ? -6 : 1 - anchor.getDay();
+  const cells = [];
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() + mondayOffset + i);
+    cells.push(d);
+  }
+  return `
+    <div class="calendar-week-strip" aria-label="Week view">
+      ${cells.map((date) => {
+    const inMonth = date.getMonth() === month && date.getFullYear() === year;
+    const day = date.getDate();
+    const isToday = date.toDateString() === today.toDateString();
+    const isSelected = inMonth && state.calendar.selectedDay === day;
+    return `
+        <button class="calendar-week-day ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''} ${inMonth ? '' : 'is-outside'}" type="button"
+          data-calendar-action="${inMonth ? 'select-day' : 'shift-to-day'}"
+          ${inMonth ? `data-day="${day}"` : `data-shift-year="${date.getFullYear()}" data-shift-month="${date.getMonth() + 1}" data-shift-day="${day}"`}
+          aria-pressed="${isSelected ? 'true' : 'false'}">
+          <span>${escapeHtml(date.toLocaleDateString(undefined, { weekday: 'short' }))}</span>
+          <strong>${day}</strong>
+        </button>
+      `;
+  }).join('')}
+    </div>
+  `;
+}
+
 function renderCalendarWorkspace() {
   return `
     <div class="lane-workspace calendar-workspace">
@@ -3484,7 +3686,10 @@ function renderCalendarWorkspace() {
         </details>
       </div>
       <div class="lane-workspace-grid calendar-workspace-grid">
-        ${renderCalendarMonthGrid()}
+        <div class="calendar-main-pane">
+          ${renderCalendarWeekStrip()}
+          ${renderCalendarMonthGrid()}
+        </div>
         ${renderCalendarReadingPane()}
       </div>
       ${renderCalendarEventSheet()}
@@ -3627,7 +3832,7 @@ function renderTasksKanbanBoard() {
                 ${item.kind === 'local' ? `data-task-id="${escapeHtml(item.id)}"` : `data-focus-id="${escapeHtml(item.focusId)}"`}
                 data-inspector-focus="${escapeHtml(item.focusId)}">
                 <strong>${escapeHtml(item.title)}</strong>
-                <p>${escapeHtml(item.summary || '')}</p>
+                <p>${escapeHtml(demoteMailDisplayText(item.summary || (item.kind === 'local' && item.task?.dueDate ? `Due ${item.task.dueDate}` : '')))}</p>
                 ${renderTaskSourceLink(item)}
               </button>
             `;
@@ -3725,12 +3930,12 @@ function renderTasksReadingPane() {
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(fixture.title)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(fixture.column)} · preview fixture</p>
+            <p class="lane-reading-meta">${escapeHtml(fixture.column)}</p>
           </div>
         </header>
-        <p>${escapeHtml(fixture.summary)}</p>
+        <p>${escapeHtml(demoteMailDisplayText(fixture.summary))}</p>
         <div class="task-source-row">${renderTaskSourceLink(fixture)}</div>
-        ${fixture.meta ? `<p class="form-hint">${escapeHtml(fixture.meta)}</p>` : ''}
+        ${fixture.meta ? `<p class="form-hint">${escapeHtml(demoteMailDisplayText(fixture.meta))}</p>` : ''}
         ${links.length ? `
           <details class="lane-reading-details">
             <summary>Linked sources</summary>
@@ -3958,7 +4163,7 @@ function renderAutomationsRuleForm(ruleId) {
       <textarea id="auto-proposal" name="proposal" rows="2">${escapeHtml(selected?.proposal || '')}</textarea>
       <label for="auto-gate">Approval gate</label>
       <input id="auto-gate" name="gate" type="text" autocomplete="off" value="${escapeHtml(selected?.gate || 'human approval required')}" />
-      <p class="form-hint">Dry-run only — execution and enablement blocked.</p>
+      <p class="form-hint">Rules are saved locally. Automatic run is not enabled in this build.</p>
       <div class="inbox-form-actions">
         <button class="inbox-action-btn is-primary" type="submit" data-automations-action="rule-save">${id ? 'Save changes' : 'Save rule'}</button>
         <button class="inbox-action-btn is-blocked" type="button" disabled>Enable blocked</button>
@@ -3997,18 +4202,22 @@ function renderAutomationsReadingPane() {
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(rule.title)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(label(rule.state))} · dry-run only</p>
+            <p class="lane-reading-meta">${rule.state === 'enabled' ? 'Enabled' : 'Off'} · not running in this build</p>
           </div>
         </header>
-        <p><strong>Trigger:</strong> ${escapeHtml(rule.trigger || 'unset')}</p>
-        <p><strong>Condition:</strong> ${escapeHtml(rule.condition || 'unset')}</p>
-        <p><strong>Proposal:</strong> ${escapeHtml(rule.proposal || 'unset')}</p>
-        <p><strong>Gate:</strong> ${escapeHtml(rule.gate || 'unset')}</p>
+        <div class="automation-rule-flow" aria-label="Rule flow">
+          <div class="rule-flow-step"><span class="rule-flow-label">When</span><p>${escapeHtml(rule.trigger || 'Add a trigger')}</p></div>
+          <div class="rule-flow-arrow" aria-hidden="true">→</div>
+          <div class="rule-flow-step"><span class="rule-flow-label">If</span><p>${escapeHtml(rule.condition || 'Always')}</p></div>
+          <div class="rule-flow-arrow" aria-hidden="true">→</div>
+          <div class="rule-flow-step"><span class="rule-flow-label">Then</span><p>${escapeHtml(rule.proposal || 'Add an action')}</p></div>
+        </div>
+        <p class="form-hint">Requires: ${escapeHtml(rule.gate || 'your approval')}</p>
         <div class="inbox-action-toolbar">
-          <button class="inbox-action-btn is-primary" type="button" data-automations-action="dry-run" data-rule-id="${escapeHtml(rule.id)}">Run dry-run</button>
+          <button class="inbox-action-btn is-primary" type="button" data-automations-action="dry-run" data-rule-id="${escapeHtml(rule.id)}">Test rule</button>
           <button class="inbox-action-btn" type="button" data-automations-action="edit-rule" data-rule-id="${escapeHtml(rule.id)}">Edit</button>
           <button class="inbox-action-btn" type="button" data-automations-action="rule-clear" data-rule-id="${escapeHtml(rule.id)}">Delete</button>
-          <button class="inbox-action-btn is-blocked" type="button" disabled>Enable blocked</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Turn on blocked</button>
         </div>
         ${state.automations.lastDryRun?.ruleId === rule.id ? `
           <details class="lane-reading-details" open>
@@ -4063,19 +4272,25 @@ function renderAutomationsWorkspace() {
         </details>
       </div>
       <div class="lane-workspace-grid automations-workspace-grid">
-        <div class="automations-item-list" aria-label="Rules and templates">
-          ${rules.map((rule) => `
+        <div class="automations-item-list" aria-label="Your rules">
+          <p class="settings-section-label">Your rules</p>
+          ${rules.length ? rules.map((rule) => `
             <button class="automations-list-row ${rule.id === selectedId ? 'is-selected' : ''}" type="button" data-automations-action="select-rule" data-rule-id="${escapeHtml(rule.id)}" data-inspector-focus="${escapeHtml(`automations:local:${rule.id}`)}">
-              <span class="automations-list-badge">rule</span>
-              <div><strong>${escapeHtml(rule.title)}</strong><p>${escapeHtml(rule.trigger || '')}</p></div>
+              <span class="automations-list-badge">${rule.state === 'enabled' ? 'on' : 'off'}</span>
+              <div><strong>${escapeHtml(rule.title)}</strong><p>${escapeHtml(rule.trigger || 'No trigger yet')}</p></div>
             </button>
-          `).join('')}
-          ${templates.map((item) => `
-            <button class="automations-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-automations-action="select-template" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
-              <span class="automations-list-badge">template</span>
-              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.summary)}</p></div>
-            </button>
-          `).join('')}
+          `).join('') : '<p class="form-hint">No rules yet. Create one to automate repetitive work.</p>'}
+          <details class="settings-advanced-section">
+            <summary>Starter templates</summary>
+            <div class="settings-advanced-list">
+              ${templates.map((item) => `
+                <button class="automations-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-automations-action="select-template" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
+                  <span class="automations-list-badge">idea</span>
+                  <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(demoteMailDisplayText(item.summary))}</p></div>
+                </button>
+              `).join('')}
+            </div>
+          </details>
         </div>
         ${renderAutomationsReadingPane()}
       </div>
@@ -4190,15 +4405,15 @@ function renderExtensionsReadingPane() {
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(install.label)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(label(install.state))} · preview install</p>
+            <p class="lane-reading-meta">Added locally · not connected</p>
           </div>
         </header>
-        <p><strong>Permissions:</strong> ${escapeHtml(install.permissions || 'unset')}</p>
+        <p><strong>Access:</strong> ${escapeHtml(install.permissions || 'Not set')}</p>
         ${install.provisionNotes ? `<p><strong>Notes:</strong> ${escapeHtml(install.provisionNotes)}</p>` : ''}
         <div class="inbox-action-toolbar">
-          <button class="inbox-action-btn is-primary" type="button" data-extensions-action="edit-provision" data-install-id="${escapeHtml(install.id)}">Edit provision notes</button>
-          <button class="inbox-action-btn" type="button" data-extensions-action="remove-install" data-install-id="${escapeHtml(install.id)}">Remove install</button>
-          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect/OAuth blocked</button>
+          <button class="inbox-action-btn is-primary" type="button" data-extensions-action="edit-provision" data-install-id="${escapeHtml(install.id)}">Edit notes</button>
+          <button class="inbox-action-btn" type="button" data-extensions-action="remove-install" data-install-id="${escapeHtml(install.id)}">Remove</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
         </div>
         ${(state.extensions.receipts || []).filter((r) => r.installId === install.id).length ? `
           <details class="lane-reading-details"><summary>Receipts</summary>${renderExtensionsLocalReceipts(install.id)}</details>
@@ -4209,20 +4424,20 @@ function renderExtensionsReadingPane() {
   if (fixture) {
     const localInstall = installForFixture(fixture.fixtureId);
     return `
-      <section class="lane-reading-pane" aria-label="Provider details">
+      <section class="lane-reading-pane" aria-label="Integration details">
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(fixture.label)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(label(fixture.state))}${localInstall ? ' · preview installed' : ''}</p>
+            <p class="lane-reading-meta">${localInstall ? 'Added locally' : 'Not connected'}</p>
           </div>
         </header>
-        <p>${escapeHtml(fixture.summary)}</p>
-        <p class="form-hint">Permissions: ${escapeHtml(fixture.permissions)}</p>
+        <p>${escapeHtml(demoteMailDisplayText(fixture.summary || ''))}</p>
+        <p class="form-hint">Access: ${escapeHtml(fixture.permissions || 'Standard permissions')}</p>
         <div class="inbox-action-toolbar">
           ${localInstall
-    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(localInstall.id)}">View install</button>`
-    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-fixture-id="${escapeHtml(fixture.fixtureId)}">Record preview install</button>`}
-          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect/OAuth blocked</button>
+    ? `<button class="inbox-action-btn" type="button" data-extensions-action="select-install" data-install-id="${escapeHtml(localInstall.id)}">View details</button>`
+    : `<button class="inbox-action-btn is-primary" type="button" data-extensions-action="preview-install" data-fixture-id="${escapeHtml(fixture.fixtureId)}">Add integration</button>`}
+          <button class="inbox-action-btn is-blocked" type="button" disabled>Connect</button>
         </div>
         ${boundaryItems.length ? `
           <details class="lane-reading-details">
@@ -4235,7 +4450,7 @@ function renderExtensionsReadingPane() {
       </section>
     `;
   }
-  return `<section class="lane-reading-pane is-empty" aria-label="Provider details"><p class="lane-empty-state">Select a provider fixture.</p></section>`;
+  return `<section class="lane-reading-pane is-empty" aria-label="Integration details"><p class="lane-empty-state">Select an integration to view details.</p></section>`;
 }
 
 function renderExtensionsWorkspace() {
@@ -4250,20 +4465,24 @@ function renderExtensionsWorkspace() {
           <button class="inbox-action-btn is-danger" type="button" data-extensions-action="clear-all">Clear local extensions state</button>
         </details>
       </div>
-      <div class="lane-workspace-grid extensions-workspace-grid">
-        <div class="extensions-item-list" aria-label="Provider fixtures">
+      <div class="extensions-marketplace-grid" aria-label="Integrations">
           ${fixtures.map((fixture) => {
             const install = installForFixture(fixture.fixtureId);
             const isSelected = state.focusId === fixture.focusId
               || (install && (selectedId === install.id || state.focusId === `extensions:local:${install.id}`));
             return `
-            <button class="extensions-list-row ${isSelected ? 'is-selected' : ''}" type="button" data-extensions-action="select-fixture" data-fixture-id="${escapeHtml(fixture.fixtureId)}" data-inspector-focus="${escapeHtml(fixture.focusId)}">
-              <span class="extensions-list-badge">${install ? 'installed' : escapeHtml(label(fixture.state))}</span>
-              <div><strong>${escapeHtml(fixture.label)}</strong><p>${escapeHtml(fixture.permissions)}</p></div>
+            <button class="extensions-market-card ${isSelected ? 'is-selected' : ''}" type="button" data-extensions-action="select-fixture" data-fixture-id="${escapeHtml(fixture.fixtureId)}" data-inspector-focus="${escapeHtml(fixture.focusId)}">
+              <header>
+                <strong>${escapeHtml(fixture.label)}</strong>
+                <span class="extensions-market-badge">${install ? 'Added' : 'Available'}</span>
+              </header>
+              <p>${escapeHtml(demoteMailDisplayText(fixture.summary || fixture.permissions || ''))}</p>
+              <span class="form-hint">${install ? 'Added locally' : 'Connect when runtime is enabled'}</span>
             </button>
           `;
           }).join('')}
-        </div>
+      </div>
+      <div class="extensions-detail-pane">
         ${renderExtensionsReadingPane()}
       </div>
       ${renderExtensionsProvisionSheet()}
@@ -4353,14 +4572,55 @@ function renderSettingsEditSheet() {
   `;
 }
 
+function renderEmailAccountsBlock() {
+  const accounts = allPreviewAccounts();
+  const activeAccount = selectedAccountFixture();
+  const activeAccountId = activeAccount?.accountId || '';
+  return `
+    <div class="settings-accounts-block">
+      <div class="inbox-form-actions">
+        <h3>Email accounts (${accounts.length})</h3>
+        <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+      </div>
+      ${state.account.accountFormOpen ? `
+        <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
+          <label for="settings-account-email-input">Gmail address</label>
+          <input id="settings-account-email-input" name="email" type="email" required autocomplete="email" placeholder="you@gmail.com" />
+          <p class="form-hint">Connect uses the local metadata adapter (GMAIL-001C). Tokens stay in tools/gmail/data/ — never in this browser preview.</p>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit">Queue account</button>
+            <button class="inbox-action-btn" type="button" data-account-action="cancel-account-form">Cancel</button>
+          </div>
+        </form>
+      ` : ''}
+      ${accounts.length ? accounts.map((account) => `
+        <article class="account-switch-row ${account.accountId === activeAccountId ? 'is-active' : ''}">
+          <div>
+            <strong>${escapeHtml(account.displayName)}</strong>
+            <p>${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))}</p>
+            <span class="form-hint">unread ${account.counts?.unread ?? 0} · needs reply ${account.counts?.needsReply ?? 0}</span>
+          </div>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
+              ${account.accountId === activeAccountId ? 'Active' : 'Switch'}
+            </button>
+            <button class="inbox-action-btn is-primary" type="button" data-account-action="connect-gmail" data-account-id="${escapeHtml(account.accountId)}">Connect Gmail</button>
+            <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
+          </div>
+        </article>
+      `).join('') : '<p class="lane-empty-state">No email accounts yet. Add your Gmail address, then connect via the local adapter CLI.</p>'}
+    </div>
+  `;
+}
+
 function renderUserPreferencesPane() {
   const prefs = state.settings.userPrefs || defaultSettingsOps().userPrefs;
   return `
     <section class="lane-reading-pane" aria-label="User preferences">
       <header class="lane-reading-head">
         <div>
-          <h3>User preferences</h3>
-          <p class="lane-reading-meta">Local preview only · no runtime apply</p>
+          <h3>Preferences</h3>
+          <p class="lane-reading-meta">Display and notification choices · saved locally in preview</p>
         </div>
       </header>
       <form class="inbox-draft-form" data-settings-form="preferences" aria-label="User preferences">
@@ -4388,29 +4648,53 @@ function renderUserPreferencesPane() {
   `;
 }
 
+function renderUserAccountsPane() {
+  return `
+    <section class="lane-reading-pane" aria-label="Email accounts">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Email accounts</h3>
+          <p class="lane-reading-meta">Add Gmail, then finish connect in the local CLI · metadata only</p>
+        </div>
+      </header>
+      ${renderEmailAccountsBlock()}
+      <details class="lane-reading-details settings-advanced-hint">
+        <summary>How Gmail connect works (advanced)</summary>
+        <pre class="settings-cli-hint">${escapeHtml(gmailConnectInstructions())}</pre>
+        <p class="form-hint">No passwords or OAuth tokens are stored in this preview. Send and message bodies remain blocked.</p>
+      </details>
+    </section>
+  `;
+}
+
 function renderSettingsReadingPane() {
   const key = state.settings.selectedKey;
   if (key === 'user:preferences') return renderUserPreferencesPane();
+  if (key === 'user:accounts') return renderUserAccountsPane();
   const gate = isSettingsGateKey(key) ? settingsGateFixtures().find((entry) => entry.gateKey === key) : null;
   const policy = !gate ? settingsPolicyFixtures().find((entry) => entry.policyKey === key) : null;
   const gateOverride = gate ? gateOverrideFor(gate.gateKey) : null;
   const policyOverride = policy ? policyOverrideFor(policy.policyKey) : null;
   if (gate) {
     return `
-      <section class="lane-reading-pane" aria-label="Gate details">
+      <section class="lane-reading-pane" aria-label="Advanced connection control">
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(gate.label)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(label(gate.state))} · provider gate</p>
+            <p class="lane-reading-meta">${escapeHtml(label(gate.state))} · preview only · not applied</p>
           </div>
         </header>
         <p>${escapeHtml(gate.summary)}</p>
-        <p><strong>Control:</strong> ${escapeHtml(gateOverride?.previewControl || gate.control)}</p>
-        ${gateOverride?.notes ? `<p><strong>Notes:</strong> ${escapeHtml(gateOverride.notes)}</p>` : ''}
+        <p><strong>Status in preview:</strong> ${escapeHtml(gateOverride?.previewControl || gate.control)}</p>
+        ${gateOverride?.notes ? `<p><strong>Your notes:</strong> ${escapeHtml(gateOverride.notes)}</p>` : ''}
         <div class="inbox-action-toolbar">
-          <button class="inbox-action-btn is-primary" type="button" data-settings-action="edit-item" data-settings-key="${escapeHtml(gate.gateKey)}">Edit planning notes</button>
+          <button class="inbox-action-btn is-primary" type="button" data-settings-action="edit-item" data-settings-key="${escapeHtml(gate.gateKey)}">Edit notes</button>
           <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
         </div>
+        <details class="lane-reading-details settings-advanced-hint">
+          <summary>Technical detail (advanced)</summary>
+          <p class="form-hint">Provider gate fixture · runtime connect and policy apply remain blocked in static preview.</p>
+        </details>
         ${(state.settings.receipts || []).filter((r) => r.key === gate.gateKey).length ? `
           <details class="lane-reading-details"><summary>Receipts</summary>${renderSettingsLocalReceipts(gate.gateKey)}</details>
         ` : ''}
@@ -4419,33 +4703,37 @@ function renderSettingsReadingPane() {
   }
   if (policy) {
     return `
-      <section class="lane-reading-pane" aria-label="Policy details">
+      <section class="lane-reading-pane" aria-label="Advanced privacy rule">
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(policy.label)}</h3>
-            <p class="lane-reading-meta">policy · ${escapeHtml(label(policyOverride?.previewValue || policy.value))}</p>
+            <p class="lane-reading-meta">${escapeHtml(label(policyOverride?.previewValue || policy.value))} · preview only</p>
           </div>
         </header>
         <p>${escapeHtml(policy.summary)}</p>
-        <p><strong>Fixture value:</strong> ${escapeHtml(policy.value)}</p>
-        ${policyOverride?.notes ? `<p><strong>Notes:</strong> ${escapeHtml(policyOverride.notes)}</p>` : ''}
+        ${policyOverride?.notes ? `<p><strong>Your notes:</strong> ${escapeHtml(policyOverride.notes)}</p>` : ''}
         <div class="inbox-action-toolbar">
           <button class="inbox-action-btn is-primary" type="button" data-settings-action="edit-item" data-settings-key="${escapeHtml(policy.policyKey)}">Edit preview value</button>
           <button class="inbox-action-btn is-blocked" type="button" disabled>Apply blocked</button>
         </div>
+        <details class="lane-reading-details settings-advanced-hint">
+          <summary>Technical detail (advanced)</summary>
+          <p class="form-hint">Default fixture value: ${escapeHtml(policy.value)}. Runtime policy apply remains blocked.</p>
+        </details>
         ${(state.settings.receipts || []).filter((r) => r.key === policy.policyKey).length ? `
           <details class="lane-reading-details"><summary>Receipts</summary>${renderSettingsLocalReceipts(policy.policyKey)}</details>
         ` : ''}
       </section>
     `;
   }
-  return `<section class="lane-reading-pane is-empty" aria-label="Setting details"><p class="lane-empty-state">Select a gate or policy.</p></section>`;
+  return `<section class="lane-reading-pane is-empty" aria-label="Setting details"><p class="lane-empty-state">Select a setting from the list.</p></section>`;
 }
 
 function renderSettingsWorkspace() {
   const gates = settingsGateFixtures();
   const policies = settingsPolicyFixtures();
   const selectedKey = state.settings.selectedKey;
+  const accountCount = allPreviewAccounts().length;
   return `
     <div class="lane-workspace settings-workspace">
       <div class="lane-toolbar" role="toolbar" aria-label="Settings actions">
@@ -4456,23 +4744,33 @@ function renderSettingsWorkspace() {
         </details>
       </div>
       <div class="lane-workspace-grid settings-workspace-grid">
-        <div class="settings-item-list" aria-label="Gates and policies">
+        <div class="settings-item-list" aria-label="Settings categories">
+          <p class="settings-section-label">Your settings</p>
           <button class="settings-list-row ${selectedKey === 'user:preferences' ? 'is-selected' : ''}" type="button" data-settings-action="select-preferences" data-settings-key="user:preferences" data-inspector-focus="settings:local:preferences">
-            <span class="settings-list-badge">user</span>
-            <div><strong>User preferences</strong><p>Density, default mailbox, notifications</p></div>
+            <span class="settings-list-badge">prefs</span>
+            <div><strong>Preferences</strong><p>Density, default mailbox, notifications</p></div>
           </button>
-          ${gates.map((gate) => `
-            <button class="settings-list-row ${selectedKey === gate.gateKey ? 'is-selected' : ''}" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">
-              <span class="settings-list-badge">gate</span>
-              <div><strong>${escapeHtml(gate.label)}</strong><p>${escapeHtml(gate.control)}</p></div>
-            </button>
-          `).join('')}
-          ${policies.map((policy) => `
-            <button class="settings-list-row ${selectedKey === policy.policyKey ? 'is-selected' : ''}" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}" data-inspector-focus="${escapeHtml(`settings:local:policy:${policy.policyKey}`)}">
-              <span class="settings-list-badge">policy</span>
-              <div><strong>${escapeHtml(policy.label)}</strong><p>${escapeHtml(policy.value)}</p></div>
-            </button>
-          `).join('')}
+          <button class="settings-list-row ${selectedKey === 'user:accounts' ? 'is-selected' : ''}" type="button" data-settings-action="select-accounts" data-settings-key="user:accounts" data-inspector-focus="settings:local:accounts">
+            <span class="settings-list-badge">mail</span>
+            <div><strong>Email accounts</strong><p>${accountCount ? `${accountCount} queued or active` : 'Add and connect Gmail'}</p></div>
+          </button>
+          <details class="settings-advanced-section">
+            <summary>Advanced · provider &amp; privacy (preview)</summary>
+            <div class="settings-advanced-list">
+              ${gates.map((gate) => `
+                <button class="settings-list-row ${selectedKey === gate.gateKey ? 'is-selected' : ''}" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">
+                  <span class="settings-list-badge">conn</span>
+                  <div><strong>${escapeHtml(gate.label)}</strong><p>${escapeHtml(gate.control)}</p></div>
+                </button>
+              `).join('')}
+              ${policies.map((policy) => `
+                <button class="settings-list-row ${selectedKey === policy.policyKey ? 'is-selected' : ''}" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}" data-inspector-focus="${escapeHtml(`settings:local:policy:${policy.policyKey}`)}">
+                  <span class="settings-list-badge">rule</span>
+                  <div><strong>${escapeHtml(policy.label)}</strong><p>${escapeHtml(policy.value)}</p></div>
+                </button>
+              `).join('')}
+            </div>
+          </details>
         </div>
         ${renderSettingsReadingPane()}
       </div>
@@ -4574,13 +4872,17 @@ function renderActivityLedgerTable() {
       </div>
       ${rows.length ? rows.map((row) => {
     const focused = state.focusId === row.focusId;
+    const sourceTarget = parseActivitySource(row.source);
     return `
-        <button class="receipt-ledger-row is-inspector-focusable ${row.kind === 'send_sim' ? 'is-local-sent' : ''} ${focused ? 'is-inspector-focused' : ''}" type="button" role="row" data-inspector-focus="${escapeHtml(row.focusId)}" aria-selected="${focused ? 'true' : 'false'}">
-          <span class="receipt-kind receipt-kind-${escapeHtml(row.kind)}" role="cell">${escapeHtml(row.kind)}</span>
-          <strong role="cell">${escapeHtml(row.title)}</strong>
-          <span role="cell">${escapeHtml(row.source)}</span>
-          <span class="receipt-state" role="cell">${escapeHtml(label(row.state || 'preview_only'))}</span>
-        </button>
+        <div class="receipt-ledger-row-wrap ${focused ? 'is-inspector-focused' : ''}" role="row">
+          <button class="receipt-ledger-row is-inspector-focusable ${row.kind === 'send_sim' ? 'is-local-sent' : ''} ${focused ? 'is-inspector-focused' : ''}" type="button" data-inspector-focus="${escapeHtml(row.focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+            <span class="receipt-kind receipt-kind-${escapeHtml(row.kind)}" role="cell">${escapeHtml(activityKindLabel(row.kind))}</span>
+            <strong role="cell">${escapeHtml(demoteMailDisplayText(row.title))}</strong>
+            <span role="cell">${escapeHtml(demoteMailDisplayText(row.source))}</span>
+            <span class="receipt-state" role="cell">${escapeHtml(activityStateLabel(row.state || 'preview_only'))}</span>
+          </button>
+          ${sourceTarget ? `<button class="inbox-action-btn activity-source-btn" type="button" data-activity-action="open-source" data-lane-id="${escapeHtml(sourceTarget.lane)}" ${sourceTarget.threadId ? `data-thread-id="${escapeHtml(sourceTarget.threadId)}"` : ''} ${sourceTarget.draftId ? `data-draft-id="${escapeHtml(sourceTarget.draftId)}"` : ''} ${sourceTarget.mailboxView ? `data-mailbox-view="${escapeHtml(sourceTarget.mailboxView)}"` : ''}>${escapeHtml(sourceTarget.label)}</button>` : ''}
+        </div>
       `;
   }).join('') : '<p class="lane-empty-state">No entries for this filter.</p>'}
     </div>
@@ -4599,7 +4901,7 @@ function renderActivityWorkspace() {
           `).join('')}
         </div>
       </div>
-      <p class="form-hint activity-subtitle">Audit trail of drafts, proposals, blocked actions, and simulated sends. Build/CI evidence is under <strong>Build evidence</strong>.</p>
+      <p class="form-hint activity-subtitle">Your history of drafts, sends, and blocked actions. Build checks are under <strong>Build evidence</strong>.</p>
       ${renderActivityLedgerTable()}
       ${groupsSection ? `
         <details class="lane-reading-details activity-advanced">
@@ -4781,25 +5083,26 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? ' is-compact' : ''}">
+      <header class="lane-header${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
-          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
-          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Extensions', settings: 'Settings', receipts: 'Activity' }[lane.id] || (content.title || lane.label))}</h2>
-          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
+          ${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml({ home: 'Home', inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Integrations', settings: 'Settings', receipts: 'Activity' }[lane.id] || (content.title || lane.label))}</h2>
+          ${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `
+        ${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
         </div>`}
       </header>
 
-      ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `
+      ${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `
       <section class="metric-grid" aria-label="${escapeHtml(lane.label)} preview metrics">
         ${(content.metrics || content.primary || []).map(renderMetricCard).join('')}
       </section>`}
 
-      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}">
+      <div class="lane-content ${escapeHtml(content.layout || `${lane.id}-layout`)}${lane.id === 'inbox' ? ' is-inbox-lane' : ''}${lane.id === 'receipts' ? ' is-receipts-lane' : ''}${lane.id === 'ibal' ? ' is-ibal-lane' : ''}${lane.id === 'settings' ? ' is-settings-lane' : ''}${lane.id === 'calendar' ? ' is-calendar-lane' : ''}${lane.id === 'tasks' ? ' is-tasks-lane' : ''}${lane.id === 'automations' ? ' is-automations-lane' : ''}${lane.id === 'extensions' ? ' is-extensions-lane' : ''}${lane.id === 'home' ? ' is-home-lane' : ''}">
+        ${lane.id === 'home' ? renderHomeWorkspace() : ''}
         ${lane.id === 'inbox' ? renderInboxWorkspace() : ''}
         ${lane.id === 'calendar' ? renderCalendarWorkspace() : ''}
         ${lane.id === 'tasks' ? renderTasksWorkspace() : ''}
@@ -4807,7 +5110,7 @@ function renderMainLane() {
         ${lane.id === 'extensions' ? renderExtensionsWorkspace() : ''}
         ${lane.id === 'settings' ? renderSettingsWorkspace() : ''}
         ${lane.id === 'receipts' ? renderActivityWorkspace() : ''}
-        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -5140,7 +5443,7 @@ function renderInboxCommandRail(mode, inspector) {
       <div class="inbox-action-toolbar" role="toolbar" aria-label="Batch approval actions">
         ${queued.length ? `<button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-batch-approve-all">Approve all queued (${queued.length})</button>` : ''}
         ${selected?.approval_state === 'queued' ? `<button class="inbox-action-btn" type="button" data-inbox-action="draft-approve" data-draft-id="${escapeHtml(selected.id)}">Approve selected</button>` : ''}
-        <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked (Tier 1)</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Send blocked</button>
       </div>
       ${inspector.sharedRisks?.length ? `<ul class="rail-risk-list">${inspector.sharedRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>` : ''}
     `;
@@ -5188,24 +5491,23 @@ function renderInspector() {
   return `
     <aside class="right-inspector context-command-rail" aria-label="Contextual command rail" data-rail-mode="${escapeHtml(railMode)}">
       <header class="inspector-title">
-        <p class="inspector-rail-mode">${escapeHtml(String(railMode))} mode</p>
-        <h2 class="inspector-selected-title">${escapeHtml(inspector.title || lane.label)}</h2>
-        <p class="inspector-command-hint">${escapeHtml(inspector.safeNext || 'Review context and keep actions in draft or proposal mode.')}</p>
+        <p class="inspector-rail-mode">${escapeHtml(inspectorRailModeLabel(railMode))}</p>
+        <h2 class="inspector-selected-title">${escapeHtml(demoteMailDisplayText(inspector.title || lane.label))}</h2>
+        <p class="inspector-command-hint">${escapeHtml(demoteMailDisplayText(inspector.safeNext || 'Choose an action below.'))}</p>
       </header>
       <section class="inspector-block inspector-commands">
-        <h3>Commands</h3>
+        <h3>Actions</h3>
         ${inboxRail}
         <div class="inspector-ibal-actions">
           <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
-          <button class="inbox-action-btn is-blocked" type="button" disabled>Execute blocked</button>
         </div>
       </section>
       ${inboxOutcomes}
       <details class="inspector-meta-collapsed">
-        <summary>Context and evidence</summary>
-        ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
-        ${renderInspectorBlock('Why it matters', inspector.why || 'Context helps determine the next safe action without runtime writes.')}
-        ${renderInspectorBlock('Evidence', inspector.evidence || 'Evidence references remain preview-only until provider gates are decided.')}
+        <summary>More context (advanced)</summary>
+        ${renderInspectorBlock('Selected', demoteMailDisplayText(inspector.context || 'Nothing selected yet.'))}
+        ${renderInspectorBlock('Why it matters', demoteMailDisplayText(inspector.why || 'Context helps you decide the next step.'))}
+        ${renderInspectorBlock('Sources', demoteMailDisplayText(inspector.evidence || 'No linked sources.'))}
         ${inspector.sendConsequences?.length ? renderInspectorBlock('Send consequences (preview)', inspector.sendConsequences.join('; ')) : ''}
         <section class="inspector-block">
           <h3>Blocked actions</h3>
@@ -5227,99 +5529,61 @@ function renderIbalProposalCard(proposal) {
         <strong>${escapeHtml(proposal.title)}</strong>
         <span>${escapeHtml(label(proposal.state))}</span>
       </header>
-      <p>${escapeHtml(proposal.recommendation)}</p>
+      <p>${escapeHtml(demoteMailDisplayText(proposal.recommendation))}</p>
       <dl class="ibal-proposal-meta">
-        <div><dt>Why</dt><dd>${escapeHtml(proposal.why)}</dd></div>
-        <div><dt>Evidence</dt><dd>${escapeHtml(proposal.evidence)}</dd></div>
-        <div><dt>Blockers</dt><dd>${escapeHtml(proposal.blockers)}</dd></div>
-        <div><dt>Safe next</dt><dd>${escapeHtml(proposal.safeNext)}</dd></div>
+        <div><dt>Why</dt><dd>${escapeHtml(demoteMailDisplayText(proposal.why))}</dd></div>
+        <div><dt>Based on</dt><dd>${escapeHtml(demoteMailDisplayText(proposal.evidence))}</dd></div>
+        <div><dt>Limits</dt><dd>${escapeHtml(demoteMailDisplayText(proposal.blockers))}</dd></div>
+        <div><dt>Suggested next</dt><dd>${escapeHtml(demoteMailDisplayText(proposal.safeNext))}</dd></div>
       </dl>
-      ${proposal.criteria?.length ? `<ul class="ibal-proposal-criteria">${proposal.criteria.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
+      ${proposal.criteria?.length ? `<ul class="ibal-proposal-criteria">${proposal.criteria.map((item) => `<li>${escapeHtml(demoteMailDisplayText(item))}</li>`).join('')}</ul>` : ''}
       <div class="inbox-form-actions">
-        <button class="inbox-action-btn is-primary" type="button" data-ibal-action="save-receipt" data-proposal-id="${escapeHtml(proposal.id)}">Save proposal receipt</button>
-        <button class="inbox-action-btn is-blocked" type="button" disabled>Auto-execute blocked</button>
+        <button class="inbox-action-btn is-primary" type="button" data-ibal-action="save-receipt" data-proposal-id="${escapeHtml(proposal.id)}">Save to Activity</button>
       </div>
     </article>
   `;
 }
 
 function renderAccountSessionPanel() {
-  const accounts = allPreviewAccounts();
   const workspaces = workspaceOptions();
   const activeAccount = selectedAccountFixture();
-  const activeAccountId = activeAccount?.accountId || '';
   const activeWorkspaceId = state.account.workspaceId || workspaces[0]?.id || '';
-  const editing = state.account.editingAccountId
-    ? accounts.find((entry) => entry.accountId === state.account.editingAccountId)
-    : null;
   return `
     <div class="account-session-root ${state.account.open ? 'is-open' : ''}" aria-hidden="${state.account.open ? 'false' : 'true'}">
       <button class="account-session-backdrop" type="button" data-account-action="close" aria-label="Close account session panel"></button>
-      <aside id="accountSessionPanel" class="account-session-panel" role="dialog" aria-modal="true" aria-label="Account and session preview" tabindex="-1">
+      <aside id="accountSessionPanel" class="account-session-panel" role="dialog" aria-modal="true" aria-label="Your account" tabindex="-1">
         <header class="account-session-head">
           <div class="user-card-header">
             <span class="user-card-avatar is-large" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'P').slice(0, 1).toUpperCase())}</span>
             <div>
-              <p class="section-eyebrow">account / session</p>
+              <p class="section-eyebrow">Your account</p>
               <h2>${escapeHtml(activeSessionDisplayName())}</h2>
-              <p>${escapeHtml(activeAccount?.displayName || '')} · ${escapeHtml(label(activeAccount?.syncState || 'provider_blocked'))}</p>
+              <p>${escapeHtml(activeAccount?.displayName || 'No email account active')}${activeAccount ? ` · ${escapeHtml(activeAccount.syncState === 'awaiting_local_connect' ? 'Awaiting connect' : label(activeAccount.syncState))}` : ''}</p>
             </div>
           </div>
           <button class="inbox-action-btn" type="button" data-account-action="close">Close</button>
         </header>
-        <form class="inbox-draft-form" data-account-form="session" aria-label="Preview session shell">
-          <label for="account-workspace">Workspace (preview)</label>
-          <select id="account-workspace" name="workspaceId">
-            ${workspaces.map((entry) => `
-              <option value="${escapeHtml(entry.id)}" ${entry.id === activeWorkspaceId ? 'selected' : ''}>${escapeHtml(entry.label)}</option>
-            `).join('')}
-          </select>
-          <label for="account-display-name">Session display name (preview)</label>
-          <input id="account-display-name" name="sessionDisplayName" type="text" autocomplete="off" value="${escapeHtml(state.account.sessionDisplayName || '')}" placeholder="${escapeHtml(activeAccount?.displayName || 'Preview user')}" />
-          <label for="account-session-notes">Session notes (local)</label>
-          <textarea id="account-session-notes" name="sessionNotes" rows="2">${escapeHtml(state.account.sessionNotes || '')}</textarea>
-          <p class="form-hint">Planning labels only. No passwords, tokens, or OAuth secrets stored.</p>
-          <div class="inbox-form-actions">
-            <button class="inbox-action-btn is-primary" type="submit" data-account-action="session-save">Save preview session</button>
-            <button class="inbox-action-btn is-blocked" type="button" disabled>Sign in blocked</button>
-            <button class="inbox-action-btn is-blocked" type="button" disabled>OAuth blocked</button>
-          </div>
-        </form>
         <section class="account-switch-list" aria-label="Email accounts">
-          <div class="inbox-form-actions">
-            <h3>Email accounts (${accounts.length})</h3>
-            <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
-          </div>
-          ${state.account.accountFormOpen ? `
-            <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
-              <label for="account-email-input">Gmail address</label>
-              <input id="account-email-input" name="email" type="email" required autocomplete="email" placeholder="you@gmail.com" />
-              <p class="form-hint">Real connect uses the local metadata adapter (GMAIL-001C). Tokens stay in tools/gmail/data/ — never in this browser preview.</p>
-              <div class="inbox-form-actions">
-                <button class="inbox-action-btn is-primary" type="submit">Queue account</button>
-                <button class="inbox-action-btn" type="button" data-account-action="cancel-account-form">Cancel</button>
-              </div>
-            </form>
-          ` : ''}
-          ${accounts.length ? accounts.map((account) => `
-            <article class="account-switch-row ${account.accountId === activeAccountId ? 'is-active' : ''}">
-              <div>
-                <strong>${escapeHtml(account.displayName)}</strong>
-                <p>${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))}</p>
-                <span class="form-hint">unread ${account.counts?.unread ?? 0} · needs reply ${account.counts?.needsReply ?? 0}</span>
-              </div>
-              <div class="inbox-form-actions">
-                <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
-                  ${account.accountId === activeAccountId ? 'Active' : 'Switch'}
-                </button>
-                <button class="inbox-action-btn is-primary" type="button" data-account-action="connect-gmail" data-account-id="${escapeHtml(account.accountId)}">Connect Gmail</button>
-                <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
-              </div>
-            </article>
-          `).join('') : '<p class="lane-empty-state">No email accounts yet. Add your Gmail address, then connect via the local adapter CLI.</p>'}
+          ${renderEmailAccountsBlock()}
         </section>
-        <section class="account-receipt-list" aria-label="Account session receipts">
-          <h3>Local receipts (${(state.account.receipts || []).length})</h3>
+        <details class="lane-reading-details account-advanced">
+          <summary>Workspace and display name (advanced)</summary>
+          <form class="inbox-draft-form" data-account-form="session" aria-label="Workspace preferences">
+            <label for="account-workspace">Workspace</label>
+            <select id="account-workspace" name="workspaceId">
+              ${workspaces.map((entry) => `
+                <option value="${escapeHtml(entry.id)}" ${entry.id === activeWorkspaceId ? 'selected' : ''}>${escapeHtml(entry.label)}</option>
+              `).join('')}
+            </select>
+            <label for="account-display-name">Display name</label>
+            <input id="account-display-name" name="sessionDisplayName" type="text" autocomplete="off" value="${escapeHtml(state.account.sessionDisplayName || '')}" placeholder="${escapeHtml(activeAccount?.displayName || 'Your name')}" />
+            <div class="inbox-form-actions">
+              <button class="inbox-action-btn is-primary" type="submit" data-account-action="session-save">Save</button>
+            </div>
+          </form>
+        </details>
+        <section class="account-receipt-list" aria-label="Account activity">
+          <h3>Recent activity (${(state.account.receipts || []).length})</h3>
           ${(state.account.receipts || []).length
     ? (state.account.receipts || []).map((receipt) => `
               <article class="local-receipt-row">
@@ -5347,25 +5611,25 @@ function renderIbalConciergeDrawer() {
       <aside id="ibalConciergeDrawer" class="ibal-concierge-drawer" role="dialog" aria-modal="true" aria-label="Ibal concierge" tabindex="-1">
         <header class="ibal-concierge-head">
           <div>
-            <p class="section-eyebrow">conductor / concierge</p>
+            <p class="section-eyebrow">Assistant</p>
             <h2>Ibal</h2>
-            <p>Proposal-only assistant. Fixture responses; no model routing or execution.</p>
+            <p>Suggests next steps. Does not send mail or run automations for you.</p>
           </div>
           <button class="inbox-action-btn" type="button" data-ibal-action="close" aria-label="Close concierge">Close</button>
         </header>
         <form class="ibal-concierge-prompt" data-ibal-form="prompt" aria-label="Ask Ibal">
           <label for="ibal-prompt-input">Ask Ibal</label>
-          <input id="ibal-prompt-input" name="prompt" type="text" autocomplete="off" placeholder="What is blocked? What should I do next?" value="${escapeHtml(state.ibal.prompt || '')}" />
-          <button class="inbox-action-btn is-primary" type="submit" data-ibal-action="submit">Propose</button>
+          <input id="ibal-prompt-input" name="prompt" type="text" autocomplete="off" placeholder="What should I focus on next?" value="${escapeHtml(state.ibal.prompt || '')}" />
+          <button class="inbox-action-btn is-primary" type="submit" data-ibal-action="submit">Get suggestion</button>
         </form>
         <div class="ibal-message-list" aria-label="Concierge conversation">
           ${messages.length ? messages.map((message) => `
             <article class="ibal-message is-${escapeHtml(message.role)}">
               <header><strong>${message.role === 'ibal' ? 'Ibal' : 'You'}</strong><span>${escapeHtml(new Date(message.createdAt).toLocaleString())}</span></header>
-              <p>${escapeHtml(message.text)}</p>
+              <p>${escapeHtml(demoteMailDisplayText(message.text))}</p>
               ${message.proposal ? renderIbalProposalCard(message.proposal) : ''}
             </article>
-          `).join('') : '<p class="form-hint">Ask Ibal about the current lane, blockers, or next safe action. Responses are fixture-based previews only.</p>'}
+          `).join('') : '<p class="form-hint">Ask about your mail, tasks, or calendar. Ibal suggests — you decide.</p>'}
         </div>
         ${selected ? `
           <section class="ibal-selected-proposal" aria-label="Selected proposal context">
@@ -5514,6 +5778,13 @@ function handleSettingsAction(action, settingsKey) {
   if (action === 'select-preferences') {
     state.settings.selectedKey = 'user:preferences';
     state.focusId = 'settings:local:preferences';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-accounts') {
+    state.settings.selectedKey = 'user:accounts';
+    state.focusId = 'settings:local:accounts';
     saveState();
     renderShell();
     return;
@@ -5720,15 +5991,65 @@ function handleTasksAction(action, taskId, status, focusId) {
   }
 }
 
-function handleActivityAction(action, filterId) {
-  if (action === 'set-filter' && filterId) {
-    state.activity.filter = filterId;
+function handleHomeAction(action, laneId, threadId, mailboxView, settingsKey, draftId) {
+  if (action === 'open-thread' && threadId) {
+    openActivitySource({ lane: 'inbox', threadId, label: 'Open in Mail' });
+    return;
+  }
+  if (action === 'open-mailbox' && laneId && mailboxView) {
+    state.laneId = laneId;
+    state.inbox.mailboxView = mailboxView;
+    state.threadId = null;
+    state.focusId = defaultFocusIdForLane(laneId);
+    if (draftId) {
+      state.drafts.selectedDraftId = draftId;
+      state.focusId = `inbox-draft:${draftId}`;
+    }
+    window.location.hash = `${ROUTE_PREFIX}${laneId}`;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-lane' && laneId) {
+    state.laneId = laneId;
+    if (settingsKey) {
+      state.settings.selectedKey = settingsKey;
+      state.focusId = settingsKey === 'user:accounts' ? 'settings:local:accounts' : defaultFocusIdForLane(laneId);
+    } else {
+      state.focusId = defaultFocusIdForLane(laneId);
+    }
+    window.location.hash = `${ROUTE_PREFIX}${laneId}`;
     saveState();
     renderShell();
   }
 }
 
-function handleCalendarAction(action, proposalId, focusId) {
+function handleActivityAction(action, filterId, laneId, threadId, mailboxView, draftId) {
+  if (action === 'set-filter' && filterId) {
+    state.activity.filter = filterId;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-source') {
+    openActivitySource({
+      lane: laneId || 'inbox',
+      threadId: threadId || null,
+      mailboxView: mailboxView || null,
+      draftId: draftId || null,
+      label: 'Open',
+    });
+  }
+}
+
+function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth, shiftDay) {
+  if (action === 'shift-to-day' && shiftYear && shiftMonth && shiftDay) {
+    state.calendar.viewMonth = `${shiftYear}-${String(shiftMonth).padStart(2, '0')}`;
+    state.calendar.selectedDay = Number(shiftDay);
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'new-event') {
     state.calendar.selectedProposalId = null;
     state.calendar.formOpen = true;
@@ -6107,10 +6428,31 @@ function bindEvents() {
       return;
     }
 
+    const homeAction = event.target.closest?.('[data-home-action]');
+    if (homeAction?.dataset.homeAction) {
+      event.preventDefault();
+      handleHomeAction(
+        homeAction.dataset.homeAction,
+        homeAction.dataset.laneId,
+        homeAction.dataset.threadId,
+        homeAction.dataset.mailboxView,
+        homeAction.dataset.settingsKey,
+        homeAction.dataset.draftId,
+      );
+      return;
+    }
+
     const activityAction = event.target.closest?.('[data-activity-action]');
     if (activityAction?.dataset.activityAction) {
       event.preventDefault();
-      handleActivityAction(activityAction.dataset.activityAction, activityAction.dataset.activityFilter);
+      handleActivityAction(
+        activityAction.dataset.activityAction,
+        activityAction.dataset.activityFilter,
+        activityAction.dataset.laneId,
+        activityAction.dataset.threadId,
+        activityAction.dataset.mailboxView,
+        activityAction.dataset.draftId,
+      );
       return;
     }
 
@@ -6121,6 +6463,9 @@ function bindEvents() {
         calendarAction.dataset.calendarAction,
         calendarAction.dataset.proposalId,
         calendarAction.dataset.focusId || calendarAction.dataset.day,
+        calendarAction.dataset.shiftYear,
+        calendarAction.dataset.shiftMonth,
+        calendarAction.dataset.shiftDay,
       );
       return;
     }

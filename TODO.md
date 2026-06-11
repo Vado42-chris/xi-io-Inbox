@@ -158,7 +158,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-006E Extensions progressive disclosure IA.
 - [x] UI-006F Settings progressive disclosure IA.
 - [x] UI-007A state reconciliation + draft workbench architecture (docs only).
-- [ ] Operator push local commits (20 ahead of remote) + `xi-io.net` freshness commit (1 ahead).
+- [ ] Operator push local commits + `xi-io.net#239` comment (in progress).
 - [x] Merge-prep: gates, proof packet, PR #12 body sync (2026-06-10).
 - [x] Owner Inbox workbench review — FAIL 2026-06-10 (significant polish required; see proof packet).
 - [x] UI-008A polish: restore product-visible lanes, sample drafts, account card, multi-inbox UX (`docs/ui/reviews/ui-008-owner-polish-receipt.md`) — **owner rejected: wrong account model**.
@@ -169,8 +169,10 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-009B: calendar month-grid shell (`docs/ui/reviews/ui-009b-calendar-grid-receipt.md`).
 - [x] UI-009C: tasks kanban board + mail source links (`docs/ui/reviews/ui-009c-tasks-kanban-receipt.md`).
 - [x] UI-009D: Activity lane rename + filters (`docs/ui/reviews/ui-009d-activity-lane-receipt.md`).
-- [ ] UI-009E: Settings split User vs Advanced.
-- [ ] UI-009F: mail reading polish v2; demote fixture copy.
+- [x] UI-009E: Settings split User vs Advanced (`docs/ui/reviews/ui-009e-settings-split-receipt.md`).
+- [x] UI-009F: mail reading polish v2; demote fixture copy (`docs/ui/reviews/ui-009f-mail-reading-polish-receipt.md`).
+- [x] UI-010A–I: product UX pass — trust chrome, Home, Automations, Integrations, Activity, account, JSON, inspector (`docs/ui/reviews/ui-010-product-ux-pass-receipt.md`).
+- [x] UI-010J–K: week strip, Ibal/compose polish, mail density, JSON lane demotion (`docs/ui/reviews/ui-010-product-ux-pass-receipt.md`).
 - [x] GMAIL-001B: real account metadata spike plan + adapter contract (`docs/providers/gmail/gmail-001b-receipt.md`).
 - [x] GMAIL-001C: local metadata-only adapter CLI (`docs/providers/gmail/gmail-001c-metadata-adapter-receipt.md`).
 - [ ] GMAIL-001C smoke: owner OAuth client in `secrets/` + `node cli.js connect` + labels-counts (metadata only).
@@ -182,6 +184,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-007B-R3 Context rail command modes (`docs/ui/reviews/ui-007b-r3-context-rail-modes-receipt.md`).
 - [x] UI-007C Send-event dry-run wiring (`docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md`).
 - [x] `xi-io.net#239` framework freshness UI-007 backfeed (`docs/ui/reviews/ui-007-framework-freshness-239-receipt.md`).
+- [x] Merge-prep interim (owner re-review ready) — `docs/ui/reviews/ui-011-merge-prep-receipt.md`.
 - [ ] Merge-prep final after owner UI-003E PASS.
 
 ## Pass 4: runtime skeleton
@@ -200,4 +203,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work: UI-009A–F (~5–7 agent passes) product shell; GMAIL-001C metadata adapter (~1–2 passes); GMAIL-001D draft write later; xi-io.net framework backfeed for provider contract (~0–1 pass). PR #12 remains draft. Owner visual proof blocked.
+Current estimated work (2026-06-10): **0 agent passes** for UI-009/010/011 interim merge-prep (complete). **Operator:** 1 commit/push pass + optional `xi-io.net#239` comment (`ui-011-merge-prep-receipt.md`). **Owner:** 1 UI-003E visual re-review; optional GMAIL-001C smoke. **After owner PASS:** ~1 agent pass merge-prep final. **If FAIL:** ~1–3 agent remediation passes. PR #12 remains draft.
