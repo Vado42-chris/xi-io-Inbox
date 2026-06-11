@@ -153,19 +153,32 @@
           "title": "Accounts, smart views, and thread list",
           "state": "provider_blocked",
           "accounts": [
-            { "name": "Personal Gmail preview", "meta": "gmail / private mail / no connection", "state": "provider_blocked" },
-            { "name": "GitHub notifications preview", "meta": "github / project ops / no mutation", "state": "provider_blocked" }
+            { "name": "Personal Gmail preview", "meta": "Sample mail · not connected", "state": "demo_fixture" },
+            { "name": "GitHub notifications preview", "meta": "Sample notifications · not connected", "state": "demo_fixture" }
+          ],
+          "folders": [
+            { "id": "family", "label": "Family", "count": 1 },
+            { "id": "projects", "label": "Projects", "count": 1 }
+          ],
+          "labels": [
+            { "id": "needs_reply", "label": "Needs reply", "count": 2 },
+            { "id": "urgent_thread", "label": "Urgent", "count": 1 },
+            { "id": "provider_gate", "label": "Setup required", "count": 1 }
           ],
           "views": [
-            { "label": "Priority inbox", "count": "3" },
-            { "label": "Needs reply", "count": "3" },
-            { "label": "Awaiting evidence", "count": "2" },
-            { "label": "Drafts", "count": "2" },
-            { "label": "Provider gates", "count": "4" }
+            { "label": "Priority inbox", "count": "2" },
+            { "label": "Needs reply", "count": "2" },
+            { "label": "Awaiting evidence", "count": "1" },
+            { "label": "Provider gates", "count": "1" }
           ],
           "threads": [
             {
               "id": "thread-family-safety-preview",
+              "accountId": "personal-gmail-preview",
+              "mailbox": "inbox",
+              "folder": "family",
+              "unread": true,
+              "hasAttachment": true,
               "sender": "Family Logistics",
               "receivedAt": "Jun 8, 8:00 AM",
               "title": "Urgent family transport thread",
@@ -214,6 +227,11 @@
             },
             {
               "id": "thread-github-review-preview",
+              "accountId": "github-notifications-preview",
+              "mailbox": "inbox",
+              "folder": "projects",
+              "unread": true,
+              "hasAttachment": true,
               "sender": "GitHub",
               "receivedAt": "Jun 8, 10:15 AM",
               "title": "GitHub review reminder",
@@ -258,6 +276,10 @@
             },
             {
               "id": "thread-provider-terms-preview",
+              "accountId": "personal-gmail-preview",
+              "mailbox": "inbox",
+              "unread": false,
+              "hasAttachment": false,
               "sender": "xi-io Inbox",
               "receivedAt": "Jun 8, 1:40 PM",
               "title": "Connect your email",
@@ -299,6 +321,74 @@
                 "ibalProposal": "Ibal proposes reviewing gates before any provider connection work.",
                 "receipts": "Future provider gate changes require receipts; no gate change has occurred."
               }
+            },
+            {
+              "id": "thread-sent-weekly-preview",
+              "accountId": "personal-gmail-preview",
+              "mailbox": "sent",
+              "unread": false,
+              "hasAttachment": false,
+              "sender": "You",
+              "receivedAt": "Jun 7, 4:30 PM",
+              "title": "Weekly schedule confirmation",
+              "summary": "Sent locally in preview — simulated send record.",
+              "state": "preview_only",
+              "labels": ["sent"],
+              "messages": [
+                { "from": "You", "meta": "sent", "summary": "Confirmed pickup coverage for the week.", "state": "preview_only" }
+              ],
+              "attachments": []
+            },
+            {
+              "id": "thread-archive-newsletter-preview",
+              "accountId": "personal-gmail-preview",
+              "mailbox": "archive",
+              "unread": false,
+              "hasAttachment": false,
+              "sender": "Community Digest",
+              "receivedAt": "May 28, 9:00 AM",
+              "title": "Monthly community newsletter",
+              "summary": "Archived sample message. Archive sync blocked in preview.",
+              "state": "preview_only",
+              "labels": ["archive"],
+              "messages": [
+                { "from": "Community Digest", "meta": "newsletter", "summary": "Summary of local events this month.", "state": "preview_only" }
+              ],
+              "attachments": []
+            },
+            {
+              "id": "thread-trash-deleted-preview",
+              "accountId": "personal-gmail-preview",
+              "mailbox": "trash",
+              "unread": false,
+              "hasAttachment": false,
+              "sender": "Old Notice",
+              "receivedAt": "Apr 12, 2:00 PM",
+              "title": "Expired invitation",
+              "summary": "Trash sample. Permanent delete remains blocked.",
+              "state": "preview_only",
+              "labels": [],
+              "messages": [
+                { "from": "Old Notice", "meta": "expired", "summary": "This invitation has expired.", "state": "preview_only" }
+              ],
+              "attachments": []
+            },
+            {
+              "id": "thread-spam-offer-preview",
+              "accountId": "personal-gmail-preview",
+              "mailbox": "spam",
+              "unread": false,
+              "hasAttachment": false,
+              "sender": "Unknown Sender",
+              "receivedAt": "Jun 1, 11:11 AM",
+              "title": "Suspicious offer",
+              "summary": "Spam sample for folder visibility. No provider spam actions.",
+              "state": "provider_blocked",
+              "labels": ["spam"],
+              "messages": [
+                { "from": "Unknown Sender", "meta": "spam", "summary": "Unverified promotional content.", "state": "provider_blocked" }
+              ],
+              "attachments": []
             }
           ]
         },
@@ -765,7 +855,7 @@
       "accountId": "personal-gmail-preview",
       "displayName": "Personal Gmail preview",
       "providerId": "gmail",
-      "syncState": "provider_blocked",
+      "syncState": "demo_fixture",
       "privacyProfile": "private_mail",
       "counts": {
         "unread": 12,
@@ -778,7 +868,7 @@
       "accountId": "github-notifications-preview",
       "displayName": "GitHub notifications preview",
       "providerId": "github",
-      "syncState": "provider_blocked",
+      "syncState": "demo_fixture",
       "privacyProfile": "project_ops",
       "counts": {
         "unread": 5,

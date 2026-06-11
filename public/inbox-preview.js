@@ -2,7 +2,7 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 3;
+const STORAGE_SCHEMA_VERSION = 4;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -49,6 +49,9 @@ function defaultInboxOps() {
   return {
     mailboxView: 'inbox',
     accountFilter: null,
+    labelFilter: null,
+    folderFilter: null,
+    mailSearchQuery: '',
     composeDraft: null,
     replyDrafts: {},
     triage: {},
@@ -324,14 +327,28 @@ function migrateDraftItemsFromInbox(inbox) {
 function upgradePreviewEnvelope(envelope) {
   if (!envelope || envelope.schemaVersion === STORAGE_SCHEMA_VERSION) return envelope;
   if (envelope.schemaVersion === 2) {
-    return {
+    return upgradePreviewEnvelope({
       ...envelope,
-      schemaVersion: STORAGE_SCHEMA_VERSION,
+      schemaVersion: 3,
       drafts: {
         ...defaultDraftsOps(),
         items: migrateDraftItemsFromInbox(envelope.inbox),
       },
-      sentEvents: defaultSentEventsOps(),
+      sentEvents: envelope.sentEvents || defaultSentEventsOps(),
+      activity: envelope.activity || defaultActivityOps(),
+    });
+  }
+  if (envelope.schemaVersion === 3) {
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      inbox: {
+        ...defaultInboxOps(),
+        ...(envelope.inbox || {}),
+        labelFilter: envelope.inbox?.labelFilter ?? null,
+        folderFilter: envelope.inbox?.folderFilter ?? null,
+        mailSearchQuery: envelope.inbox?.mailSearchQuery ?? '',
+      },
     };
   }
   return {
@@ -339,7 +356,7 @@ function upgradePreviewEnvelope(envelope) {
     laneId: envelope.laneId === IBAL_LEGACY_LANE ? DEFAULT_LANE : envelope.laneId,
     threadId: envelope.threadId,
     focusId: envelope.focusId,
-    inbox: envelope.inbox || defaultInboxOps(),
+    inbox: { ...defaultInboxOps(), ...(envelope.inbox || {}) },
     calendar: envelope.calendar || defaultCalendarOps(),
     tasks: envelope.tasks || defaultTasksOps(),
     automations: envelope.automations || defaultAutomationsOps(),
@@ -349,6 +366,7 @@ function upgradePreviewEnvelope(envelope) {
     account: envelope.account || defaultAccountOps(),
     drafts: envelope.drafts || { ...defaultDraftsOps(), items: migrateDraftItemsFromInbox(envelope.inbox) },
     sentEvents: envelope.sentEvents || defaultSentEventsOps(),
+    activity: envelope.activity || defaultActivityOps(),
   };
 }
 
@@ -574,35 +592,164 @@ function mailboxViewId(label) {
   return String(label || '').trim().toLowerCase().replace(/\s+/g, '-');
 }
 
-function threadsForMailboxView() {
-  let threads = inboxThreads();
-  const filterId = state.inbox.accountFilter;
-  if (filterId) {
-    const account = allPreviewAccounts().find((entry) => entry.accountId === filterId);
-    if (account) {
-      threads = threads.filter((thread) => String(thread.sender || '').includes(account.displayName.split(' ')[0])
-        || String(thread.sender || '') === account.displayName);
+const MAIL_SYSTEM_VIEWS = ['inbox', 'drafts', 'approval-queue', 'sent', 'archive', 'trash', 'spam'];
+
+function mailLayoutMeta() {
+  const section = inboxLayoutSection();
+  return {
+    folders: section.folders || [],
+    labels: section.labels || [],
+  };
+}
+
+function accountById(accountId) {
+  return allPreviewAccounts().find((entry) => entry.accountId === accountId) || null;
+}
+
+function accountLabelForThread(thread) {
+  if (!thread?.accountId) return '';
+  const account = accountById(thread.accountId);
+  if (account) return account.displayName;
+  const fixture = (getPayload().accounts || []).find((entry) => entry.accountId === thread.accountId);
+  return fixture?.displayName || thread.accountId;
+}
+
+function accountSyncStatusLabel(syncState) {
+  const normalized = String(syncState || '').toLowerCase();
+  if (normalized === 'connected') return 'Connected';
+  if (normalized === 'awaiting_local_connect') return 'Queued';
+  if (normalized === 'metadata_only') return 'Metadata only';
+  if (normalized === 'provider_blocked' || normalized === 'demo_fixture') return 'Demo';
+  return label(syncState || 'not connected');
+}
+
+function accountSyncStatusClass(syncState) {
+  const normalized = String(syncState || '').toLowerCase();
+  if (normalized === 'connected') return 'is-connected';
+  if (normalized === 'awaiting_local_connect') return 'is-queued';
+  if (normalized === 'metadata_only') return 'is-metadata';
+  return 'is-demo';
+}
+
+function threadMailbox(thread) {
+  return String(thread?.mailbox || 'inbox').toLowerCase();
+}
+
+function threadMatchesAccountFilter(thread, accountId) {
+  if (!accountId) return true;
+  if (thread.accountId === accountId) return true;
+  const account = accountById(accountId) || (getPayload().accounts || []).find((entry) => entry.accountId === accountId);
+  if (!account) return false;
+  const name = account.displayName || '';
+  const sender = String(thread.sender || '');
+  return sender.includes(name.split(' ')[0]) || sender === name;
+}
+
+function threadMatchesSearch(thread, query) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    thread.sender,
+    thread.title,
+    thread.summary,
+    ...(thread.labels || []),
+    ...(thread.messages || []).map((message) => `${message.from} ${message.summary}`),
+  ].join(' ').toLowerCase();
+  return haystack.includes(q);
+}
+
+function baseThreadsForFilters() {
+  return inboxThreads().filter((thread) => threadMatchesSearch(thread, state.inbox.mailSearchQuery));
+}
+
+function countMailThreads(options = {}) {
+  const { mailboxView, accountFilter, labelFilter, folderId } = options;
+  return baseThreadsForFilters().filter((thread) => {
+    if (accountFilter && !threadMatchesAccountFilter(thread, accountFilter)) return false;
+    if (labelFilter && !(thread.labels || []).includes(labelFilter)) return false;
+    if (folderId && thread.folder !== folderId) return false;
+    const mailbox = threadMailbox(thread);
+    const view = mailboxView || 'inbox';
+    if (view === 'inbox') return mailbox === 'inbox';
+    if (MAIL_SYSTEM_VIEWS.includes(view) && view !== 'inbox' && view !== 'drafts' && view !== 'approval-queue') {
+      return mailbox === view;
     }
-  }
+    if (view === 'priority-inbox') {
+      return mailbox === 'inbox' && (thread.state === 'needs_review' || (thread.labels || []).includes('urgent_thread'));
+    }
+    if (view === 'needs-reply') {
+      return mailbox === 'inbox' && (thread.labels || []).includes('needs_reply');
+    }
+    if (view === 'awaiting-evidence') {
+      return mailbox === 'inbox' && ((thread.tags || []).includes('local_verification_required') || thread.state === 'needs_review');
+    }
+    if (view === 'provider-gates') {
+      return mailbox === 'inbox' && ((thread.labels || []).includes('provider_gate') || thread.state === 'provider_blocked');
+    }
+    return mailbox === 'inbox';
+  }).length;
+}
+
+function threadsForMailboxView() {
   const view = state.inbox.mailboxView || 'inbox';
-  if (view === 'inbox') return threads;
-  if (view === 'priority-inbox') {
-    return threads.filter((thread) => thread.state === 'needs_review'
-      || (thread.labels || []).includes('urgent_thread'));
-  }
-  if (view === 'needs-reply') {
-    return threads.filter((thread) => (thread.labels || []).includes('needs_reply'));
-  }
-  if (view === 'awaiting-evidence') {
-    return threads.filter((thread) => (thread.tags || []).includes('local_verification_required')
-      || thread.state === 'needs_review');
-  }
   if (view === 'drafts' || view === 'approval-queue') return [];
-  if (view === 'provider-gates') {
-    return threads.filter((thread) => (thread.labels || []).includes('provider_gate')
-      || thread.state === 'provider_blocked');
+  const labelFilter = state.inbox.labelFilter;
+  const accountFilter = state.inbox.accountFilter;
+  const folderFilter = state.inbox.folderFilter;
+  return baseThreadsForFilters().filter((thread) => {
+    if (accountFilter && !threadMatchesAccountFilter(thread, accountFilter)) return false;
+    if (labelFilter && !(thread.labels || []).includes(labelFilter)) return false;
+    if (folderFilter && thread.folder !== folderFilter) return false;
+    const mailbox = threadMailbox(thread);
+    if (MAIL_SYSTEM_VIEWS.includes(view) && ['sent', 'archive', 'trash', 'spam'].includes(view)) {
+      return mailbox === view;
+    }
+    if (view === 'inbox') return mailbox === 'inbox';
+    if (view === 'priority-inbox') {
+      return mailbox === 'inbox' && (thread.state === 'needs_review' || (thread.labels || []).includes('urgent_thread'));
+    }
+    if (view === 'needs-reply') {
+      return mailbox === 'inbox' && (thread.labels || []).includes('needs_reply');
+    }
+    if (view === 'awaiting-evidence') {
+      return mailbox === 'inbox' && ((thread.tags || []).includes('local_verification_required') || thread.state === 'needs_review');
+    }
+    if (view === 'provider-gates') {
+      return mailbox === 'inbox' && ((thread.labels || []).includes('provider_gate') || thread.state === 'provider_blocked');
+    }
+    return mailbox === 'inbox';
+  });
+}
+
+function mailViewTitle() {
+  const view = state.inbox.mailboxView || 'inbox';
+  if (view === 'drafts') return 'Drafts';
+  if (view === 'approval-queue') return 'Approval queue';
+  if (view === 'sent') return 'Sent';
+  if (view === 'archive') return 'Archive';
+  if (view === 'trash') return 'Trash';
+  if (view === 'spam') return 'Spam';
+  if (state.inbox.labelFilter) {
+    const match = mailLayoutMeta().labels.find((entry) => entry.id === state.inbox.labelFilter);
+    return match?.label || label(state.inbox.labelFilter);
   }
-  return threads;
+  if (state.inbox.accountFilter) {
+    const account = accountById(state.inbox.accountFilter);
+    return account ? `${account.displayName} inbox` : 'Account inbox';
+  }
+  if (view === 'inbox') return 'All inboxes';
+  const smart = (inboxLayoutSection().views || []).find((entry) => mailboxViewId(entry.label) === view);
+  return smart?.label || label(view);
+}
+
+function threadHasAttachmentIndicator(thread) {
+  if (thread?.hasAttachment) return true;
+  return (thread?.attachments || []).some((item) => item.state !== 'provider_blocked' || item.label);
+}
+
+function renderMailLabelChips(labels) {
+  if (!labels?.length) return '';
+  return `<div class="thread-label-chips">${labels.slice(0, 3).map((item) => `<span class="thread-label-chip">${escapeHtml(label(item))}</span>`).join('')}</div>`;
 }
 
 function selectedInboxThread() {
@@ -2649,41 +2796,65 @@ function renderTopBar() {
 
 function renderInboxMailNav() {
   const section = inboxLayoutSection();
+  const meta = mailLayoutMeta();
   const activeView = state.inbox.mailboxView || 'inbox';
-  const smartViews = (section.views || []).filter((view) => mailboxViewId(view.label) !== 'drafts');
-  const draftListCount = allDraftItems().filter((draft) => draft.approval_state === 'none').length;
-  const approvalCount = allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state)).length;
+  const draftListCount = allDraftItems().filter((draft) => draft.approval_state === 'none' && draft.status !== 'sent').length;
+  const approvalCount = allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state) && draft.status !== 'sent').length;
+  const sentCount = countMailThreads({ mailboxView: 'sent' });
+  const smartViews = (section.views || []).filter((view) => {
+    const viewId = mailboxViewId(view.label);
+    return !['drafts', 'sent', 'archive', 'trash', 'spam'].includes(viewId);
+  });
+  const mailNavItem = (viewId, labelText, count, extraActive = false) => {
+    const isActive = (activeView === viewId && !state.inbox.labelFilter) || extraActive;
+    return `
+      <button class="mail-nav-item ${isActive ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}" aria-current="${isActive ? 'page' : 'false'}">
+        <span>${escapeHtml(labelText)}</span>
+        <strong>${count}</strong>
+      </button>
+    `;
+  };
   return `
     <div class="mail-nav-section" aria-label="Mail folders and views">
       <p class="mail-nav-label">Mail</p>
-      <button class="mail-nav-item ${activeView === 'inbox' && !state.inbox.accountFilter ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="inbox">
-        <span>All inboxes</span>
-        <strong>${inboxThreads().length}</strong>
-      </button>
-      <button class="mail-nav-item ${activeView === 'drafts' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="drafts">
-        <span>Drafts</span>
-        <strong>${draftListCount}</strong>
-      </button>
-      <button class="mail-nav-item ${activeView === 'approval-queue' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="approval-queue">
-        <span>Approval Queue</span>
-        <strong>${approvalCount}</strong>
-      </button>
-      ${smartViews.map((view) => {
-        const viewId = mailboxViewId(view.label);
-        return `
-          <button class="mail-nav-item ${activeView === viewId ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}">
-            <span>${escapeHtml(view.label)}</span>
-            <strong>${escapeHtml(view.count)}</strong>
+      ${mailNavItem('inbox', 'All inboxes', countMailThreads({ mailboxView: 'inbox' }), activeView === 'inbox' && !state.inbox.accountFilter && !state.inbox.labelFilter)}
+      ${mailNavItem('drafts', 'Drafts', draftListCount)}
+      ${mailNavItem('sent', 'Sent', sentCount)}
+      ${mailNavItem('archive', 'Archive', countMailThreads({ mailboxView: 'archive' }))}
+      ${mailNavItem('trash', 'Trash', countMailThreads({ mailboxView: 'trash' }))}
+      ${mailNavItem('spam', 'Spam', countMailThreads({ mailboxView: 'spam' }))}
+      ${mailNavItem('approval-queue', 'Approval queue', approvalCount)}
+      ${smartViews.length ? `<p class="mail-nav-label">Views</p>${smartViews.map((view) => {
+    const viewId = mailboxViewId(view.label);
+    return mailNavItem(viewId, view.label, view.count || countMailThreads({ mailboxView: viewId }));
+  }).join('')}` : ''}
+      ${meta.folders.length ? `
+        <p class="mail-nav-label">Folders</p>
+        ${meta.folders.map((folder) => `
+          <button class="mail-nav-item ${state.inbox.folderFilter === folder.id ? 'is-active' : ''}" type="button" data-inbox-action="select-folder-filter" data-folder-id="${escapeHtml(folder.id)}">
+            <span>${escapeHtml(folder.label)}</span>
+            <strong>${folder.count ?? countMailThreads({ folderId: folder.id, mailboxView: 'inbox' })}</strong>
           </button>
-        `;
-      }).join('')}
+        `).join('')}
+      ` : ''}
+      ${meta.labels.length ? `
+        <p class="mail-nav-label">Labels</p>
+        ${meta.labels.map((entry) => `
+          <button class="mail-nav-item ${state.inbox.labelFilter === entry.id ? 'is-active' : ''}" type="button" data-inbox-action="select-label-filter" data-label-id="${escapeHtml(entry.id)}">
+            <span>${escapeHtml(entry.label)}</span>
+            <strong>${entry.count ?? countMailThreads({ labelFilter: entry.id, mailboxView: 'inbox' })}</strong>
+          </button>
+        `).join('')}
+        <p class="form-hint mail-nav-hint">Provider labels load after Gmail metadata connect.</p>
+      ` : ''}
       <p class="mail-nav-label">Accounts</p>
       ${allPreviewAccounts().length ? allPreviewAccounts().map((account) => `
-        <button class="mail-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}">
+        <button class="mail-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}" aria-current="${state.inbox.accountFilter === account.accountId ? 'page' : 'false'}">
           <span>${escapeHtml(account.displayName)}</span>
+          <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>
           <strong>${account.counts?.unread ?? 0}</strong>
         </button>
-      `).join('') : '<p class="form-hint mail-nav-hint">No accounts connected. Add Gmail in Settings.</p>'}
+      `).join('') : '<p class="form-hint mail-nav-hint">No accounts yet. Add Gmail in Settings.</p>'}
     </div>
   `;
 }
@@ -2878,12 +3049,19 @@ function renderLocalTriageChip(threadId) {
 }
 
 function renderInboxToolbar() {
+  const searchQuery = state.inbox.mailSearchQuery || '';
   return `
     <div class="inbox-toolbar" role="toolbar" aria-label="Inbox actions">
       <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-compose" aria-expanded="${state.inbox.composeOpen ? 'true' : 'false'}">Compose</button>
+      <form class="mail-search-form" data-inbox-form="mail-search" aria-label="Search mail">
+        <label class="visually-hidden" for="mail-search-input">Search mail</label>
+        <input id="mail-search-input" class="mail-search-input" type="search" name="query" autocomplete="off" placeholder="Search conversations" value="${escapeHtml(searchQuery)}" />
+        ${searchQuery ? '<button class="inbox-action-btn" type="button" data-inbox-action="clear-mail-search">Clear</button>' : ''}
+      </form>
       <div id="inboxStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'inbox' ? state.statusMessage : '')}</div>
       <details class="inbox-toolbar-overflow">
         <summary>More</summary>
+        <button class="inbox-action-btn" type="button" data-inbox-action="open-activity">View Activity</button>
         <button class="inbox-action-btn is-danger" type="button" data-inbox-action="clear-all">Clear local inbox state</button>
       </details>
     </div>
@@ -3056,6 +3234,13 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
         </div>
         ${renderThreadStatusChip(thread.state || 'needs_review')}
       </header>
+      ${renderMailLabelChips(thread.labels)}
+      <div class="mail-reading-actions" role="toolbar" aria-label="Message actions">
+        <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="toggle-compose">New draft</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="open-activity">Activity</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Send remains blocked in this preview">Send blocked</button>
+      </div>
       <div class="message-stack" aria-label="Conversation">
         ${messages.map((message) => `
           <article class="message-row">
@@ -3068,9 +3253,13 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
         `).join('')}
       </div>
       ${attachments.length ? `
-        <ul class="mail-attachment-list" aria-label="Attachments">
-          ${attachments.map((item) => `<li>${escapeHtml(item.label)}</li>`).join('')}
-        </ul>
+        <details class="inbox-reading-details mail-attachment-details">
+          <summary>Attachments (${attachments.length}) — preview metadata only</summary>
+          <ul class="mail-attachment-list" aria-label="Attachments">
+            ${attachments.map((item) => `<li><strong>${escapeHtml(item.label)}</strong> · ${escapeHtml(label(item.state || 'not_loaded'))}</li>`).join('')}
+          </ul>
+          <p class="form-hint">No file download or provider attachment body in this build.</p>
+        </details>
       ` : ''}
       ${state.inbox.replyOpen ? `
         <form class="inbox-draft-form inbox-reply-sheet" data-inbox-form="reply" aria-label="Reply draft">
@@ -3098,12 +3287,39 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
         <p class="form-hint">Preview data only. Live mail sync and send are not enabled.</p>
       </details>
       ${(localReceiptsForThread(threadId).length || localProposalsForThread(threadId).length) ? `
-        <details class="inbox-reading-details">
-          <summary>Related activity</summary>
+        <details class="inbox-reading-details" open>
+          <summary>Activity and receipts</summary>
           ${renderLocalReceiptsPanel(threadId)}
+          <button class="inbox-action-btn" type="button" data-inbox-action="open-activity">Open full Activity</button>
         </details>
-      ` : ''}
+      ` : `
+        <p class="form-hint mail-activity-hint">Actions you take (draft saved, send blocked) appear in <button class="inbox-link-btn" type="button" data-inbox-action="open-activity">Activity</button>.</p>
+      `}
     </section>
+  `;
+}
+
+function renderThreadListRow(thread, selected) {
+  const unread = thread.unread === true;
+  const accountLabel = accountLabelForThread(thread);
+  return `
+    <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''} ${unread ? 'is-unread' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
+      <div class="thread-row-main">
+        <div class="thread-row-top">
+          <strong class="thread-sender">${escapeHtml(demoteMailDisplayText(thread.sender || thread.title))}</strong>
+          <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
+        </div>
+        <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
+        <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
+        ${renderMailLabelChips(thread.labels)}
+        ${accountLabel ? `<span class="thread-account-badge">${escapeHtml(accountLabel)}</span>` : ''}
+      </div>
+      <div class="thread-row-meta">
+        ${threadHasAttachmentIndicator(thread) ? '<span class="thread-attachment-indicator" title="Has attachment">Attach</span>' : ''}
+        ${renderLocalTriageChip(thread.id)}
+        ${renderThreadStatusChip(thread.state || 'needs_review')}
+      </div>
+    </button>
   `;
 }
 
@@ -3133,12 +3349,22 @@ function renderInboxWorkspace() {
   const selected = visibleThreads.find((thread) => thread.id === state.threadId)
     || visibleThreads[0]
     || null;
-  const listLabel = mailboxView === 'drafts' ? 'Drafts'
-    : mailboxView === 'approval-queue' ? 'Approval queue'
-      : 'Conversations';
+  const listLabel = mailViewTitle();
+  const emptyMessage = mailboxView === 'sent'
+    ? 'No sent messages in this preview. Approve and simulate send from a draft to add one.'
+    : mailboxView === 'archive'
+      ? 'Archive is empty. Archive actions are blocked until provider sync is enabled.'
+      : mailboxView === 'trash'
+        ? 'Trash is empty. Delete actions remain blocked in this build.'
+        : mailboxView === 'spam'
+          ? 'No spam messages in this preview.'
+          : state.inbox.mailSearchQuery
+            ? 'No conversations match your search.'
+            : 'No conversations in this view.';
   return `
     <div class="inbox-workspace is-mail-workbench">
       ${renderInboxToolbar()}
+      <p class="mail-view-heading">${escapeHtml(listLabel)}${state.inbox.mailSearchQuery ? ` · searching “${escapeHtml(state.inbox.mailSearchQuery)}”` : ''}</p>
       <div class="inbox-workspace-grid mail-workbench-center">
         <div class="thread-list-panel mail-list-pane" aria-label="${escapeHtml(listLabel)}">
           ${mailboxView === 'drafts' || mailboxView === 'approval-queue' ? (
@@ -3147,21 +3373,7 @@ function renderInboxWorkspace() {
       : `<p class="lane-empty-state">${mailboxView === 'approval-queue'
         ? 'No drafts in approval queue. Submit a draft from the Drafts view.'
         : 'No drafts yet. Compose or reply to create a local draft object.'}</p>`
-  ) : visibleThreads.length ? visibleThreads.map((thread) => `
-            <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
-              <div class="thread-row-main">
-                <div class="thread-row-top">
-                  <strong class="thread-sender">${escapeHtml(demoteMailDisplayText(thread.sender || thread.title))}</strong>
-                  <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
-                </div>
-                <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
-                <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
-              </div>
-              <div class="thread-row-meta">
-                ${renderLocalTriageChip(thread.id)}
-              </div>
-            </button>
-          `).join('') : '<p class="lane-empty-state">No threads in this view.</p>'}
+  ) : visibleThreads.length ? visibleThreads.map((thread) => renderThreadListRow(thread, selected)).join('') : `<p class="lane-empty-state">${emptyMessage}</p>`}
         </div>
         ${renderInboxReadingPane({ ...layoutSection, threads: visibleThreads }, selected)}
       </div>
@@ -6125,7 +6337,7 @@ function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth
   }
 }
 
-function handleInboxAction(action, threadId, mailboxView, draftId) {
+function handleInboxAction(action, threadId, mailboxView, draftId, filterId) {
   if (action === 'select-account-filter') {
     const id = threadId;
     if (!id) {
@@ -6142,8 +6354,44 @@ function handleInboxAction(action, threadId, mailboxView, draftId) {
   if (action === 'select-mailbox-view') {
     if (!mailboxView) return;
     state.inbox.mailboxView = mailboxView;
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
     if (mailboxView !== 'inbox') state.inbox.accountFilter = null;
     syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-label-filter') {
+    if (!filterId) return;
+    state.inbox.labelFilter = state.inbox.labelFilter === filterId ? null : filterId;
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.folderFilter = null;
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-folder-filter') {
+    if (!filterId) return;
+    state.inbox.folderFilter = state.inbox.folderFilter === filterId ? null : filterId;
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = null;
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'clear-mail-search') {
+    state.inbox.mailSearchQuery = '';
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-activity') {
+    state.laneId = 'receipts';
+    ensureRoute();
     saveState();
     renderShell();
     return;
@@ -6344,6 +6592,14 @@ function bindEvents() {
       renderShell();
       return;
     }
+    if (form.dataset.inboxForm === 'mail-search') {
+      state.inbox.mailSearchQuery = String(formData.get('query') || '').trim();
+      syncMailboxThreadSelection();
+      saveState();
+      setStatusMessage(state.inbox.mailSearchQuery ? `Showing matches for “${state.inbox.mailSearchQuery}”.` : 'Search cleared.');
+      renderShell();
+      return;
+    }
     if (form.dataset.inboxForm === 'reply') {
       const threadId = form.querySelector('[data-thread-id]')?.dataset.threadId || state.threadId;
       saveReplyDraft(threadId, formData);
@@ -6478,6 +6734,7 @@ function bindEvents() {
         inboxAction.dataset.threadId,
         inboxAction.dataset.mailboxView,
         inboxAction.dataset.draftId,
+        inboxAction.dataset.labelId || inboxAction.dataset.folderId,
       );
       return;
     }
