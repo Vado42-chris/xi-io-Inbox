@@ -56,12 +56,18 @@ Receipt: docs/ui/reviews/ui-010-product-ux-pass-receipt.md
 Direct package import still blocked by #239. No close claim.
 ```
 
+## Operator actions (2026-06-10)
+
+| Item | Result |
+| --- | --- |
+| Commit + push | `e791dec` on `ui-002/framework-derived-static-preview` |
+| PR #12 body | Updated (draft retained) |
+| `#239` comment | https://github.com/Vado42-chris/xi-io.net/issues/239#issuecomment-4680455830 |
+
 ## Remaining after this receipt
 
 | Item | Owner/agent |
 | --- | --- |
-| Operator commit + push | Owner |
-| `#239` comment | Owner (template above) |
 | GMAIL-001C smoke | Owner |
 | UI-003E visual re-review | Owner |
 | Merge-prep **final** | After UI-003E PASS only |

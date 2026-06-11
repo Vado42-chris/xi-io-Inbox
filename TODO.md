@@ -158,7 +158,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-006E Extensions progressive disclosure IA.
 - [x] UI-006F Settings progressive disclosure IA.
 - [x] UI-007A state reconciliation + draft workbench architecture (docs only).
-- [ ] Operator push local commits + `xi-io.net#239` comment (in progress).
+- [x] Operator push local commits (7 commits pushed 2026-06-10).
+- [x] `xi-io.net#239` UI-009/010 backfeed comment (2026-06-10).
 - [x] Merge-prep: gates, proof packet, PR #12 body sync (2026-06-10).
 - [x] Owner Inbox workbench review — FAIL 2026-06-10 (significant polish required; see proof packet).
 - [x] UI-008A polish: restore product-visible lanes, sample drafts, account card, multi-inbox UX (`docs/ui/reviews/ui-008-owner-polish-receipt.md`) — **owner rejected: wrong account model**.
