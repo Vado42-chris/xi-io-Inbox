@@ -439,6 +439,124 @@ input:focus-visible {
   border-left: 2px solid var(--accent, #5b9fd4);
 }
 
+.user-card-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.user-card-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent, #5b9fd4);
+  color: #0d1117;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.user-card-avatar.is-large {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.1rem;
+}
+
+.user-card-header {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.mail-nav-hint {
+  padding: 0.35rem 0.5rem;
+  margin: 0;
+}
+
+.thread-task-hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--accent, #5b9fd4);
+}
+
+.draft-task-hint-banner {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(91, 159, 212, 0.12);
+  border: 1px solid rgba(91, 159, 212, 0.35);
+  font-size: 0.85rem;
+  color: var(--accent, #5b9fd4);
+}
+
+.inbox-reading-head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+.inbox-reading-meta {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.message-row {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  border-left: 3px solid rgba(91, 159, 212, 0.55);
+  background: rgba(20, 22, 26, 0.35);
+}
+
+.message-body {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+.inbox-reply-sheet {
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(91, 159, 212, 0.4);
+  background: rgba(20, 22, 26, 0.4);
+}
+
+.inspector-outcomes .rail-outcome-list {
+  margin: 0.35rem 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+}
+
+.rail-outcome-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.lane-link.is-inline {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.app-density-compact .thread-row {
+  padding: 0.35rem 0.45rem;
+}
+
+.app-density-spacious .thread-row {
+  padding: 0.75rem 0.85rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+}
+
 .lane-header {
   display: flex;
   justify-content: space-between;

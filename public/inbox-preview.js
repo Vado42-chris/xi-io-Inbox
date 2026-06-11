@@ -31,6 +31,7 @@ const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-previ
 function defaultInboxOps() {
   return {
     mailboxView: 'inbox',
+    accountFilter: null,
     composeDraft: null,
     replyDrafts: {},
     triage: {},
@@ -80,9 +81,14 @@ function defaultExtensionsOps() {
 
 function defaultSettingsOps() {
   return {
-    selectedKey: null,
+    selectedKey: 'user:preferences',
     gateOverrides: {},
     policyOverrides: {},
+    userPrefs: {
+      displayDensity: 'comfortable',
+      defaultMailbox: 'inbox',
+      desktopNotifications: false,
+    },
     receipts: [],
     formOpen: false,
   };
@@ -105,6 +111,9 @@ function defaultAccountOps() {
     workspaceId: null,
     sessionDisplayName: '',
     sessionNotes: '',
+    previewAccounts: [],
+    editingAccountId: null,
+    accountFormOpen: false,
     receipts: [],
   };
 }
@@ -192,6 +201,10 @@ function applyPreviewEnvelope(stored) {
     ...(stored.settings || {}),
     gateOverrides: stored.settings?.gateOverrides || {},
     policyOverrides: stored.settings?.policyOverrides || {},
+    userPrefs: {
+      ...defaultSettingsOps().userPrefs,
+      ...(stored.settings?.userPrefs || {}),
+    },
     receipts: stored.settings?.receipts || [],
   };
   state.ibal = {
@@ -203,6 +216,7 @@ function applyPreviewEnvelope(stored) {
   state.account = {
     ...defaultAccountOps(),
     ...(stored.account || {}),
+    previewAccounts: stored.account?.previewAccounts || [],
     receipts: stored.account?.receipts || [],
   };
   state.drafts = {
@@ -231,6 +245,7 @@ function applyPreviewEnvelope(stored) {
   state.settings.formOpen = false;
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
+  seedSampleDraftsIfNeeded();
 }
 
 function migrateDraftItemsFromInbox(inbox) {
@@ -427,16 +442,6 @@ function navLanes() {
   return getLanes().filter((lane) => lane.id !== IBAL_LEGACY_LANE);
 }
 
-const PRIMARY_NAV_LANE_IDS = new Set(['home', 'inbox', 'receipts', 'settings']);
-
-function primaryNavLanes() {
-  return navLanes().filter((lane) => PRIMARY_NAV_LANE_IDS.has(lane.id));
-}
-
-function outcomeNavLanes() {
-  return navLanes().filter((lane) => !PRIMARY_NAV_LANE_IDS.has(lane.id));
-}
-
 function laneIds() {
   return new Set(getLanes().map((lane) => lane.id));
 }
@@ -489,7 +494,15 @@ function mailboxViewId(label) {
 }
 
 function threadsForMailboxView() {
-  const threads = inboxThreads();
+  let threads = inboxThreads();
+  const filterId = state.inbox.accountFilter;
+  if (filterId) {
+    const account = allPreviewAccounts().find((entry) => entry.accountId === filterId);
+    if (account) {
+      threads = threads.filter((thread) => String(thread.sender || '').includes(account.displayName.split(' ')[0])
+        || String(thread.sender || '') === account.displayName);
+    }
+  }
   const view = state.inbox.mailboxView || 'inbox';
   if (view === 'inbox') return threads;
   if (view === 'priority-inbox') {
@@ -1037,6 +1050,28 @@ function saveSettingsGate(formData, gateKey) {
   setStatusMessage('Local gate notes saved. Runtime gates remain blocked.', 'settings');
 }
 
+function saveSettingsUserPrefs(formData) {
+  const displayDensity = String(formData.get('displayDensity') || 'comfortable').trim();
+  const defaultMailbox = String(formData.get('defaultMailbox') || 'inbox').trim();
+  const desktopNotifications = formData.get('desktopNotifications') === 'on';
+  state.settings.userPrefs = {
+    displayDensity: ['compact', 'comfortable', 'spacious'].includes(displayDensity) ? displayDensity : 'comfortable',
+    defaultMailbox: ['inbox', 'drafts', 'approval-queue'].includes(defaultMailbox) ? defaultMailbox : 'inbox',
+    desktopNotifications,
+  };
+  if (state.laneId === 'inbox' && !state.inbox.mailboxView) {
+    state.inbox.mailboxView = state.settings.userPrefs.defaultMailbox;
+  }
+  addSettingsReceipt({
+    type: 'preferences',
+    key: 'user:preferences',
+    title: 'User preferences saved',
+    summary: `${state.settings.userPrefs.displayDensity} density · default ${state.settings.userPrefs.defaultMailbox}`,
+  });
+  saveState();
+  setStatusMessage('User preferences saved locally. Runtime apply remains blocked.');
+}
+
 function saveSettingsPolicy(formData, policyKey) {
   if (!policyKey) return;
   const policy = settingsPolicyFixtures().find((entry) => entry.policyKey === policyKey);
@@ -1182,6 +1217,116 @@ function accountFixtures() {
   return getPayload().accounts || [];
 }
 
+function allPreviewAccounts() {
+  return state.account.previewAccounts || [];
+}
+
+function isValidEmailAddress(email) {
+  if (!email || typeof email !== 'string') return false;
+  const parts = email.split('@');
+  return parts.length === 2 && parts[0].length > 0 && parts[1].includes('.');
+}
+
+function seedSampleDraftsIfNeeded() {
+  if (allDraftItems().length) return;
+  const now = new Date().toISOString();
+  state.drafts.items = [
+    {
+      id: 'draft-sample-compose',
+      kind: 'compose',
+      source_thread_id: null,
+      recipients: ['family.sender@example.preview'],
+      subject: 'Re: School pickup Friday',
+      body: 'I can cover pickup at 3:15. Please confirm if that works.',
+      status: 'drafting',
+      approval_state: 'none',
+      task_hint: 'After send: create calendar hold + transport task',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'draft-sample-reply',
+      kind: 'reply',
+      source_thread_id: 'thread-family-safety-preview',
+      recipients: ['family.sender@example.preview'],
+      subject: 'Re: Urgent family transport thread',
+      body: 'Reviewing options locally. Will propose calendar hold and task follow-up before any send.',
+      status: 'needs_review',
+      approval_state: 'queued',
+      task_hint: 'Queued draft → approve → simulate send → task proposal',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'draft-sample-approved',
+      kind: 'reply',
+      source_thread_id: 'thread-github-review-preview',
+      recipients: ['notifications@github.preview'],
+      subject: 'Re: GitHub review reminder',
+      body: 'Acknowledged. Scheduling review block and local task proposal.',
+      status: 'approved',
+      approval_state: 'approved',
+      task_hint: 'Ready for Simulate send (dry-run)',
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+  state.inbox.replyDrafts['thread-family-safety-preview'] = {
+    to: 'family.sender@example.preview',
+    subject: 'Re: Urgent family transport thread',
+    body: state.drafts.items[1].body,
+    savedAt: now,
+    state: 'local_preview_draft',
+  };
+}
+
+function savePendingAccountConnect(formData) {
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+  if (!isValidEmailAddress(email)) {
+    setStatusMessage('Enter a valid email address (one @ symbol).');
+    return;
+  }
+  const id = `gmail-${email.replace(/[^a-z0-9]+/gi, '-')}`;
+  if (allPreviewAccounts().some((entry) => entry.email === email || entry.accountId === id)) {
+    setStatusMessage('This email is already listed. Use Connect Gmail to finish setup.');
+    return;
+  }
+  const row = {
+    accountId: id,
+    email,
+    displayName: email,
+    providerId: 'gmail',
+    syncState: 'awaiting_local_connect',
+    privacyProfile: 'private_mail',
+    counts: { unread: 0, needsReply: 0, drafts: 0, blocked: 0 },
+  };
+  state.account.previewAccounts = [...allPreviewAccounts(), row];
+  state.account.activeAccountId = id;
+  state.account.editingAccountId = null;
+  state.account.accountFormOpen = false;
+  addAccountReceipt({
+    type: 'account',
+    title: 'Gmail account queued for connect',
+    summary: `${email} — run local adapter: cd tools/gmail && node cli.js connect`,
+  });
+  saveState();
+  setStatusMessage('Account queued. Connect via tools/gmail CLI (metadata only). Tokens never stored in this preview.');
+}
+
+function removePreviewAccount(accountId) {
+  state.account.previewAccounts = allPreviewAccounts().filter((entry) => entry.accountId !== accountId);
+  if (state.account.activeAccountId === accountId) {
+    state.account.activeAccountId = state.account.previewAccounts[0]?.accountId || null;
+  }
+  if (state.inbox.accountFilter === accountId) state.inbox.accountFilter = null;
+  addAccountReceipt({
+    type: 'account',
+    title: 'Preview account removed',
+    summary: `Removed ${accountId}. Fixture threads unchanged.`,
+  });
+  saveState();
+}
+
 function workspaceOptions() {
   const workspace = getPayload().workspace || {};
   return [
@@ -1191,7 +1336,7 @@ function workspaceOptions() {
 }
 
 function selectedAccountFixture() {
-  const accounts = accountFixtures();
+  const accounts = allPreviewAccounts();
   const activeId = state.account.activeAccountId || accounts[0]?.accountId || null;
   return accounts.find((entry) => entry.accountId === activeId) || accounts[0] || null;
 }
@@ -1223,7 +1368,7 @@ function addAccountReceipt({ type, title, summary }) {
 }
 
 function switchPreviewAccount(accountId) {
-  const account = accountFixtures().find((entry) => entry.accountId === accountId);
+  const account = allPreviewAccounts().find((entry) => entry.accountId === accountId);
   if (!account) return;
   state.account.activeAccountId = accountId;
   addAccountReceipt({
@@ -1261,13 +1406,13 @@ function clearAccountPreviewState() {
 }
 
 function ensureAccountDefaults() {
-  const accounts = accountFixtures();
-  if (!state.account.activeAccountId && accounts[0]) {
-    state.account.activeAccountId = accounts[0].accountId;
-  }
   if (!state.account.workspaceId) {
     state.account.workspaceId = workspaceOptions()[0]?.id || null;
   }
+}
+
+function gmailConnectInstructions() {
+  return '1) Place OAuth client at secrets/gmail-oauth-client.json\n2) cd tools/gmail && npm install\n3) node cli.js connect\n4) node cli.js profile && node cli.js labels-counts\nMetadata only — no send, no bodies in repo.';
 }
 
 function selectedIbalProposal() {
@@ -1640,6 +1785,38 @@ function localProposalsForThread(threadId) {
   return (state.inbox.proposals || []).filter((proposal) => proposal.threadId === threadId);
 }
 
+function linkedTasksForThread(threadId) {
+  if (!threadId) return [];
+  return (state.tasks.tasks || []).filter(
+    (task) => task.threadId === threadId || task.sourceRef === `inbox-thread:${threadId}`,
+  );
+}
+
+function renderRailOutcomesBlock({ threadId, draft } = {}) {
+  const resolvedThreadId = threadId || draft?.source_thread_id || null;
+  const tasks = resolvedThreadId ? linkedTasksForThread(resolvedThreadId) : [];
+  const proposals = resolvedThreadId ? localProposalsForThread(resolvedThreadId) : [];
+  const calendarProposals = proposals.filter((proposal) => proposal.type === 'calendar');
+  const hint = draft?.task_hint;
+  const lines = [];
+  if (hint) lines.push(`Draft flow: ${hint}`);
+  tasks.forEach((task) => lines.push(`Task: ${task.title} (${label(task.status || task.state)})`));
+  calendarProposals.forEach((proposal) => lines.push(`Calendar: ${proposal.title}`));
+  if (!lines.length && !resolvedThreadId && !draft) return '';
+  return `
+    <section class="inspector-block inspector-outcomes">
+      <h3>Outcomes</h3>
+      ${lines.length
+    ? `<ul class="rail-outcome-list">${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
+    : '<p class="form-hint">No linked tasks yet. Use <strong>Add task</strong> in Commands.</p>'}
+      <div class="rail-outcome-links">
+        <a class="lane-link is-inline" href="#/tasks">Open Tasks</a>
+        <a class="lane-link is-inline" href="#/calendar">Open Calendar</a>
+      </div>
+    </section>
+  `;
+}
+
 function createLocalId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -1841,8 +2018,9 @@ function createLocalCalendarProposal(threadId) {
 function clearInboxPreviewState() {
   state.inbox = defaultInboxOps();
   state.drafts = defaultDraftsOps();
+  seedSampleDraftsIfNeeded();
   saveState();
-  setStatusMessage('All local Inbox preview state cleared. Fixture threads unchanged.');
+  setStatusMessage('All local Inbox preview state cleared. Sample drafts re-seeded.');
 }
 
 async function fetchJson(url, fallback) {
@@ -2299,10 +2477,11 @@ function renderTopBar() {
       </section>
 
       <section class="topbar-context trust-cluster" aria-label="Active workspace and trust state">
-        <button class="account-session-trigger ${state.account.open ? 'is-open' : ''}" type="button" data-account-action="toggle" aria-expanded="${state.account.open ? 'true' : 'false'}" aria-controls="accountSessionPanel">
+        <button class="account-session-trigger user-card-trigger ${state.account.open ? 'is-open' : ''}" type="button" data-account-action="toggle" aria-expanded="${state.account.open ? 'true' : 'false'}" aria-controls="accountSessionPanel">
+          <span class="user-card-avatar" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'P').slice(0, 1).toUpperCase())}</span>
           <span class="trust-cluster-line">
-            <strong>${escapeHtml(activeWorkspaceLabel())}</strong>
-            <span>${escapeHtml(activeSessionDisplayName())}</span>
+            <strong>${escapeHtml(activeSessionDisplayName())}</strong>
+            <span>${escapeHtml(selectedAccountFixture()?.displayName || activeWorkspaceLabel())}</span>
           </span>
         </button>
         <div class="trust-cluster-line" aria-label="Global trust tokens">
@@ -2336,8 +2515,8 @@ function renderInboxMailNav() {
   return `
     <div class="mail-nav-section" aria-label="Mail folders and views">
       <p class="mail-nav-label">Mail</p>
-      <button class="mail-nav-item ${activeView === 'inbox' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="inbox">
-        <span>Inbox</span>
+      <button class="mail-nav-item ${activeView === 'inbox' && !state.inbox.accountFilter ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="inbox">
+        <span>All inboxes</span>
         <strong>${inboxThreads().length}</strong>
       </button>
       <button class="mail-nav-item ${activeView === 'drafts' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="drafts">
@@ -2357,22 +2536,22 @@ function renderInboxMailNav() {
           </button>
         `;
       }).join('')}
-      <details class="mail-nav-accounts">
-        <summary>Accounts (preview)</summary>
-        ${(section.accounts || []).map((account) => `
-          <p class="mail-nav-account">${escapeHtml(account.name)} · ${escapeHtml(label(account.state))}</p>
-        `).join('')}
-      </details>
+      <p class="mail-nav-label">Accounts</p>
+      ${allPreviewAccounts().length ? allPreviewAccounts().map((account) => `
+        <button class="mail-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}">
+          <span>${escapeHtml(account.displayName)}</span>
+          <strong>${account.counts?.unread ?? 0}</strong>
+        </button>
+      `).join('') : '<p class="form-hint mail-nav-hint">No accounts connected. Add Gmail in user card.</p>'}
     </div>
   `;
 }
 
 function renderNavigation() {
-  const outcomes = outcomeNavLanes();
   return `
     <nav class="lane-nav mail-nav-pane" aria-label="Primary navigation">
       <p class="lane-nav-label">Workbench</p>
-      ${primaryNavLanes().map((lane) => {
+      ${navLanes().map((lane) => {
         const hint = laneNavHint(lane.status);
         return `
           <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
@@ -2382,16 +2561,6 @@ function renderNavigation() {
         `;
       }).join('')}
       ${state.laneId === 'inbox' ? renderInboxMailNav() : ''}
-      ${outcomes.length ? `
-        <details class="lane-nav-outcomes">
-          <summary>Outcomes (preview)</summary>
-          ${outcomes.map((lane) => `
-            <a class="lane-link lane-link-demoted ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}">
-              <span>${escapeHtml(lane.label)}</span>
-            </a>
-          `).join('')}
-        </details>
-      ` : ''}
     </nav>
   `;
 }
@@ -2629,6 +2798,7 @@ function renderDraftReadingPane(draft) {
         </div>
         ${renderDraftStatusChip(draft)}
       </header>
+      ${draft.task_hint ? `<p class="draft-task-hint-banner">${escapeHtml(draft.task_hint)}</p>` : ''}
       <form class="inbox-draft-form" data-inbox-form="draft-edit" aria-label="Edit draft">
         <input type="hidden" name="draftId" value="${escapeHtml(draft.id)}" />
         <label for="draft-to-${escapeHtml(draft.id)}">To</label>
@@ -2694,7 +2864,7 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
               <strong>${escapeHtml(message.from)}</strong>
               <small>${escapeHtml(message.meta)}</small>
             </header>
-            <p>${escapeHtml(message.summary)}</p>
+            <p class="message-body">${escapeHtml(message.summary)}</p>
           </article>
         `).join('')}
       </div>
@@ -2743,6 +2913,7 @@ function renderDraftListRow(draft, selectedId) {
         </div>
         <span class="thread-subject">${escapeHtml(draft.subject || '(no subject)')}</span>
         <p class="thread-snippet">${escapeHtml((draft.body || '').slice(0, 120))}</p>
+        ${draft.task_hint ? `<p class="thread-task-hint">${escapeHtml(draft.task_hint)}</p>` : ''}
       </div>
       <div class="thread-row-meta">${renderDraftStatusChip(draft)}</div>
     </button>
@@ -3953,8 +4124,44 @@ function renderSettingsEditSheet() {
   `;
 }
 
+function renderUserPreferencesPane() {
+  const prefs = state.settings.userPrefs || defaultSettingsOps().userPrefs;
+  return `
+    <section class="lane-reading-pane" aria-label="User preferences">
+      <header class="lane-reading-head">
+        <div>
+          <h3>User preferences</h3>
+          <p class="lane-reading-meta">Local preview only · no runtime apply</p>
+        </div>
+      </header>
+      <form class="inbox-draft-form" data-settings-form="preferences" aria-label="User preferences">
+        <label for="pref-density">Display density</label>
+        <select id="pref-density" name="displayDensity">
+          <option value="compact" ${prefs.displayDensity === 'compact' ? 'selected' : ''}>Compact</option>
+          <option value="comfortable" ${prefs.displayDensity === 'comfortable' ? 'selected' : ''}>Comfortable</option>
+          <option value="spacious" ${prefs.displayDensity === 'spacious' ? 'selected' : ''}>Spacious</option>
+        </select>
+        <label for="pref-mailbox">Default mailbox on open</label>
+        <select id="pref-mailbox" name="defaultMailbox">
+          <option value="inbox" ${prefs.defaultMailbox === 'inbox' ? 'selected' : ''}>Inbox</option>
+          <option value="drafts" ${prefs.defaultMailbox === 'drafts' ? 'selected' : ''}>Drafts</option>
+          <option value="approval-queue" ${prefs.defaultMailbox === 'approval-queue' ? 'selected' : ''}>Approval queue</option>
+        </select>
+        <label class="checkbox-row">
+          <input type="checkbox" name="desktopNotifications" ${prefs.desktopNotifications ? 'checked' : ''} />
+          Desktop notifications (preview toggle — delivery blocked)
+        </label>
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="submit">Save preferences</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
 function renderSettingsReadingPane() {
   const key = state.settings.selectedKey;
+  if (key === 'user:preferences') return renderUserPreferencesPane();
   const gate = isSettingsGateKey(key) ? settingsGateFixtures().find((entry) => entry.gateKey === key) : null;
   const policy = !gate ? settingsPolicyFixtures().find((entry) => entry.policyKey === key) : null;
   const gateOverride = gate ? gateOverrideFor(gate.gateKey) : null;
@@ -4021,6 +4228,10 @@ function renderSettingsWorkspace() {
       </div>
       <div class="lane-workspace-grid settings-workspace-grid">
         <div class="settings-item-list" aria-label="Gates and policies">
+          <button class="settings-list-row ${selectedKey === 'user:preferences' ? 'is-selected' : ''}" type="button" data-settings-action="select-preferences" data-settings-key="user:preferences" data-inspector-focus="settings:local:preferences">
+            <span class="settings-list-badge">user</span>
+            <div><strong>User preferences</strong><p>Density, default mailbox, notifications</p></div>
+          </button>
           ${gates.map((gate) => `
             <button class="settings-list-row ${selectedKey === gate.gateKey ? 'is-selected' : ''}" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">
               <span class="settings-list-badge">gate</span>
@@ -4692,6 +4903,12 @@ function renderInspector() {
   const inspector = activeInspectorModel();
   const railMode = inspector.mode || inboxCommandRailMode() || inspector.kind || 'lane';
   const inboxRail = state.laneId === 'inbox' ? renderInboxCommandRail(railMode, inspector) : '';
+  const inboxOutcomes = state.laneId === 'inbox' && ['thread', 'draft', 'batch'].includes(railMode)
+    ? renderRailOutcomesBlock({
+      threadId: railMode === 'thread' ? state.threadId : null,
+      draft: railMode === 'draft' || railMode === 'batch' ? selectedDraft() : null,
+    })
+    : '';
   return `
     <aside class="right-inspector context-command-rail" aria-label="Contextual command rail" data-rail-mode="${escapeHtml(railMode)}">
       <header class="inspector-title">
@@ -4707,6 +4924,7 @@ function renderInspector() {
           <button class="inbox-action-btn is-blocked" type="button" disabled>Execute blocked</button>
         </div>
       </section>
+      ${inboxOutcomes}
       <details class="inspector-meta-collapsed">
         <summary>Context and evidence</summary>
         ${renderInspectorBlock('What is selected', inspector.context || 'Lane-level context only. No provider record is loaded.')}
@@ -4750,20 +4968,26 @@ function renderIbalProposalCard(proposal) {
 }
 
 function renderAccountSessionPanel() {
-  const accounts = accountFixtures();
+  const accounts = allPreviewAccounts();
   const workspaces = workspaceOptions();
   const activeAccount = selectedAccountFixture();
   const activeAccountId = activeAccount?.accountId || '';
   const activeWorkspaceId = state.account.workspaceId || workspaces[0]?.id || '';
+  const editing = state.account.editingAccountId
+    ? accounts.find((entry) => entry.accountId === state.account.editingAccountId)
+    : null;
   return `
     <div class="account-session-root ${state.account.open ? 'is-open' : ''}" aria-hidden="${state.account.open ? 'false' : 'true'}">
       <button class="account-session-backdrop" type="button" data-account-action="close" aria-label="Close account session panel"></button>
       <aside id="accountSessionPanel" class="account-session-panel" role="dialog" aria-modal="true" aria-label="Account and session preview" tabindex="-1">
         <header class="account-session-head">
-          <div>
-            <p class="section-eyebrow">account / session</p>
-            <h2>Preview session</h2>
-            <p>Switch workspace and account fixtures locally. No OAuth or credentials.</p>
+          <div class="user-card-header">
+            <span class="user-card-avatar is-large" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'P').slice(0, 1).toUpperCase())}</span>
+            <div>
+              <p class="section-eyebrow">account / session</p>
+              <h2>${escapeHtml(activeSessionDisplayName())}</h2>
+              <p>${escapeHtml(activeAccount?.displayName || '')} · ${escapeHtml(label(activeAccount?.syncState || 'provider_blocked'))}</p>
+            </div>
           </div>
           <button class="inbox-action-btn" type="button" data-account-action="close">Close</button>
         </header>
@@ -4785,20 +5009,38 @@ function renderAccountSessionPanel() {
             <button class="inbox-action-btn is-blocked" type="button" disabled>OAuth blocked</button>
           </div>
         </form>
-        <section class="account-switch-list" aria-label="Preview account fixtures">
-          <h3>Account fixtures (${accounts.length})</h3>
-          ${accounts.map((account) => `
+        <section class="account-switch-list" aria-label="Email accounts">
+          <div class="inbox-form-actions">
+            <h3>Email accounts (${accounts.length})</h3>
+            <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+          </div>
+          ${state.account.accountFormOpen ? `
+            <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
+              <label for="account-email-input">Gmail address</label>
+              <input id="account-email-input" name="email" type="email" required autocomplete="email" placeholder="you@gmail.com" />
+              <p class="form-hint">Real connect uses the local metadata adapter (GMAIL-001C). Tokens stay in tools/gmail/data/ — never in this browser preview.</p>
+              <div class="inbox-form-actions">
+                <button class="inbox-action-btn is-primary" type="submit">Queue account</button>
+                <button class="inbox-action-btn" type="button" data-account-action="cancel-account-form">Cancel</button>
+              </div>
+            </form>
+          ` : ''}
+          ${accounts.length ? accounts.map((account) => `
             <article class="account-switch-row ${account.accountId === activeAccountId ? 'is-active' : ''}">
               <div>
                 <strong>${escapeHtml(account.displayName)}</strong>
-                <p>${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))} · ${escapeHtml(account.privacyProfile)}</p>
+                <p>${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))}</p>
                 <span class="form-hint">unread ${account.counts?.unread ?? 0} · needs reply ${account.counts?.needsReply ?? 0}</span>
               </div>
-              <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
-                ${account.accountId === activeAccountId ? 'Active preview' : 'Switch preview account'}
-              </button>
+              <div class="inbox-form-actions">
+                <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
+                  ${account.accountId === activeAccountId ? 'Active' : 'Switch'}
+                </button>
+                <button class="inbox-action-btn is-primary" type="button" data-account-action="connect-gmail" data-account-id="${escapeHtml(account.accountId)}">Connect Gmail</button>
+                <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
+              </div>
             </article>
-          `).join('')}
+          `).join('') : '<p class="lane-empty-state">No email accounts yet. Add your Gmail address, then connect via the local adapter CLI.</p>'}
         </section>
         <section class="account-receipt-list" aria-label="Account session receipts">
           <h3>Local receipts (${(state.account.receipts || []).length})</h3>
@@ -4883,7 +5125,7 @@ function renderShell() {
   mount.innerHTML = `
     <section class="app-shell" aria-label="xi-io Inbox unified app shell">
       ${renderTopBar()}
-      <section class="app-frame ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
+      <section class="app-frame app-density-${escapeHtml(state.settings.userPrefs?.displayDensity || 'comfortable')} ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
         ${renderNavigation()}
         ${renderMainLane()}
         ${renderInspector()}
@@ -4909,6 +5151,34 @@ function handleAccountAction(action, accountId) {
   if (action === 'switch-account') {
     switchPreviewAccount(accountId);
     renderShell();
+    return;
+  }
+  if (action === 'add-account') {
+    state.account.editingAccountId = null;
+    state.account.accountFormOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'connect-gmail') {
+    window.alert(gmailConnectInstructions());
+    setStatusMessage('Gmail connect runs in tools/gmail CLI. Metadata only; send blocked.');
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'cancel-account-form') {
+    state.account.editingAccountId = null;
+    state.account.accountFormOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'remove-account') {
+    if (window.confirm('Remove this account from the list?')) {
+      removePreviewAccount(accountId);
+      renderShell();
+    }
     return;
   }
   if (action === 'clear-all') {
@@ -4961,6 +5231,13 @@ function handleSettingsAction(action, settingsKey) {
   }
   if (action === 'close-form') {
     state.settings.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-preferences') {
+    state.settings.selectedKey = 'user:preferences';
+    state.focusId = 'settings:local:preferences';
     saveState();
     renderShell();
     return;
@@ -5204,9 +5481,23 @@ function handleCalendarAction(action, proposalId, focusId) {
 }
 
 function handleInboxAction(action, threadId, mailboxView, draftId) {
+  if (action === 'select-account-filter') {
+    const id = threadId;
+    if (!id) {
+      state.inbox.accountFilter = null;
+    } else {
+      state.inbox.accountFilter = state.inbox.accountFilter === id ? null : id;
+      state.inbox.mailboxView = 'inbox';
+    }
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'select-mailbox-view') {
     if (!mailboxView) return;
     state.inbox.mailboxView = mailboxView;
+    if (mailboxView !== 'inbox') state.inbox.accountFilter = null;
     syncMailboxThreadSelection();
     saveState();
     renderShell();
@@ -5323,7 +5614,12 @@ function bindEvents() {
     const accountForm = event.target.closest?.('[data-account-form]');
     if (accountForm) {
       event.preventDefault();
-      savePreviewSession(new FormData(accountForm));
+      const formData = new FormData(accountForm);
+      if (accountForm.dataset.accountForm === 'connect') {
+        savePendingAccountConnect(formData);
+      } else {
+        savePreviewSession(formData);
+      }
       renderShell();
       return;
     }
@@ -5343,7 +5639,9 @@ function bindEvents() {
       event.preventDefault();
       const formData = new FormData(settingsForm);
       const formKind = settingsForm.dataset.settingsForm;
-      if (formKind === 'gate') {
+      if (formKind === 'preferences') {
+        saveSettingsUserPrefs(formData);
+      } else if (formKind === 'gate') {
         saveSettingsGate(formData, String(formData.get('gateKey') || '').trim());
       } else if (formKind === 'policy') {
         saveSettingsPolicy(formData, String(formData.get('policyKey') || '').trim());
