@@ -2,7 +2,7 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 6;
+const STORAGE_SCHEMA_VERSION = 7;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -17,6 +17,10 @@ const state = {
   inbox: defaultInboxOps(),
   calendar: defaultCalendarOps(),
   tasks: defaultTasksOps(),
+  projects: defaultProjectsOps(),
+  planning: defaultPlanningOps(),
+  bugs: defaultBugsOps(),
+  evidence: defaultEvidenceOps(),
   automations: defaultAutomationsOps(),
   extensions: defaultExtensionsOps(),
   settings: defaultSettingsOps(),
@@ -36,13 +40,20 @@ const ACTIVITY_FILTERS = [
   { id: 'all', label: 'All' },
 ];
 
-const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
+const TASK_STATUSES = ['backlog', 'ready', 'active', 'blocked', 'review', 'done-preview'];
+const TASK_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+const TASK_PHASES = ['backlog', 'sprint-1', 'sprint-2', 'waterfall-design', 'waterfall-build'];
+const AC_STATES = ['pending', 'pass', 'fail', 'blocked'];
 const TASK_COLUMN_MAP = {
-  proposed: 'Proposed',
+  backlog: 'Backlog',
+  ready: 'Ready',
   active: 'In progress',
+  blocked: 'Blocked',
+  review: 'Review',
+  'done-preview': 'Done',
+  proposed: 'Backlog',
   deferred: 'Blocked',
   reviewed: 'Review',
-  'done-preview': 'Done',
 };
 
 function defaultInboxOps() {
@@ -77,9 +88,40 @@ function defaultCalendarOps() {
 function defaultTasksOps() {
   return {
     selectedTaskId: null,
+    selectedStoryId: null,
+    selectedEpicId: null,
+    selectedBugId: null,
+    viewMode: 'planning',
     tasks: [],
     receipts: [],
     formOpen: false,
+    bugFormOpen: false,
+  };
+}
+
+function defaultProjectsOps() {
+  return {
+    selectedProjectId: null,
+    items: [],
+  };
+}
+
+function defaultPlanningOps() {
+  return {
+    epics: [],
+    stories: [],
+  };
+}
+
+function defaultBugsOps() {
+  return {
+    items: [],
+  };
+}
+
+function defaultEvidenceOps() {
+  return {
+    items: [],
   };
 }
 
@@ -184,6 +226,10 @@ function previewStateEnvelope() {
     inbox: inboxPersist,
     calendar: calendarPersist,
     tasks: tasksPersist,
+    projects: state.projects,
+    planning: state.planning,
+    bugs: state.bugs,
+    evidence: state.evidence,
     automations: automationsPersist,
     extensions: extensionsPersist,
     settings: settingsPersist,
@@ -218,6 +264,27 @@ function applyPreviewEnvelope(stored) {
     ...(stored.tasks || {}),
     tasks: stored.tasks?.tasks || [],
     receipts: stored.tasks?.receipts || [],
+  };
+  state.projects = {
+    ...defaultProjectsOps(),
+    ...(stored.projects || {}),
+    items: stored.projects?.items || [],
+  };
+  state.planning = {
+    ...defaultPlanningOps(),
+    ...(stored.planning || {}),
+    epics: stored.planning?.epics || [],
+    stories: stored.planning?.stories || [],
+  };
+  state.bugs = {
+    ...defaultBugsOps(),
+    ...(stored.bugs || {}),
+    items: stored.bugs?.items || [],
+  };
+  state.evidence = {
+    ...defaultEvidenceOps(),
+    ...(stored.evidence || {}),
+    items: stored.evidence?.items || [],
   };
   state.automations = {
     ...defaultAutomationsOps(),
@@ -288,6 +355,7 @@ function applyPreviewEnvelope(stored) {
   syncInboxTaskProposals();
   seedSampleDraftsIfNeeded();
   seedCalendarFixtureProposalsIfNeeded();
+  seedPlanningFixturesIfNeeded();
 }
 
 function migrateDraftItemsFromInbox(inbox) {
@@ -341,6 +409,29 @@ function upgradePreviewEnvelope(envelope) {
       activity: envelope.activity || defaultActivityOps(),
     });
   }
+  if (envelope.schemaVersion === 6) {
+    const mapTaskStatus = (status) => ({
+      proposed: 'backlog',
+      deferred: 'blocked',
+      reviewed: 'review',
+    }[status] || status);
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      tasks: {
+        ...defaultTasksOps(),
+        ...(envelope.tasks || {}),
+        tasks: (envelope.tasks?.tasks || []).map((task) => ({
+          ...task,
+          status: mapTaskStatus(task.status),
+        })),
+      },
+      projects: envelope.projects || defaultProjectsOps(),
+      planning: envelope.planning || defaultPlanningOps(),
+      bugs: envelope.bugs || defaultBugsOps(),
+      evidence: envelope.evidence || defaultEvidenceOps(),
+    };
+  }
   if (envelope.schemaVersion === 5) {
     const mapProposal = (entry) => ({
       ...entry,
@@ -351,6 +442,11 @@ function upgradePreviewEnvelope(envelope) {
       accountLabel: entry.accountLabel || '',
       providerSyncState: entry.providerSyncState || 'blocked',
     });
+    const mapTaskStatus = (status) => ({
+      proposed: 'backlog',
+      deferred: 'blocked',
+      reviewed: 'review',
+    }[status] || status);
     return {
       ...envelope,
       schemaVersion: STORAGE_SCHEMA_VERSION,
@@ -359,6 +455,18 @@ function upgradePreviewEnvelope(envelope) {
         ...(envelope.calendar || {}),
         proposals: (envelope.calendar?.proposals || []).map(mapProposal),
       },
+      tasks: {
+        ...defaultTasksOps(),
+        ...(envelope.tasks || {}),
+        tasks: (envelope.tasks?.tasks || []).map((task) => ({
+          ...task,
+          status: mapTaskStatus(task.status),
+        })),
+      },
+      projects: envelope.projects || defaultProjectsOps(),
+      planning: envelope.planning || defaultPlanningOps(),
+      bugs: envelope.bugs || defaultBugsOps(),
+      evidence: envelope.evidence || defaultEvidenceOps(),
     };
   }
   if (envelope.schemaVersion === 4) {
@@ -1064,6 +1172,263 @@ function clearCalendarPreviewState() {
   setStatusMessage('All local Calendar preview state cleared. Fixture agenda unchanged.', 'calendar');
 }
 
+function migrateTaskStatus(status) {
+  return { proposed: 'backlog', deferred: 'blocked', reviewed: 'review' }[status] || status;
+}
+
+function allProjects() {
+  return state.projects.items || [];
+}
+
+function selectedProject() {
+  const projects = allProjects();
+  return projects.find((entry) => entry.id === state.projects.selectedProjectId) || projects[0] || null;
+}
+
+function allEpics(projectId) {
+  const pid = projectId || state.projects.selectedProjectId || selectedProject()?.id;
+  return (state.planning.epics || []).filter((epic) => !pid || epic.projectId === pid);
+}
+
+function allStories(projectId, epicId) {
+  const pid = projectId || state.projects.selectedProjectId || selectedProject()?.id;
+  const eid = epicId || state.tasks.selectedEpicId;
+  return (state.planning.stories || []).filter((story) => {
+    if (pid && story.projectId !== pid) return false;
+    if (eid && story.epicId !== eid) return false;
+    return true;
+  });
+}
+
+function selectedEpic() {
+  return allEpics().find((entry) => entry.id === state.tasks.selectedEpicId) || allEpics()[0] || null;
+}
+
+function selectedStory() {
+  return allStories().find((entry) => entry.id === state.tasks.selectedStoryId) || allStories()[0] || null;
+}
+
+function storyById(storyId) {
+  return (state.planning.stories || []).find((entry) => entry.id === storyId) || null;
+}
+
+function bugsForStory(storyId) {
+  return (state.bugs.items || []).filter((bug) => bug.storyId === storyId);
+}
+
+function selectedBug() {
+  return (state.bugs.items || []).find((entry) => entry.id === state.tasks.selectedBugId) || null;
+}
+
+function evidenceForStory(storyId) {
+  return (state.evidence.items || []).filter((entry) => entry.linkedStoryId === storyId);
+}
+
+function evidenceForBug(bugId) {
+  return (state.evidence.items || []).filter((entry) => entry.linkedBugId === bugId);
+}
+
+function seedPlanningFixturesIfNeeded() {
+  if (allProjects().some((entry) => entry.id === 'project-xiio-inbox')) return;
+  const now = new Date().toISOString();
+  state.projects.items = [{
+    id: 'project-xiio-inbox',
+    name: 'xi-io Inbox preview',
+    phase: 'sprint-1',
+    summary: 'Capability repair spine for Mail, Drafts, Calendar, Tasks.',
+    createdAt: now,
+  }];
+  state.projects.selectedProjectId = 'project-xiio-inbox';
+  state.planning.epics = [
+    {
+      id: 'epic-mail-workflow',
+      projectId: 'project-xiio-inbox',
+      title: 'Mail-to-task workflow',
+      summary: 'Turn inbox threads and drafts into reviewable work items.',
+      status: 'active',
+      priority: 'high',
+    },
+    {
+      id: 'epic-planning-spine',
+      projectId: 'project-xiio-inbox',
+      title: 'Planning spine',
+      summary: 'Projects, epics, stories, bugs, and backlog in preview UI.',
+      status: 'backlog',
+      priority: 'medium',
+    },
+  ];
+  state.planning.stories = [
+    {
+      id: 'story-family-transport',
+      epicId: 'epic-mail-workflow',
+      projectId: 'project-xiio-inbox',
+      title: 'Family transport follow-up',
+      requirement: 'REQ-INBOX-001: Inbox thread must spawn reviewable task proposals.',
+      acceptanceCriteria: [
+        { id: 'ac-transport-1', text: 'User can open source mail thread from story', state: 'pass' },
+        { id: 'ac-transport-2', text: 'Draft consequence task appears after simulate send', state: 'pending' },
+        { id: 'ac-transport-3', text: 'Provider task sync remains blocked', state: 'pass' },
+      ],
+      status: 'ready',
+      priority: 'high',
+      phase: 'sprint-1',
+      sourceThreadId: 'thread-family-safety-preview',
+      sourceDraftId: 'draft-sample-reply',
+      sourceCalendarId: 'calendar-fixture-transport',
+      evidenceIds: ['evidence-transport-note'],
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'story-github-review',
+      epicId: 'epic-mail-workflow',
+      projectId: 'project-xiio-inbox',
+      title: 'GitHub review reminder follow-up',
+      requirement: 'REQ-TASK-001: Task proposals must link to mail source.',
+      acceptanceCriteria: [
+        { id: 'ac-github-1', text: 'Story shows mail source link', state: 'pending' },
+        { id: 'ac-github-2', text: 'Status can move through backlog to done-preview', state: 'pending' },
+      ],
+      status: 'backlog',
+      priority: 'medium',
+      phase: 'sprint-1',
+      sourceThreadId: 'thread-github-review-preview',
+      sourceDraftId: 'draft-sample-approved',
+      sourceCalendarId: null,
+      evidenceIds: [],
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+  state.tasks.selectedEpicId = 'epic-mail-workflow';
+  state.tasks.selectedStoryId = 'story-family-transport';
+  state.evidence.items = [{
+    id: 'evidence-transport-note',
+    label: 'Transport checklist (local note)',
+    sourceRef: 'inbox-thread:thread-family-safety-preview',
+    linkedStoryId: 'story-family-transport',
+    linkedBugId: null,
+    note: 'Local-only evidence placeholder. Cloud upload blocked.',
+    storageState: 'blocked',
+    exportPlaceholder: 'Export packet preview only',
+    createdAt: now,
+  }];
+}
+
+function changeStoryStatus(storyId, status) {
+  if (!storyId || !TASK_STATUSES.includes(status)) return;
+  state.planning.stories = (state.planning.stories || []).map((entry) => (
+    entry.id === storyId ? { ...entry, status, updatedAt: new Date().toISOString() } : entry
+  ));
+  addTaskReceipt({
+    type: 'status',
+    title: 'Story status changed (preview)',
+    taskId: storyId,
+    summary: `Story status set to ${label(status)} locally.`,
+  });
+  state.tasks.selectedStoryId = storyId;
+  saveState();
+  setStatusMessage(`Story status changed to ${label(status)} locally.`, 'tasks');
+}
+
+function updateAcceptanceCriterion(storyId, acId, acState) {
+  if (!storyId || !acId || !AC_STATES.includes(acState)) return;
+  state.planning.stories = (state.planning.stories || []).map((story) => {
+    if (story.id !== storyId) return story;
+    return {
+      ...story,
+      acceptanceCriteria: (story.acceptanceCriteria || []).map((ac) => (
+        ac.id === acId ? { ...ac, state: acState } : ac
+      )),
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  addTaskReceipt({
+    type: 'acceptance',
+    title: 'Acceptance criterion updated',
+    taskId: storyId,
+    summary: `${acId} → ${label(acState)} (preview only).`,
+  });
+  saveState();
+  setStatusMessage(`Acceptance criterion set to ${label(acState)}.`, 'tasks');
+}
+
+function createBugFromStory(formData, storyId) {
+  const story = storyById(storyId);
+  if (!story) return;
+  const now = new Date().toISOString();
+  const bug = {
+    id: createLocalId('bug'),
+    storyId,
+    projectId: story.projectId,
+    title: String(formData.get('title') || '').trim() || `Bug: ${story.title}`,
+    requirementRef: String(formData.get('requirementRef') || story.requirement || '').trim(),
+    acRef: String(formData.get('acRef') || '').trim(),
+    observed: String(formData.get('observed') || '').trim(),
+    expected: String(formData.get('expected') || '').trim(),
+    actual: String(formData.get('actual') || '').trim(),
+    severity: String(formData.get('severity') || 'medium').trim(),
+    priority: String(formData.get('priority') || story.priority || 'medium').trim(),
+    status: 'backlog',
+    evidenceNote: String(formData.get('evidenceNote') || '').trim(),
+    evidenceIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  state.bugs.items = [bug, ...(state.bugs.items || [])];
+  state.tasks.selectedBugId = bug.id;
+  state.tasks.selectedStoryId = storyId;
+  addTaskReceipt({
+    type: 'bug',
+    title: 'Bug created from story (preview)',
+    taskId: bug.id,
+    summary: `${bug.title} linked to ${story.title}. External tracker mutation blocked.`,
+  });
+  state.tasks.bugFormOpen = false;
+  saveState();
+  setStatusMessage('Bug created locally. External issue tracker remains blocked.', 'tasks');
+}
+
+function addStoryEvidencePlaceholder(storyId) {
+  const story = storyById(storyId);
+  if (!story) return;
+  const now = new Date().toISOString();
+  const artifact = {
+    id: createLocalId('evidence'),
+    label: 'Artifact link placeholder',
+    sourceRef: story.sourceThreadId ? `inbox-thread:${story.sourceThreadId}` : 'local-preview',
+    linkedStoryId: storyId,
+    linkedBugId: null,
+    note: 'Local-only evidence note. Cloud storage provider blocked.',
+    storageState: 'blocked',
+    exportPlaceholder: 'Export packet preview only',
+    createdAt: now,
+  };
+  state.evidence.items = [artifact, ...(state.evidence.items || [])];
+  state.planning.stories = (state.planning.stories || []).map((entry) => (
+    entry.id === storyId
+      ? { ...entry, evidenceIds: [...(entry.evidenceIds || []), artifact.id], updatedAt: now }
+      : entry
+  ));
+  addTaskReceipt({
+    type: 'evidence',
+    title: 'Evidence placeholder linked',
+    taskId: storyId,
+    summary: artifact.label,
+  });
+  saveState();
+  setStatusMessage('Evidence placeholder added. Cloud upload blocked.', 'tasks');
+}
+
+function taskExpectedReceipts(storyOrTask) {
+  return [
+    { title: 'Task/story saved (preview)', summary: 'Local receipt when work item is created or updated' },
+    { title: 'External tracker blocked (preview)', summary: 'No GitHub/Jira/Linear mutation in Tier 1' },
+    { title: 'Evidence storage blocked (preview)', summary: 'Artifact upload uses placeholder only' },
+    { title: 'Activity linkage (preview)', summary: 'Status and bug actions appear in Activity' },
+  ];
+}
+
 function syncInboxTaskProposals() {
   const inboxTasks = (state.inbox.proposals || []).filter((entry) => entry.type === 'task');
   const existing = new Set((state.tasks.tasks || []).map((entry) => entry.id));
@@ -1072,7 +1437,7 @@ function syncInboxTaskProposals() {
     state.tasks.tasks = [{
       id: proposal.id,
       title: proposal.title,
-      status: 'proposed',
+      status: 'backlog',
       dueDate: '',
       notes: proposal.summary || '',
       sourceRef: proposal.threadId ? `inbox-thread:${proposal.threadId}` : '',
@@ -1113,7 +1478,7 @@ function addTaskReceipt({ type, title, taskId, summary }) {
 function saveLocalTask(formData, taskId) {
   const payload = {
     title: String(formData.get('title') || '').trim(),
-    status: String(formData.get('status') || 'proposed').trim(),
+    status: migrateTaskStatus(String(formData.get('status') || 'backlog').trim()),
     dueDate: String(formData.get('dueDate') || '').trim(),
     notes: String(formData.get('notes') || '').trim(),
     sourceRef: String(formData.get('sourceRef') || '').trim(),
@@ -1154,19 +1519,20 @@ function saveLocalTask(formData, taskId) {
 }
 
 function changeTaskStatus(taskId, status) {
-  if (!taskId || !TASK_STATUSES.includes(status)) return;
+  if (!taskId || !TASK_STATUSES.includes(migrateTaskStatus(status))) return;
+  const next = migrateTaskStatus(status);
   state.tasks.tasks = (state.tasks.tasks || []).map((entry) => (
-    entry.id === taskId ? { ...entry, status, updatedAt: new Date().toISOString() } : entry
+    entry.id === taskId ? { ...entry, status: next, updatedAt: new Date().toISOString() } : entry
   ));
   addTaskReceipt({
     type: 'status',
     title: 'Local task status changed',
     taskId,
-    summary: `Status set to ${label(status)} (preview only).`,
+    summary: `Status set to ${label(next)} (preview only).`,
   });
   state.tasks.selectedTaskId = taskId;
   saveState();
-  setStatusMessage(`Task status changed to ${label(status)} locally.`, 'tasks');
+  setStatusMessage(`Task status changed to ${label(next)} locally.`, 'tasks');
 }
 
 function clearLocalTask(taskId) {
@@ -1181,8 +1547,13 @@ function clearLocalTask(taskId) {
 
 function clearTasksPreviewState() {
   state.tasks = defaultTasksOps();
+  state.projects = defaultProjectsOps();
+  state.planning = defaultPlanningOps();
+  state.bugs = defaultBugsOps();
+  state.evidence = defaultEvidenceOps();
+  seedPlanningFixturesIfNeeded();
   saveState();
-  setStatusMessage('All local Tasks preview state cleared. Fixture board unchanged.', 'tasks');
+  setStatusMessage('All local Tasks planning preview state cleared. Fixture board unchanged.', 'tasks');
 }
 
 function allLocalAutomationRules() {
@@ -2241,7 +2612,7 @@ function linkPostSendProposals(draft, eventId) {
   state.tasks.tasks = [{
     id: taskId,
     title: `Follow-up: ${draft.subject || thread.title}`,
-    status: 'proposed',
+    status: 'backlog',
     dueDate: '',
     notes: 'Post-send plan preview (simulated). Provider sync blocked.',
     sourceRef: `sent-event:${eventId}`,
@@ -4425,6 +4796,235 @@ function renderCalendarWorkspace() {
   `;
 }
 
+function renderStorySourceLinks(story) {
+  if (!story) return '';
+  const links = [];
+  if (story.sourceThreadId) {
+    links.push(`<button class="task-source-link" type="button" data-tasks-action="open-source-thread" data-thread-id="${escapeHtml(story.sourceThreadId)}">Open mail thread</button>`);
+  }
+  if (story.sourceDraftId) {
+    links.push(`<button class="task-source-link" type="button" data-tasks-action="open-source-draft" data-draft-id="${escapeHtml(story.sourceDraftId)}">Open draft</button>`);
+  }
+  if (story.sourceCalendarId) {
+    links.push(`<button class="task-source-link" type="button" data-tasks-action="open-source-calendar" data-calendar-id="${escapeHtml(story.sourceCalendarId)}">Open calendar proposal</button>`);
+  }
+  return links.length ? `<div class="task-source-row">${links.join(' ')}</div>` : '';
+}
+
+function renderAcceptanceCriteriaList(story) {
+  if (!story?.acceptanceCriteria?.length) {
+    return '<p class="form-hint">No acceptance criteria yet.</p>';
+  }
+  return `
+    <ul class="acceptance-criteria-list" aria-label="Acceptance criteria">
+      ${story.acceptanceCriteria.map((ac) => `
+        <li class="acceptance-criterion is-${escapeHtml(ac.state)}">
+          <span class="ac-text">${escapeHtml(ac.text)}</span>
+          <span class="ac-state-label">${escapeHtml(label(ac.state))}</span>
+          <div class="ac-state-actions" role="group" aria-label="Set ${escapeHtml(ac.text)} state">
+            ${AC_STATES.map((acState) => `
+              <button class="inbox-action-btn ${ac.state === acState ? 'is-primary' : ''}" type="button"
+                data-tasks-action="set-ac-state" data-story-id="${escapeHtml(story.id)}" data-ac-id="${escapeHtml(ac.id)}" data-ac-state="${escapeHtml(acState)}"
+                aria-pressed="${ac.state === acState ? 'true' : 'false'}">${escapeHtml(label(acState))}</button>
+            `).join('')}
+          </div>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function renderEvidenceSection(story, bug) {
+  const items = story ? evidenceForStory(story.id) : evidenceForBug(bug?.id);
+  return `
+    <section class="tasks-evidence-panel" aria-label="Evidence and artifacts">
+      <h4>Evidence / artifacts</h4>
+      <p class="form-hint">Cloud storage upload blocked. Local placeholder links only.</p>
+      ${items.length ? `
+        <ul class="tasks-evidence-list">
+          ${items.map((entry) => `
+            <li>
+              <strong>${escapeHtml(entry.label)}</strong> · ${escapeHtml(entry.note || entry.sourceRef)}
+              <span class="evidence-state">${escapeHtml(label(entry.storageState || 'blocked'))}</span>
+              ${entry.exportPlaceholder ? `<span class="form-hint">${escapeHtml(entry.exportPlaceholder)}</span>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      ` : '<p class="form-hint">No evidence linked yet.</p>'}
+      ${story ? `<button class="inbox-action-btn" type="button" data-tasks-action="add-evidence" data-story-id="${escapeHtml(story.id)}">Add artifact placeholder</button>` : ''}
+      <button class="inbox-action-btn is-blocked" type="button" disabled title="Cloud evidence upload blocked">Upload blocked</button>
+    </section>
+  `;
+}
+
+function renderStoryDetail(story) {
+  if (!story) return '<p class="lane-empty-state">Select a user story.</p>';
+  const epic = allEpics().find((entry) => entry.id === story.epicId);
+  const bugs = bugsForStory(story.id);
+  const receipts = (state.tasks.receipts || []).filter((entry) => entry.taskId === story.id);
+  return `
+    <section class="tasks-story-detail" aria-label="User story details">
+      <header class="lane-reading-head">
+        <div>
+          <h3>${escapeHtml(story.title)}</h3>
+          <p class="lane-reading-meta">User story · ${escapeHtml(label(story.status))} · ${escapeHtml(label(story.priority))} · ${escapeHtml(label(story.phase || 'backlog'))}</p>
+        </div>
+        <span class="thread-status-chip is-warn">Story</span>
+      </header>
+      <dl class="tasks-object-summary">
+        ${epic ? `<div><dt>Epic</dt><dd>${escapeHtml(epic.title)}</dd></div>` : ''}
+        <div><dt>Requirement</dt><dd>${escapeHtml(story.requirement || '—')}</dd></div>
+        <div><dt>Phase</dt><dd>${escapeHtml(label(story.phase || 'backlog'))}</dd></div>
+      </dl>
+      ${renderStorySourceLinks(story)}
+      ${renderPlanningStatusButtons(story.id, story.status || 'backlog', 'story')}
+      <section class="tasks-ac-panel" aria-label="Acceptance criteria">
+        <h4>Acceptance criteria</h4>
+        ${renderAcceptanceCriteriaList(story)}
+      </section>
+      ${renderEvidenceSection(story, null)}
+      <section class="tasks-bugs-panel" aria-label="Bugs from story">
+        <h4>Bugs (${bugs.length})</h4>
+        ${bugs.length ? `<ul class="tasks-bug-list">${bugs.map((bug) => `<li><button class="inbox-link-btn" type="button" data-tasks-action="select-bug" data-bug-id="${escapeHtml(bug.id)}">${escapeHtml(bug.title)}</button> · ${escapeHtml(label(bug.status))}</li>`).join('')}</ul>` : '<p class="form-hint">No bugs filed from this story yet.</p>'}
+        <button class="inbox-action-btn is-primary" type="button" data-tasks-action="new-bug" data-story-id="${escapeHtml(story.id)}">Create bug from story</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="External tracker blocked">External tracker blocked</button>
+      </section>
+      <section class="tasks-activity-panel" aria-label="Activity and receipts">
+        <h4>Activity and receipts</h4>
+        ${receipts.length ? renderTasksLocalReceipts(story.id) : '<p class="form-hint">Change status or file a bug to create receipts.</p>'}
+        <ul class="tasks-receipt-expectations">${taskExpectedReceipts(story).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong> · ${escapeHtml(entry.summary)}</li>`).join('')}</ul>
+        <button class="inbox-action-btn" type="button" data-tasks-action="open-activity">Open Activity</button>
+      </section>
+    </section>
+  `;
+}
+
+function renderBugDetail(bug) {
+  if (!bug) return '';
+  const story = storyById(bug.storyId);
+  return `
+    <section class="tasks-bug-detail" aria-label="Bug details">
+      <header class="lane-reading-head">
+        <div>
+          <h3>${escapeHtml(bug.title)}</h3>
+          <p class="lane-reading-meta">Bug · ${escapeHtml(label(bug.status))} · severity ${escapeHtml(label(bug.severity))}</p>
+        </div>
+        <span class="thread-status-chip is-warn">Bug</span>
+      </header>
+      <dl class="tasks-object-summary">
+        ${story ? `<div><dt>Story</dt><dd>${escapeHtml(story.title)}</dd></div>` : ''}
+        <div><dt>Requirement ref</dt><dd>${escapeHtml(bug.requirementRef || '—')}</dd></div>
+        <div><dt>AC ref</dt><dd>${escapeHtml(bug.acRef || '—')}</dd></div>
+        <div><dt>Observed</dt><dd>${escapeHtml(bug.observed || '—')}</dd></div>
+        <div><dt>Expected</dt><dd>${escapeHtml(bug.expected || '—')}</dd></div>
+        <div><dt>Actual</dt><dd>${escapeHtml(bug.actual || '—')}</dd></div>
+      </dl>
+      ${renderEvidenceSection(null, bug)}
+      ${renderPlanningStatusButtons(bug.id, bug.status || 'backlog', 'bug')}
+    </section>
+  `;
+}
+
+function renderTasksPlanningWorkspace() {
+  const epics = allEpics();
+  const stories = allStories(null, state.tasks.selectedEpicId || selectedEpic()?.id);
+  const story = selectedStory();
+  const bug = selectedBug();
+  return `
+    <div class="tasks-planning-grid" aria-label="Tasks planning workspace">
+      <section class="tasks-epic-panel" aria-label="Epics">
+        <h4>Epics</h4>
+        <ul class="tasks-epic-list">
+          ${epics.map((epic) => `
+            <li>
+              <button class="tasks-epic-row ${state.tasks.selectedEpicId === epic.id ? 'is-selected' : ''}" type="button"
+                data-tasks-action="select-epic" data-epic-id="${escapeHtml(epic.id)}" aria-pressed="${state.tasks.selectedEpicId === epic.id ? 'true' : 'false'}">
+                <strong>${escapeHtml(epic.title)}</strong>
+                <span>${escapeHtml(label(epic.status))} · ${escapeHtml(label(epic.priority))}</span>
+              </button>
+            </li>
+          `).join('')}
+        </ul>
+      </section>
+      <section class="tasks-story-panel" aria-label="User stories">
+        <h4>User stories</h4>
+        <ul class="tasks-story-list">
+          ${stories.length ? stories.map((entry) => `
+            <li>
+              <button class="tasks-story-row ${state.tasks.selectedStoryId === entry.id ? 'is-selected' : ''}" type="button"
+                data-tasks-action="select-story" data-story-id="${escapeHtml(entry.id)}" aria-pressed="${state.tasks.selectedStoryId === entry.id ? 'true' : 'false'}">
+                <strong>${escapeHtml(entry.title)}</strong>
+                <span>${escapeHtml(label(entry.status))} · ${escapeHtml(label(entry.priority))}</span>
+              </button>
+            </li>
+          `).join('') : '<li class="form-hint">No stories in this epic.</li>'}
+        </ul>
+      </section>
+      <div class="tasks-detail-panel">
+        ${bug ? renderBugDetail(bug) : renderStoryDetail(story)}
+      </div>
+    </div>
+  `;
+}
+
+function renderTasksProjectSelector() {
+  const projects = allProjects();
+  const selected = state.projects.selectedProjectId || projects[0]?.id || '';
+  return `
+    <label class="tasks-project-select" for="tasks-project-picker">
+      <span>Project</span>
+      <select id="tasks-project-picker" name="projectId">
+        ${projects.map((project) => `<option value="${escapeHtml(project.id)}" ${project.id === selected ? 'selected' : ''}>${escapeHtml(project.name)} (${escapeHtml(label(project.phase))})</option>`).join('')}
+      </select>
+    </label>
+  `;
+}
+
+function renderTasksViewToggle() {
+  const mode = state.tasks.viewMode || 'planning';
+  return `
+    <div class="tasks-view-toggle" role="tablist" aria-label="Tasks view">
+      <button class="inbox-action-btn ${mode === 'planning' ? 'is-primary' : ''}" type="button" data-tasks-action="view-planning" role="tab" aria-selected="${mode === 'planning' ? 'true' : 'false'}">Planning</button>
+      <button class="inbox-action-btn ${mode === 'board' ? 'is-primary' : ''}" type="button" data-tasks-action="view-board" role="tab" aria-selected="${mode === 'board' ? 'true' : 'false'}">Board</button>
+    </div>
+  `;
+}
+
+function renderTasksProviderBanner() {
+  return `
+    <aside class="tasks-provider-banner" role="note" aria-label="Task provider sync status">
+      <strong>External tracker and provider sync blocked</strong>
+      <p>Tasks, stories, and bugs are local preview objects only. No GitHub Issues, Jira, Linear, or provider task write in Tier 1.</p>
+    </aside>
+  `;
+}
+
+function renderPlanningStatusButtons(itemId, currentStatus, kind) {
+  if (!itemId) return '';
+  const action = kind === 'bug' ? 'set-bug-status' : 'set-story-status';
+  const attr = kind === 'bug' ? 'data-bug-id' : 'data-story-id';
+  return `
+    <div class="tasks-status-bar" aria-label="Local ${kind} status changes">
+      <span class="form-hint">Status:</span>
+      ${TASK_STATUSES.map((status) => `
+        <button class="inbox-action-btn ${currentStatus === status ? 'is-primary' : ''}" type="button" data-tasks-action="${action}" ${attr}="${escapeHtml(itemId)}" data-task-status="${escapeHtml(status)}" aria-pressed="${currentStatus === status ? 'true' : 'false'}">${escapeHtml(label(status))}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function changeBugStatus(bugId, status) {
+  if (!bugId || !TASK_STATUSES.includes(migrateTaskStatus(status))) return;
+  const next = migrateTaskStatus(status);
+  state.bugs.items = (state.bugs.items || []).map((entry) => (
+    entry.id === bugId ? { ...entry, status: next, updatedAt: new Date().toISOString() } : entry
+  ));
+  addTaskReceipt({ type: 'status', title: 'Bug status changed (preview)', taskId: bugId, summary: `Bug status set to ${label(next)}.` });
+  state.tasks.selectedBugId = bugId;
+  saveState();
+  setStatusMessage(`Bug status changed to ${label(next)} locally.`, 'tasks');
+}
+
 function renderTasksLocalReceipts(taskId) {
   const receipts = (state.tasks.receipts || []).filter((entry) => !taskId || entry.taskId === taskId);
   if (!receipts.length) return '<p class="form-hint">No local task receipts yet.</p>';
@@ -4505,26 +5105,34 @@ function renderTaskSourceLink(item) {
 }
 
 function taskBoardColumns() {
+  const columnDefs = [
+    { label: 'Backlog', state: 'backlog' },
+    { label: 'Ready', state: 'ready' },
+    { label: 'In progress', state: 'active' },
+    { label: 'Blocked', state: 'blocked' },
+    { label: 'Review', state: 'review' },
+    { label: 'Done', state: 'done-preview' },
+  ];
+  const columns = columnDefs.map((def) => ({ ...def, items: [] }));
   const content = activeLaneContent();
   const section = sectionByType(content, 'task-board');
   const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
-  const columns = (section?.columns || []).map((column, columnIndex) => ({
-    label: column.label,
-    state: column.state,
-    items: (column.items || []).map((item, index) => ({
-      kind: 'fixture',
-      focusId: `tasks:task-board:${sectionIndex}:${columnIndex}-${index}`,
-      title: item.title,
-      summary: item.summary,
-      meta: item.meta,
-      state: item.state,
-    })),
-  }));
-  if (!columns.some((col) => col.label === 'In progress')) {
-    columns.splice(1, 0, { label: 'In progress', state: 'active', items: [] });
-  }
+  (section?.columns || []).forEach((column, columnIndex) => {
+    const mappedLabel = { Proposed: 'Backlog', Blocked: 'Blocked', Review: 'Review', Done: 'Done' }[column.label] || column.label;
+    const col = columns.find((entry) => entry.label === mappedLabel) || columns[0];
+    (column.items || []).forEach((item, index) => {
+      col.items.push({
+        kind: 'fixture',
+        focusId: `tasks:task-board:${sectionIndex}:${columnIndex}-${index}`,
+        title: item.title,
+        summary: item.summary,
+        meta: item.meta,
+        state: item.state,
+      });
+    });
+  });
   allLocalTasks().forEach((task) => {
-    const colLabel = TASK_COLUMN_MAP[task.status] || 'Proposed';
+    const colLabel = TASK_COLUMN_MAP[task.status] || 'Backlog';
     const col = columns.find((entry) => entry.label === colLabel) || columns[0];
     col.items.push({
       kind: 'local',
@@ -4533,6 +5141,18 @@ function taskBoardColumns() {
       title: task.title,
       summary: task.notes || task.dueDate || '',
       task,
+    });
+  });
+  allStories().forEach((story) => {
+    const colLabel = TASK_COLUMN_MAP[story.status] || 'Backlog';
+    const col = columns.find((entry) => entry.label === colLabel) || columns[0];
+    col.items.push({
+      kind: 'story',
+      id: story.id,
+      focusId: `tasks:story:${story.id}`,
+      title: story.title,
+      summary: story.requirement || '',
+      story,
     });
   });
   return columns;
@@ -4553,15 +5173,18 @@ function renderTasksKanbanBoard() {
             ${column.items.length ? column.items.map((item) => {
     const isSelected = item.kind === 'local'
       ? item.id === selectedId
-      : state.focusId === item.focusId;
+      : item.kind === 'story'
+        ? state.tasks.selectedStoryId === item.id
+        : state.focusId === item.focusId;
     return `
               <button class="tasks-kanban-card ${isSelected ? 'is-selected' : ''}" type="button"
-                data-tasks-action="${item.kind === 'local' ? 'select-task' : 'select-fixture'}"
-                ${item.kind === 'local' ? `data-task-id="${escapeHtml(item.id)}"` : `data-focus-id="${escapeHtml(item.focusId)}"`}
+                data-tasks-action="${item.kind === 'local' ? 'select-task' : item.kind === 'story' ? 'select-story' : 'select-fixture'}"
+                ${item.kind === 'local' ? `data-task-id="${escapeHtml(item.id)}"` : item.kind === 'story' ? `data-story-id="${escapeHtml(item.id)}"` : `data-focus-id="${escapeHtml(item.focusId)}"`}
                 data-inspector-focus="${escapeHtml(item.focusId)}">
                 <strong>${escapeHtml(item.title)}</strong>
+                <span class="tasks-card-kind">${item.kind === 'story' ? 'Story' : item.kind === 'local' ? 'Task' : 'Fixture'}</span>
                 <p>${escapeHtml(demoteMailDisplayText(item.summary || (item.kind === 'local' && item.task?.dueDate ? `Due ${item.task.dueDate}` : '')))}</p>
-                ${renderTaskSourceLink(item)}
+                ${item.kind === 'story' && item.story ? renderStorySourceLinks(item.story) : renderTaskSourceLink(item)}
               </button>
             `;
   }).join('') : '<p class="tasks-kanban-empty">No tasks</p>'}
@@ -4605,6 +5228,59 @@ function renderTasksTaskForm(taskId) {
   `;
 }
 
+function renderTasksBugForm(storyId) {
+  const story = storyById(storyId);
+  return `
+    <form class="inbox-draft-form" data-tasks-form="bug" aria-label="Create bug from story">
+      <input type="hidden" name="storyId" value="${escapeHtml(storyId || '')}" />
+      <label for="bug-title">Bug title</label>
+      <input id="bug-title" name="title" type="text" autocomplete="off" value="${story ? `Bug: ${story.title}` : ''}" />
+      <label for="bug-requirement">Requirement reference</label>
+      <input id="bug-requirement" name="requirementRef" type="text" autocomplete="off" value="${escapeHtml(story?.requirement || '')}" />
+      <label for="bug-ac">Acceptance criterion reference</label>
+      <input id="bug-ac" name="acRef" type="text" autocomplete="off" placeholder="e.g. ac-transport-2" />
+      <label for="bug-observed">Observed problem</label>
+      <textarea id="bug-observed" name="observed" rows="2"></textarea>
+      <label for="bug-expected">Expected result</label>
+      <textarea id="bug-expected" name="expected" rows="2"></textarea>
+      <label for="bug-actual">Actual result</label>
+      <textarea id="bug-actual" name="actual" rows="2"></textarea>
+      <label for="bug-severity">Severity</label>
+      <select id="bug-severity" name="severity">
+        ${['low', 'medium', 'high', 'critical'].map((level) => `<option value="${level}">${escapeHtml(label(level))}</option>`).join('')}
+      </select>
+      <label for="bug-priority">Priority</label>
+      <select id="bug-priority" name="priority">
+        ${TASK_PRIORITIES.map((level) => `<option value="${level}">${escapeHtml(label(level))}</option>`).join('')}
+      </select>
+      <label for="bug-evidence">Evidence note (local only)</label>
+      <textarea id="bug-evidence" name="evidenceNote" rows="2" placeholder="Local evidence note — no cloud upload"></textarea>
+      <p class="form-hint">Preview only — external issue tracker mutation blocked.</p>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="submit" data-tasks-action="bug-save">Save bug</button>
+        <button class="inbox-action-btn" type="button" data-tasks-action="close-bug-form">Cancel</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Tracker sync blocked</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderTasksBugSheet() {
+  const storyId = state.tasks.selectedStoryId || '';
+  return `
+    <div class="lane-compose-root tasks-compose-root ${state.tasks.bugFormOpen ? 'is-open' : ''}" aria-hidden="${state.tasks.bugFormOpen ? 'false' : 'true'}">
+      <button class="lane-compose-backdrop" type="button" data-tasks-action="close-bug-form" aria-label="Close"></button>
+      <section class="lane-compose-sheet" role="dialog" aria-modal="true" aria-label="Create bug from story">
+        <header class="lane-compose-head">
+          <h3>Create bug from story</h3>
+          <button class="inbox-action-btn" type="button" data-tasks-action="close-bug-form">Close</button>
+        </header>
+        ${renderTasksBugForm(storyId)}
+      </section>
+    </div>
+  `;
+}
+
 function renderTasksTaskSheet() {
   const taskId = state.tasks.selectedTaskId || '';
   return `
@@ -4627,8 +5303,14 @@ function renderTasksReadingPane() {
     || (state.focusId?.startsWith('tasks:local:')
       ? tasks.find((entry) => `tasks:local:${entry.id}` === state.focusId)
       : null);
+  const story = state.tasks.viewMode === 'board' && state.tasks.selectedStoryId
+    ? storyById(state.tasks.selectedStoryId)
+    : null;
+  const bug = state.tasks.selectedBugId ? selectedBug() : null;
   const fixture = taskBoardFixtures().find((entry) => entry.focusId === state.focusId);
   const links = taskLinkFixtures();
+  if (bug && state.tasks.viewMode === 'board') return renderBugDetail(bug);
+  if (story && state.tasks.viewMode === 'board') return renderStoryDetail(story);
   if (task) {
     return `
       <section class="lane-reading-pane" aria-label="Task details">
@@ -4641,7 +5323,7 @@ function renderTasksReadingPane() {
         <p>${escapeHtml(task.notes || 'No notes.')}</p>
         <div class="task-source-row">${renderTaskSourceLink({ kind: 'local', task })}</div>
         ${task.sourceRef ? `<p class="form-hint">Ref: ${escapeHtml(task.sourceRef)}</p>` : ''}
-        ${renderTaskStatusButtons(task.id, task.status || 'proposed')}
+        ${renderTaskStatusButtons(task.id, migrateTaskStatus(task.status || 'backlog'))}
         <div class="inbox-action-toolbar">
           <button class="inbox-action-btn is-primary" type="button" data-tasks-action="edit-task" data-task-id="${escapeHtml(task.id)}">Edit</button>
           <button class="inbox-action-btn" type="button" data-tasks-action="task-clear" data-task-id="${escapeHtml(task.id)}">Delete</button>
@@ -4677,9 +5359,13 @@ function renderTasksReadingPane() {
 }
 
 function renderTasksWorkspace() {
+  const mode = state.tasks.viewMode || 'planning';
   return `
     <div class="lane-workspace tasks-workspace">
+      ${renderTasksProviderBanner()}
       <div class="lane-toolbar" role="toolbar" aria-label="Tasks actions">
+        ${renderTasksProjectSelector()}
+        ${renderTasksViewToggle()}
         <button class="inbox-action-btn is-primary" type="button" data-tasks-action="new-task">New task</button>
         <div id="tasksStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'tasks' ? state.statusMessage : '')}</div>
         <details class="lane-toolbar-overflow">
@@ -4687,11 +5373,12 @@ function renderTasksWorkspace() {
           <button class="inbox-action-btn is-danger" type="button" data-tasks-action="clear-all">Clear local tasks state</button>
         </details>
       </div>
-      <div class="lane-workspace-grid tasks-workspace-grid is-kanban">
-        ${renderTasksKanbanBoard()}
-        ${renderTasksReadingPane()}
+      <div class="lane-workspace-grid tasks-workspace-grid ${mode === 'board' ? 'is-kanban' : 'is-planning'}">
+        ${mode === 'planning' ? renderTasksPlanningWorkspace() : renderTasksKanbanBoard()}
+        ${mode === 'board' ? renderTasksReadingPane() : ''}
       </div>
       ${renderTasksTaskSheet()}
+      ${renderTasksBugSheet()}
     </div>
   `;
 }
@@ -6644,7 +7331,139 @@ function handleAutomationsAction(action, ruleId, focusId) {
   }
 }
 
-function handleTasksAction(action, taskId, status, focusId) {
+function handleTasksAction(action, params = {}) {
+  const taskId = params.taskId;
+  const status = params.taskStatus;
+  const focusId = params.focusId;
+  const storyId = params.storyId;
+  const epicId = params.epicId;
+  const bugId = params.bugId;
+  const acId = params.acId;
+  const acState = params.acState;
+  const threadId = params.threadId;
+  const draftId = params.draftId;
+  const calendarId = params.calendarId;
+  const projectId = params.projectId || params.value;
+  const laneId = params.laneId;
+  if (action === 'view-planning') {
+    state.tasks.viewMode = 'planning';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'view-board') {
+    state.tasks.viewMode = 'board';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-project') {
+    if (!projectId) return;
+    state.projects.selectedProjectId = projectId;
+    const epics = allEpics(projectId);
+    state.tasks.selectedEpicId = epics[0]?.id || null;
+    state.tasks.selectedStoryId = allStories(projectId, epics[0]?.id)[0]?.id || null;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-epic') {
+    if (!epicId) return;
+    state.tasks.selectedEpicId = epicId;
+    state.tasks.selectedStoryId = allStories(null, epicId)[0]?.id || null;
+    state.tasks.selectedBugId = null;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-story') {
+    if (!storyId) return;
+    state.tasks.selectedStoryId = storyId;
+    state.tasks.selectedBugId = null;
+    state.focusId = `tasks:story:${storyId}`;
+    state.tasks.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-bug') {
+    if (!bugId) return;
+    state.tasks.selectedBugId = bugId;
+    const bug = selectedBug();
+    if (bug) state.tasks.selectedStoryId = bug.storyId;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'set-story-status') {
+    changeStoryStatus(storyId, status);
+    renderShell();
+    return;
+  }
+  if (action === 'set-bug-status') {
+    changeBugStatus(bugId, status);
+    renderShell();
+    return;
+  }
+  if (action === 'set-ac-state') {
+    updateAcceptanceCriterion(storyId, acId, acState);
+    renderShell();
+    return;
+  }
+  if (action === 'new-bug') {
+    if (storyId) state.tasks.selectedStoryId = storyId;
+    state.tasks.bugFormOpen = true;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'close-bug-form') {
+    state.tasks.bugFormOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'add-evidence') {
+    addStoryEvidencePlaceholder(storyId);
+    renderShell();
+    return;
+  }
+  if (action === 'open-activity') {
+    state.laneId = 'receipts';
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-source-thread') {
+    if (!threadId) return;
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'inbox';
+    ensureRoute();
+    selectInboxThread(threadId);
+    return;
+  }
+  if (action === 'open-source-draft') {
+    if (!draftId) return;
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'drafts';
+    state.drafts.selectedDraftId = draftId;
+    state.focusId = `inbox-draft:${draftId}`;
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-source-calendar') {
+    if (!calendarId) return;
+    state.laneId = 'calendar';
+    state.calendar.selectedProposalId = calendarId;
+    state.focusId = `calendar:local:${calendarId}`;
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'new-task') {
     state.tasks.selectedTaskId = null;
     state.tasks.formOpen = true;
@@ -6681,8 +7500,8 @@ function handleTasksAction(action, taskId, status, focusId) {
     return;
   }
   if (action === 'source-jump') {
-    const lane = focusId;
-    const thread = status;
+    const lane = laneId || focusId;
+    const thread = threadId || status;
     if (!lane) return;
     state.laneId = lane;
     if (thread) {
@@ -7157,8 +7976,12 @@ function bindEvents() {
     if (tasksForm) {
       event.preventDefault();
       const formData = new FormData(tasksForm);
-      const taskId = String(formData.get('taskId') || '').trim() || null;
-      saveLocalTask(formData, taskId);
+      if (tasksForm.dataset.tasksForm === 'bug') {
+        createBugFromStory(formData, String(formData.get('storyId') || '').trim());
+      } else {
+        const taskId = String(formData.get('taskId') || '').trim() || null;
+        saveLocalTask(formData, taskId);
+      }
       renderShell();
       return;
     }
@@ -7263,14 +8086,9 @@ function bindEvents() {
     }
 
     const tasksAction = event.target.closest?.('[data-tasks-action]');
-    if (tasksAction?.dataset.tasksAction && tasksAction.dataset.tasksAction !== 'task-save') {
+    if (tasksAction?.dataset.tasksAction && !['task-save', 'bug-save'].includes(tasksAction.dataset.tasksAction)) {
       event.preventDefault();
-      handleTasksAction(
-        tasksAction.dataset.tasksAction,
-        tasksAction.dataset.taskId,
-        tasksAction.dataset.threadId || tasksAction.dataset.taskStatus,
-        tasksAction.dataset.laneId || tasksAction.dataset.focusId,
-      );
+      handleTasksAction(tasksAction.dataset.tasksAction, tasksAction.dataset);
       return;
     }
 
@@ -7349,6 +8167,12 @@ function bindEvents() {
     const threadButton = event.target.closest?.('[data-thread-id]');
     if (!threadButton?.dataset.threadId || threadButton.dataset.inboxAction) return;
     selectInboxThread(threadButton.dataset.threadId);
+  });
+
+  document.addEventListener('change', (event) => {
+    if (event.target?.id === 'tasks-project-picker') {
+      handleTasksAction('select-project', { projectId: event.target.value });
+    }
   });
 
   document.addEventListener('keydown', (event) => {
