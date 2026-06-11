@@ -14,6 +14,9 @@ const SCOPES = [
 ];
 const LOOPBACK_HOST = '127.0.0.1';
 const LOOPBACK_PORT = Number(process.env.GMAIL_OAUTH_PORT || 8787);
+const CONNECT_TIMEOUT_MS = Number(process.env.GMAIL_OAUTH_TIMEOUT_MS || 300000);
+const DATA_DIR = path.join(ROOT, 'data');
+const RECEIPTS_DIR = path.join(ROOT, 'receipts');
 
 const BLOCKED_METHODS = new Set([
   'gmail.messages.getBody',
@@ -51,7 +54,7 @@ async function loadOAuthClient() {
   if (!installed?.client_id || !installed?.client_secret) {
     throw new Error('Invalid OAuth client JSON. Expected installed or web client with client_id and client_secret.');
   }
-  const redirectUri = installed.redirect_uris?.[0] || `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}/oauth2callback`;
+  const redirectUri = `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}/oauth2callback`;
   const oauth2 = new google.auth.OAuth2(installed.client_id, installed.client_secret, redirectUri);
   const tokens = await loadToken();
   if (tokens) oauth2.setCredentials(tokens);
@@ -96,6 +99,17 @@ export async function providerConnectStart() {
   });
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+    let timeout;
+    const finish = (err, result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (server.listening) server.close();
+      if (err) reject(err);
+      else resolve(result);
+    };
+
     const server = http.createServer(async (req, res) => {
       try {
         const url = new URL(req.url, `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}`);
@@ -104,29 +118,44 @@ export async function providerConnectStart() {
           res.end('Not found');
           return;
         }
+        const callbackError = url.searchParams.get('error');
+        if (callbackError) {
+          res.writeHead(400);
+          res.end(`OAuth callback error: ${callbackError}`);
+          finish(new Error(`OAuth callback error: ${callbackError}`));
+          return;
+        }
         const code = url.searchParams.get('code');
         if (!code) {
           res.writeHead(400);
           res.end('Missing code');
+          finish(new Error('OAuth callback missing code.'));
           return;
         }
         const { tokens } = await oauth2.getToken(code);
         await saveToken(tokens);
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end('<p>Gmail metadata connect complete. You may close this window.</p>');
-        server.close();
-        resolve(envelope({
+        finish(null, envelope({
           success: true,
           method: 'provider.connect.callback',
           payload: { connected: true, scopes: SCOPES },
         }));
       } catch (err) {
-        server.close();
-        reject(err);
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'text/html' });
+          res.end('<p>Gmail metadata connect failed. Check the CLI for details.</p>');
+        } else if (!res.writableEnded) {
+          res.end();
+        }
+        finish(err);
       }
     });
 
-    server.on('error', reject);
+    timeout = setTimeout(() => {
+      finish(new Error(`OAuth callback timed out after ${CONNECT_TIMEOUT_MS}ms.`));
+    }, CONNECT_TIMEOUT_MS);
+    server.on('error', finish);
     server.listen(LOOPBACK_PORT, LOOPBACK_HOST, () => {
       console.error(`Open this URL in your browser:\n${authUrl}`);
       console.error(`Waiting for OAuth callback on http://${LOOPBACK_HOST}:${LOOPBACK_PORT}/oauth2callback`);
@@ -144,7 +173,10 @@ export async function providerDisconnect() {
 }
 
 export async function providerWipeLocalData() {
-  await wipeToken();
+  await Promise.all([
+    fs.rm(DATA_DIR, { recursive: true, force: true }),
+    fs.rm(RECEIPTS_DIR, { recursive: true, force: true }),
+  ]);
   return envelope({
     success: true,
     method: 'provider.wipeLocalData',
