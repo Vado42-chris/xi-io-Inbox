@@ -2,7 +2,32 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 10;
+const STORAGE_SCHEMA_VERSION = 11;
+
+const PRODUCT_GATE_COPY = {
+  previewOnly: 'Preview-only in Tier 1 — no provider runtime.',
+  metadataOnly: 'Metadata-only (CLI) — body read, draft write, and send blocked.',
+  browserNotConnected: 'Browser preview is not connected to live providers.',
+  sendBlocked: 'Send blocked.',
+  draftWriteBlocked: 'Provider draft write blocked.',
+  bodyReadBlocked: 'Provider body read blocked.',
+  activityLabel: 'Activity shows what happened; receipts are the audit objects.',
+};
+
+const SETTINGS_USER_SECTIONS = [
+  { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
+  { id: 'user:accounts', label: 'Accounts', badge: 'mail', summary: 'Queued accounts · metadata-only · not connected in browser' },
+  { id: 'user:providers', label: 'Providers', badge: 'plug', summary: 'Gates aligned with Integrations and Activity' },
+  { id: 'user:privacy', label: 'Privacy', badge: 'lock', summary: 'Local preview data · no tokens in browser' },
+  { id: 'user:storage', label: 'Storage', badge: 'disk', summary: 'Canonical preview state · export blocked' },
+  { id: 'user:notifications', label: 'Notifications', badge: 'bell', summary: 'Local toggles · provider delivery blocked' },
+  { id: 'user:ibal', label: 'AI / Ibal', badge: 'ai', summary: 'Proposal-only · no runtime send' },
+  { id: 'user:automation-safety', label: 'Automation safety', badge: 'safe', summary: 'Dry-run only · approval required' },
+];
+
+const SETTINGS_ADVANCED_SECTIONS = [
+  { id: 'advanced:developer', label: 'Advanced / Developer', badge: 'dev', summary: 'Provider gates · schema · build evidence' },
+];
 
 const EXTENSION_CATEGORY_CATALOG = [
   { id: 'internal-xiio', label: 'Internal xi-io', summary: 'First-party capabilities built into the product.' },
@@ -224,17 +249,54 @@ function migrateExtensionsOps(ext) {
 
 function defaultSettingsOps() {
   return {
-    selectedKey: 'user:preferences',
+    selectedKey: 'user:profile',
     gateOverrides: {},
     policyOverrides: {},
     userPrefs: {
       displayDensity: 'comfortable',
       defaultMailbox: 'inbox',
       desktopNotifications: false,
+      activityDigest: false,
+      calendarReminders: false,
+    },
+    ibalPrefs: {
+      composeAssist: true,
+      replyProposal: true,
+      taskProposal: true,
+      calendarProposal: true,
+      automationSuggest: true,
+      runtimeBlocked: true,
+    },
+    automationSafety: {
+      dryRunOnly: true,
+      approvalRequired: true,
+      externalExecutionBlocked: true,
+      sendBlocked: true,
     },
     receipts: [],
     formOpen: false,
   };
+}
+
+function migrateSettingsOps(settings) {
+  const migrated = {
+    ...defaultSettingsOps(),
+    ...(settings || {}),
+    userPrefs: {
+      ...defaultSettingsOps().userPrefs,
+      ...(settings?.userPrefs || {}),
+    },
+    ibalPrefs: {
+      ...defaultSettingsOps().ibalPrefs,
+      ...(settings?.ibalPrefs || {}),
+    },
+    automationSafety: {
+      ...defaultSettingsOps().automationSafety,
+      ...(settings?.automationSafety || {}),
+    },
+  };
+  if (migrated.selectedKey === 'user:preferences') migrated.selectedKey = 'user:profile';
+  return migrated;
 }
 
 function defaultIbalOps() {
@@ -390,17 +452,7 @@ function applyPreviewEnvelope(stored) {
     lastDryRun: stored.automations?.lastDryRun || null,
   };
   state.extensions = migrateExtensionsOps(stored.extensions);
-  state.settings = {
-    ...defaultSettingsOps(),
-    ...(stored.settings || {}),
-    gateOverrides: stored.settings?.gateOverrides || {},
-    policyOverrides: stored.settings?.policyOverrides || {},
-    userPrefs: {
-      ...defaultSettingsOps().userPrefs,
-      ...(stored.settings?.userPrefs || {}),
-    },
-    receipts: stored.settings?.receipts || [],
-  };
+  state.settings = migrateSettingsOps(stored.settings);
   state.ibal = {
     ...defaultIbalOps(),
     ...(stored.ibal || {}),
@@ -498,11 +550,19 @@ function upgradePreviewEnvelope(envelope) {
       activity: envelope.activity || defaultActivityOps(),
     });
   }
+  if (envelope.schemaVersion === 10) {
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      settings: migrateSettingsOps(envelope.settings),
+    };
+  }
   if (envelope.schemaVersion === 9) {
     return {
       ...envelope,
       schemaVersion: STORAGE_SCHEMA_VERSION,
       activity: migrateActivityOps(envelope.activity),
+      settings: migrateSettingsOps(envelope.settings),
     };
   }
   if (envelope.schemaVersion === 8) {
@@ -2148,23 +2208,53 @@ function saveSettingsGate(formData, gateKey) {
 function saveSettingsUserPrefs(formData) {
   const displayDensity = String(formData.get('displayDensity') || 'comfortable').trim();
   const defaultMailbox = String(formData.get('defaultMailbox') || 'inbox').trim();
-  const desktopNotifications = formData.get('desktopNotifications') === 'on';
+  const existing = state.settings.userPrefs || defaultSettingsOps().userPrefs;
   state.settings.userPrefs = {
+    ...existing,
     displayDensity: ['compact', 'comfortable', 'spacious'].includes(displayDensity) ? displayDensity : 'comfortable',
     defaultMailbox: ['inbox', 'drafts', 'approval-queue'].includes(defaultMailbox) ? defaultMailbox : 'inbox',
-    desktopNotifications,
   };
   if (state.laneId === 'inbox' && !state.inbox.mailboxView) {
     state.inbox.mailboxView = state.settings.userPrefs.defaultMailbox;
   }
   addSettingsReceipt({
     type: 'preferences',
-    key: 'user:preferences',
-    title: 'User preferences saved',
-    summary: `${state.settings.userPrefs.displayDensity} density · default ${state.settings.userPrefs.defaultMailbox}`,
+    title: 'Profile / workspace saved',
+    key: 'user:profile',
+    summary: `${state.settings.userPrefs.displayDensity} · default ${state.settings.userPrefs.defaultMailbox}`,
   });
+  state.settings.selectedKey = 'user:profile';
   saveState();
-  setStatusMessage('User preferences saved locally. Runtime apply remains blocked.');
+  setStatusMessage('Profile settings saved locally.', 'settings');
+}
+
+function saveSettingsNotifications(formData) {
+  const existing = state.settings.userPrefs || defaultSettingsOps().userPrefs;
+  state.settings.userPrefs = {
+    ...existing,
+    desktopNotifications: formData.get('desktopNotifications') === 'on',
+    activityDigest: formData.get('activityDigest') === 'on',
+    calendarReminders: formData.get('calendarReminders') === 'on',
+  };
+  addSettingsReceipt({ type: 'notifications', title: 'Notification prefs saved (preview)', key: 'user:notifications', summary: 'Local toggles only — provider delivery blocked.' });
+  state.settings.selectedKey = 'user:notifications';
+  saveState();
+  setStatusMessage('Notification preferences saved. Provider push remains blocked.', 'settings');
+}
+
+function saveSettingsIbalPrefs(formData) {
+  state.settings.ibalPrefs = {
+    composeAssist: formData.get('composeAssist') === 'on',
+    replyProposal: formData.get('replyProposal') === 'on',
+    taskProposal: formData.get('taskProposal') === 'on',
+    calendarProposal: formData.get('calendarProposal') === 'on',
+    automationSuggest: formData.get('automationSuggest') === 'on',
+    runtimeBlocked: true,
+  };
+  addSettingsReceipt({ type: 'ibal', title: 'Ibal prefs saved (proposal-only)', key: 'user:ibal', summary: 'Runtime send remains blocked.' });
+  state.settings.selectedKey = 'user:ibal';
+  saveState();
+  setStatusMessage('Ibal preferences saved. Proposal-only mode unchanged.', 'settings');
 }
 
 function saveSettingsPolicy(formData, policyKey) {
@@ -2188,6 +2278,21 @@ function saveSettingsPolicy(formData, policyKey) {
   state.settings.formOpen = false;
   saveState();
   setStatusMessage('Local policy preview saved. Runtime policy apply remains blocked.', 'settings');
+}
+
+function resetCanonicalPreviewState() {
+  if (!window.confirm('Reset all local preview state in this browser? Fixtures unchanged. No files outside localStorage are deleted.')) return;
+  const laneId = state.laneId;
+  localStorage.removeItem(STORAGE_KEY);
+  applyPreviewEnvelope(migratePreviewStorage());
+  seedSampleDraftsIfNeeded();
+  seedCalendarFixtureProposalsIfNeeded();
+  seedPlanningFixturesIfNeeded();
+  seedAutomationDefaultsIfNeeded();
+  state.laneId = laneId;
+  state.focusId = defaultFocusIdForLane(laneId);
+  saveState();
+  setStatusMessage('Local preview state reset. Provider runtime remains blocked.', 'settings');
 }
 
 function clearSettingsPreviewState() {
@@ -3784,7 +3889,7 @@ function defaultFocusIdForLane(laneId) {
   }
   if (laneId === 'settings') {
     const key = state.settings.selectedKey;
-    if (key === 'user:preferences') return 'settings:local:preferences';
+    if (key === 'user:profile' || key === 'user:preferences') return 'settings:local:preferences';
     if (key === 'user:accounts') return 'settings:local:accounts';
     if (key?.startsWith('gate:')) return `settings:local:gate:${key}`;
     if (key) return `settings:local:policy:${key}`;
@@ -6889,7 +6994,8 @@ function renderEmailAccountsBlock() {
             <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
               ${account.accountId === activeAccountId ? 'Active' : 'Switch'}
             </button>
-            <button class="inbox-action-btn is-primary" type="button" data-account-action="connect-gmail" data-account-id="${escapeHtml(account.accountId)}">Connect Gmail</button>
+            <button class="inbox-action-btn" type="button" data-account-action="connect-gmail" data-account-id="${escapeHtml(account.accountId)}">CLI connect steps</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled title="Browser OAuth blocked">Connect in browser blocked</button>
             <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
           </div>
         </article>
@@ -6898,17 +7004,17 @@ function renderEmailAccountsBlock() {
   `;
 }
 
-function renderUserPreferencesPane() {
+function renderSettingsProfilePane() {
   const prefs = state.settings.userPrefs || defaultSettingsOps().userPrefs;
   return `
-    <section class="lane-reading-pane" aria-label="User preferences">
+    <section class="lane-reading-pane" aria-label="Profile and workspace">
       <header class="lane-reading-head">
         <div>
-          <h3>Preferences</h3>
-          <p class="lane-reading-meta">Display and notification choices · saved locally in preview</p>
+          <h3>Profile / Workspace</h3>
+          <p class="lane-reading-meta">${escapeHtml(PRODUCT_GATE_COPY.previewOnly)}</p>
         </div>
       </header>
-      <form class="inbox-draft-form" data-settings-form="preferences" aria-label="User preferences">
+      <form class="inbox-draft-form" data-settings-form="preferences" aria-label="Profile and workspace">
         <label for="pref-density">Display density</label>
         <select id="pref-density" name="displayDensity">
           <option value="compact" ${prefs.displayDensity === 'compact' ? 'selected' : ''}>Compact</option>
@@ -6921,16 +7027,197 @@ function renderUserPreferencesPane() {
           <option value="drafts" ${prefs.defaultMailbox === 'drafts' ? 'selected' : ''}>Drafts</option>
           <option value="approval-queue" ${prefs.defaultMailbox === 'approval-queue' ? 'selected' : ''}>Approval queue</option>
         </select>
-        <label class="checkbox-row">
-          <input type="checkbox" name="desktopNotifications" ${prefs.desktopNotifications ? 'checked' : ''} />
-          Desktop notifications (preview toggle — delivery blocked)
-        </label>
+        <p class="form-hint">${escapeHtml(PRODUCT_GATE_COPY.activityLabel)}</p>
         <div class="inbox-form-actions">
-          <button class="inbox-action-btn is-primary" type="submit">Save preferences</button>
+          <button class="inbox-action-btn is-primary" type="submit">Save</button>
         </div>
       </form>
     </section>
   `;
+}
+
+function renderSettingsProvidersPane() {
+  const providers = allExtensionProviders().filter((p) => p.marker === 'external' || p.category === 'email' || p.category === 'cloud-storage' || p.category === 'automation-connectors' || p.category === 'communication' || p.id === 'local-filesystem-export');
+  return `
+    <section class="lane-reading-pane" aria-label="Provider settings">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Providers</h3>
+          <p class="lane-reading-meta">${escapeHtml(PRODUCT_GATE_COPY.browserNotConnected)}</p>
+        </div>
+      </header>
+      <p class="form-hint">Aligned with Integrations and Activity. ${escapeHtml(PRODUCT_GATE_COPY.metadataOnly)}</p>
+      <div class="settings-provider-list">
+        ${providers.map((provider) => `
+          <article class="settings-provider-row">
+            <header><strong>${escapeHtml(provider.name)}</strong><em>${escapeHtml(label(provider.status))}</em></header>
+            <p>${escapeHtml(provider.permissions)}</p>
+            <p class="form-hint">Allowed now: ${escapeHtml(provider.allowedPreviewAction)} · Blocked: ${escapeHtml(provider.blockedRuntimeAction)}</p>
+            <p class="form-hint">Gate: ${escapeHtml(provider.currentGate)} · Activity: ${escapeHtml((provider.receiptExpectations || [])[0] || 'Gate viewed receipt')}</p>
+            <button class="inbox-action-btn" type="button" data-settings-action="open-extension-provider" data-settings-key="${escapeHtml(provider.id)}">View in Integrations</button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderSettingsPrivacyPane() {
+  return `
+    <section class="lane-reading-pane" aria-label="Privacy">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Privacy</h3>
+          <p class="lane-reading-meta">Local preview only · fixture/redaction policy</p>
+        </div>
+      </header>
+      <ul class="settings-copy-list">
+        <li>Data stays in this browser under canonical key <code>${escapeHtml(STORAGE_KEY)}</code>.</li>
+        <li>${escapeHtml(PRODUCT_GATE_COPY.browserNotConnected)}</li>
+        <li>${escapeHtml(PRODUCT_GATE_COPY.bodyReadBlocked)} ${escapeHtml(PRODUCT_GATE_COPY.draftWriteBlocked)} ${escapeHtml(PRODUCT_GATE_COPY.sendBlocked)}</li>
+        <li>No cloud upload. No OAuth tokens in product UI. secrets/ CLI path only (gitignored).</li>
+        <li>Fixture/redaction policy: preview summaries only — no real private message bodies.</li>
+      </ul>
+      <div class="inbox-action-toolbar">
+        <button class="inbox-action-btn is-danger" type="button" data-settings-action="reset-preview-state">Reset local preview state</button>
+        <button class="inbox-action-btn" type="button" data-settings-action="open-activity">Open Activity</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderSettingsStoragePane() {
+  return `
+    <section class="lane-reading-pane" aria-label="Storage">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Storage</h3>
+          <p class="lane-reading-meta">Preview state only · no cloud backup claim</p>
+        </div>
+      </header>
+      <dl class="settings-detail-grid">
+        <div><dt>Canonical key</dt><dd><code>${escapeHtml(STORAGE_KEY)}</code></dd></div>
+        <div><dt>Schema version</dt><dd>${STORAGE_SCHEMA_VERSION}</dd></div>
+        <div><dt>Evidence / artifacts</dt><dd>Preview placeholders only — cloud storage blocked</dd></div>
+        <div><dt>Export packet</dt><dd>Preview-only in Activity — no file write</dd></div>
+      </dl>
+      <p class="form-hint">${escapeHtml(PRODUCT_GATE_COPY.previewOnly)}</p>
+    </section>
+  `;
+}
+
+function renderSettingsNotificationsPane() {
+  const prefs = state.settings.userPrefs || defaultSettingsOps().userPrefs;
+  return `
+    <section class="lane-reading-pane" aria-label="Notifications">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Notifications</h3>
+          <p class="lane-reading-meta">Preview toggles · provider delivery blocked</p>
+        </div>
+      </header>
+      <form class="inbox-draft-form" data-settings-form="notifications" aria-label="Notification preferences">
+        <label class="checkbox-row"><input type="checkbox" name="desktopNotifications" ${prefs.desktopNotifications ? 'checked' : ''} /> Desktop notifications (preview — no system API)</label>
+        <label class="checkbox-row"><input type="checkbox" name="activityDigest" ${prefs.activityDigest ? 'checked' : ''} /> Activity digest preview (local only)</label>
+        <label class="checkbox-row"><input type="checkbox" name="calendarReminders" ${prefs.calendarReminders ? 'checked' : ''} /> Calendar reminder proposals (no provider push)</label>
+        <p class="form-hint">Provider notification sync remains blocked.</p>
+        <button class="inbox-action-btn is-primary" type="submit">Save</button>
+      </form>
+    </section>
+  `;
+}
+
+function renderSettingsIbalPane() {
+  const prefs = state.settings.ibalPrefs || defaultSettingsOps().ibalPrefs;
+  return `
+    <section class="lane-reading-pane" aria-label="AI and Ibal">
+      <header class="lane-reading-head">
+        <div>
+          <h3>AI / Ibal</h3>
+          <p class="lane-reading-meta">Proposal-only · no external model runtime connected</p>
+        </div>
+      </header>
+      <form class="inbox-draft-form" data-settings-form="ibal" aria-label="Ibal preferences">
+        <label class="checkbox-row"><input type="checkbox" name="composeAssist" ${prefs.composeAssist ? 'checked' : ''} /> Compose assistance (proposal)</label>
+        <label class="checkbox-row"><input type="checkbox" name="replyProposal" ${prefs.replyProposal ? 'checked' : ''} /> Reply proposals</label>
+        <label class="checkbox-row"><input type="checkbox" name="taskProposal" ${prefs.taskProposal ? 'checked' : ''} /> Task proposals</label>
+        <label class="checkbox-row"><input type="checkbox" name="calendarProposal" ${prefs.calendarProposal ? 'checked' : ''} /> Calendar proposals</label>
+        <label class="checkbox-row"><input type="checkbox" name="automationSuggest" ${prefs.automationSuggest ? 'checked' : ''} /> Automation suggestions (dry-run only)</label>
+        <p class="form-hint">${escapeHtml(PRODUCT_GATE_COPY.sendBlocked)} No provider/AI runtime claims in Tier 1.</p>
+        <button class="inbox-action-btn is-primary" type="submit">Save</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Runtime send blocked</button>
+      </form>
+    </section>
+  `;
+}
+
+function renderSettingsAutomationSafetyPane() {
+  const prefs = state.settings.automationSafety || defaultSettingsOps().automationSafety;
+  return `
+    <section class="lane-reading-pane" aria-label="Automation safety">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Automation safety</h3>
+          <p class="lane-reading-meta">Dry-run only · external Zapier/Make/n8n blocked</p>
+        </div>
+      </header>
+      <ul class="settings-copy-list">
+        <li>Dry-run only: ${prefs.dryRunOnly ? 'on' : 'off'} (Tier 1 default)</li>
+        <li>Human approval required before any future enablement.</li>
+        <li>Reusable action library saves locally — execution blocked.</li>
+        <li>${escapeHtml(PRODUCT_GATE_COPY.sendBlocked)} Provider actions gated.</li>
+      </ul>
+      <div class="inbox-action-toolbar">
+        <button class="inbox-action-btn" type="button" data-settings-action="open-automations">Open Automations</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled>Enable rules blocked</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderSettingsAdvancedPane() {
+  const gates = settingsGateFixtures();
+  const policies = settingsPolicyFixtures();
+  const buildRows = collectUnifiedActivityEntries().filter((e) => e.isBuildEvidence);
+  return `
+    <section class="lane-reading-pane" aria-label="Advanced and developer">
+      <header class="lane-reading-head">
+        <div>
+          <h3>Advanced / Developer</h3>
+          <p class="lane-reading-meta">Not primary user workflow · planning and validation only</p>
+        </div>
+      </header>
+      <details class="lane-reading-details" open>
+        <summary>Provider gates (fixtures)</summary>
+        ${gates.map((gate) => `
+          <button class="settings-list-row ${state.settings.selectedKey === gate.gateKey ? 'is-selected' : ''}" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}">
+            <strong>${escapeHtml(gate.label)}</strong> — ${escapeHtml(gate.control)}
+          </button>
+        `).join('')}
+      </details>
+      <details class="lane-reading-details">
+        <summary>Policy fixtures</summary>
+        ${policies.map((policy) => `
+          <button class="settings-list-row" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}">
+            <strong>${escapeHtml(policy.label)}</strong> — ${escapeHtml(policy.value)}
+          </button>
+        `).join('')}
+      </details>
+      <details class="lane-reading-details">
+        <summary>Build evidence (${buildRows.length})</summary>
+        <ul class="settings-copy-list">${buildRows.map((row) => `<li>${escapeHtml(row.title)}${row.advanced?.commitSha ? ` · <code>${escapeHtml(row.advanced.commitSha)}</code>` : ''}</li>`).join('') || '<li>No build rows loaded</li>'}</ul>
+        <p class="form-hint">Validation: npm run check · route smoke · slice receipts. Primary view: Activity → Build evidence filter.</p>
+      </details>
+      <dl class="settings-detail-grid">
+        <div><dt>Schema</dt><dd>${STORAGE_SCHEMA_VERSION}</dd></div>
+        <div><dt>Storage key</dt><dd><code>${escapeHtml(STORAGE_KEY)}</code></dd></div>
+      </dl>
+    </section>
+  `;
+}
+
+function renderUserPreferencesPane() {
+  return renderSettingsProfilePane();
 }
 
 function renderUserAccountsPane() {
@@ -6954,8 +7241,15 @@ function renderUserAccountsPane() {
 
 function renderSettingsReadingPane() {
   const key = state.settings.selectedKey;
-  if (key === 'user:preferences') return renderUserPreferencesPane();
+  if (key === 'user:profile' || key === 'user:preferences') return renderSettingsProfilePane();
   if (key === 'user:accounts') return renderUserAccountsPane();
+  if (key === 'user:providers') return renderSettingsProvidersPane();
+  if (key === 'user:privacy') return renderSettingsPrivacyPane();
+  if (key === 'user:storage') return renderSettingsStoragePane();
+  if (key === 'user:notifications') return renderSettingsNotificationsPane();
+  if (key === 'user:ibal') return renderSettingsIbalPane();
+  if (key === 'user:automation-safety') return renderSettingsAutomationSafetyPane();
+  if (key === 'advanced:developer') return renderSettingsAdvancedPane();
   const gate = isSettingsGateKey(key) ? settingsGateFixtures().find((entry) => entry.gateKey === key) : null;
   const policy = !gate ? settingsPolicyFixtures().find((entry) => entry.policyKey === key) : null;
   const gateOverride = gate ? gateOverrideFor(gate.gateKey) : null;
@@ -7015,48 +7309,33 @@ function renderSettingsReadingPane() {
 }
 
 function renderSettingsWorkspace() {
-  const gates = settingsGateFixtures();
-  const policies = settingsPolicyFixtures();
   const selectedKey = state.settings.selectedKey;
-  const accountCount = allPreviewAccounts().length;
+  const renderNavRow = (section) => `
+    <button class="settings-list-row ${selectedKey === section.id ? 'is-selected' : ''}" type="button" data-settings-action="select-section" data-settings-key="${escapeHtml(section.id)}" data-inspector-focus="${escapeHtml(section.id === 'user:profile' ? 'settings:local:preferences' : `settings:local:${section.id.replace(':', '-')}`)}">
+      <span class="settings-list-badge">${escapeHtml(section.badge)}</span>
+      <div><strong>${escapeHtml(section.label)}</strong><p>${escapeHtml(section.summary)}</p></div>
+    </button>
+  `;
   return `
     <div class="lane-workspace settings-workspace">
+      <header class="settings-page-head">
+        <h3 class="settings-page-title">Settings</h3>
+        <p class="settings-page-subtitle">User app preferences first. Provider gates and build evidence live under Advanced.</p>
+      </header>
       <div class="lane-toolbar" role="toolbar" aria-label="Settings actions">
         <div id="settingsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'settings' ? state.statusMessage : '')}</div>
         <details class="lane-toolbar-overflow">
           <summary>More</summary>
-          <button class="inbox-action-btn is-danger" type="button" data-settings-action="clear-all">Clear local settings state</button>
+          <button class="inbox-action-btn is-danger" type="button" data-settings-action="clear-all">Clear settings overrides</button>
         </details>
       </div>
       <div class="lane-workspace-grid settings-workspace-grid">
-        <div class="settings-item-list" aria-label="Settings categories">
+        <nav class="settings-item-list" aria-label="Settings sections">
           <p class="settings-section-label">Your settings</p>
-          <button class="settings-list-row ${selectedKey === 'user:preferences' ? 'is-selected' : ''}" type="button" data-settings-action="select-preferences" data-settings-key="user:preferences" data-inspector-focus="settings:local:preferences">
-            <span class="settings-list-badge">prefs</span>
-            <div><strong>Preferences</strong><p>Density, default mailbox, notifications</p></div>
-          </button>
-          <button class="settings-list-row ${selectedKey === 'user:accounts' ? 'is-selected' : ''}" type="button" data-settings-action="select-accounts" data-settings-key="user:accounts" data-inspector-focus="settings:local:accounts">
-            <span class="settings-list-badge">mail</span>
-            <div><strong>Email accounts</strong><p>${accountCount ? `${accountCount} queued or active` : 'Add and connect Gmail'}</p></div>
-          </button>
-          <details class="settings-advanced-section">
-            <summary>Advanced · provider &amp; privacy (preview)</summary>
-            <div class="settings-advanced-list">
-              ${gates.map((gate) => `
-                <button class="settings-list-row ${selectedKey === gate.gateKey ? 'is-selected' : ''}" type="button" data-settings-action="select-gate" data-settings-key="${escapeHtml(gate.gateKey)}" data-inspector-focus="${escapeHtml(`settings:local:gate:${gate.gateKey}`)}">
-                  <span class="settings-list-badge">conn</span>
-                  <div><strong>${escapeHtml(gate.label)}</strong><p>${escapeHtml(gate.control)}</p></div>
-                </button>
-              `).join('')}
-              ${policies.map((policy) => `
-                <button class="settings-list-row ${selectedKey === policy.policyKey ? 'is-selected' : ''}" type="button" data-settings-action="select-policy" data-settings-key="${escapeHtml(policy.policyKey)}" data-inspector-focus="${escapeHtml(`settings:local:policy:${policy.policyKey}`)}">
-                  <span class="settings-list-badge">rule</span>
-                  <div><strong>${escapeHtml(policy.label)}</strong><p>${escapeHtml(policy.value)}</p></div>
-                </button>
-              `).join('')}
-            </div>
-          </details>
-        </div>
+          ${SETTINGS_USER_SECTIONS.map(renderNavRow).join('')}
+          <p class="settings-section-label settings-advanced-label">Advanced</p>
+          ${SETTINGS_ADVANCED_SECTIONS.map(renderNavRow).join('')}
+        </nav>
         ${renderSettingsReadingPane()}
       </div>
       ${renderSettingsEditSheet()}
@@ -8114,6 +8393,46 @@ function handleIbalAction(action, proposalId) {
 }
 
 function handleSettingsAction(action, settingsKey) {
+  if (action === 'select-section' && settingsKey) {
+    state.settings.selectedKey = settingsKey;
+    if (settingsKey === 'user:profile') state.focusId = 'settings:local:preferences';
+    else if (settingsKey === 'user:accounts') state.focusId = 'settings:local:accounts';
+    else if (settingsKey.startsWith('user:')) state.focusId = `settings:local:${settingsKey.replace(':', '-')}`;
+    else if (settingsKey === 'advanced:developer') state.focusId = 'settings:local:advanced-developer';
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'reset-preview-state') {
+    resetCanonicalPreviewState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-activity') {
+    state.laneId = 'receipts';
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-automations') {
+    state.laneId = 'automations';
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-extension-provider') {
+    const providerId = settingsKey;
+    if (!providerId) return;
+    state.laneId = 'extensions';
+    state.extensions.selectedProviderId = providerId;
+    state.focusId = `extensions:provider:${providerId}`;
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'edit-item') {
     if (!settingsKey) return;
     state.settings.selectedKey = settingsKey;
@@ -8132,7 +8451,7 @@ function handleSettingsAction(action, settingsKey) {
     return;
   }
   if (action === 'select-preferences') {
-    state.settings.selectedKey = 'user:preferences';
+    state.settings.selectedKey = 'user:profile';
     state.focusId = 'settings:local:preferences';
     saveState();
     renderShell();
@@ -9021,6 +9340,10 @@ function bindEvents() {
       const formKind = settingsForm.dataset.settingsForm;
       if (formKind === 'preferences') {
         saveSettingsUserPrefs(formData);
+      } else if (formKind === 'notifications') {
+        saveSettingsNotifications(formData);
+      } else if (formKind === 'ibal') {
+        saveSettingsIbalPrefs(formData);
       } else if (formKind === 'gate') {
         saveSettingsGate(formData, String(formData.get('gateKey') || '').trim());
       } else if (formKind === 'policy') {

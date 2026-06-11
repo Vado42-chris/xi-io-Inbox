@@ -777,7 +777,7 @@
     "settings": {
       "eyebrow": "settings",
       "title": "Settings",
-      "summary": "Manage email accounts and preferences. Advanced provider and privacy controls are preview-only until runtime is enabled.",
+      "summary": "User settings first: profile, accounts, providers, privacy, storage, notifications, AI/Ibal, and automation safety. Advanced holds gates and build evidence.",
       "proofState": "runtime_blocked",
       "layout": "settings-gate-layout",
       "metrics": [
