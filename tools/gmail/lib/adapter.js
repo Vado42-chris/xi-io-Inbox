@@ -99,15 +99,23 @@ export async function providerConnectStart() {
     const server = http.createServer(async (req, res) => {
       try {
         const url = new URL(req.url, `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}`);
+        const rejectCallback = (status, message) => {
+          res.writeHead(status);
+          res.end(message);
+          server.close();
+          reject(new Error(message));
+        };
         if (url.pathname !== '/oauth2callback') {
-          res.writeHead(404);
-          res.end('Not found');
+          rejectCallback(404, 'OAuth callback path not found');
           return;
         }
         const code = url.searchParams.get('code');
         if (!code) {
-          res.writeHead(400);
-          res.end('Missing code');
+          const error = url.searchParams.get('error');
+          rejectCallback(
+            400,
+            error ? `OAuth callback missing code: ${error}` : 'OAuth callback missing code',
+          );
           return;
         }
         const { tokens } = await oauth2.getToken(code);
