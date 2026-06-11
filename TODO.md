@@ -166,7 +166,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-008C polish (partial): Settings user preferences — insufficient vs product bar.
 - [x] Owner UI-003E re-review — FAIL product UX not user-facing (`docs/ui/reviews/ui-009-product-ux-gap-audit.md`).
 - [x] UI-009A: remove fixture accounts; Gmail queue + Connect CLI wizard (`docs/ui/reviews/ui-009a-account-wizard-receipt.md`).
-- [ ] UI-009B: calendar month-grid shell.
+- [x] UI-009B: calendar month-grid shell (`docs/ui/reviews/ui-009b-calendar-grid-receipt.md`).
 - [ ] UI-009C: tasks board/sprint layout + mail source links.
 - [ ] UI-009D: Activity (Receipts) rename + user-facing filters.
 - [ ] UI-009E: Settings split User vs Advanced.

@@ -43,8 +43,11 @@ function defaultInboxOps() {
 }
 
 function defaultCalendarOps() {
+  const now = new Date();
   return {
     selectedProposalId: null,
+    selectedDay: null,
+    viewMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
     proposals: [],
     receipts: [],
     formOpen: false,
@@ -3210,6 +3213,112 @@ function calendarConflictFixtures() {
   return sectionByType(activeLaneContent(), 'conflict-panel')?.items || [];
 }
 
+function calendarViewMonthParts() {
+  const raw = state.calendar.viewMonth || defaultCalendarOps().viewMonth;
+  const [year, month] = raw.split('-').map(Number);
+  return { year, month: month - 1 };
+}
+
+function calendarDaysInMonth(year, monthIndex) {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function calendarMonthLabel() {
+  const { year, month } = calendarViewMonthParts();
+  return new Date(year, month, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+}
+
+function shiftCalendarViewMonth(delta) {
+  const { year, month } = calendarViewMonthParts();
+  const next = new Date(year, month + delta, 1);
+  state.calendar.viewMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+  state.calendar.selectedDay = null;
+  saveState();
+}
+
+function proposalGridDay(proposal, year, monthIndex) {
+  const text = proposal.dateTime || '';
+  const match = text.match(/(\d{1,2})/);
+  if (match) {
+    const day = Number(match[1]);
+    if (day >= 1 && day <= calendarDaysInMonth(year, monthIndex)) return day;
+  }
+  return null;
+}
+
+function calendarEventsByDay() {
+  const { year, month } = calendarViewMonthParts();
+  const byDay = {};
+  const add = (day, event) => {
+    if (!day) return;
+    byDay[day] = byDay[day] || [];
+    byDay[day].push(event);
+  };
+  const agendaDays = [10, 12, 15];
+  calendarAgendaFixtures().forEach((item, index) => {
+    const day = agendaDays[index] || (index + 1);
+    if (day <= calendarDaysInMonth(year, month)) {
+      add(day, { kind: 'agenda', focusId: item.focusId, title: item.title, time: item.time, summary: item.summary });
+    }
+  });
+  allCalendarProposals().forEach((proposal, index) => {
+    const day = proposalGridDay(proposal, year, month) || Math.min(8 + index, calendarDaysInMonth(year, month));
+    add(day, {
+      kind: 'proposal',
+      id: proposal.id,
+      focusId: `calendar:local:${proposal.id}`,
+      title: proposal.title,
+      time: proposal.dateTime || '—',
+      summary: proposal.notes || '',
+    });
+  });
+  return byDay;
+}
+
+function renderCalendarMonthGrid() {
+  const { year, month } = calendarViewMonthParts();
+  const dim = calendarDaysInMonth(year, month);
+  const firstDow = new Date(year, month, 1).getDay();
+  const byDay = calendarEventsByDay();
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const cells = [];
+  for (let i = 0; i < firstDow; i += 1) cells.push(null);
+  for (let d = 1; d <= dim; d += 1) cells.push(d);
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+  return `
+    <section class="calendar-month-shell" aria-label="Month view">
+      <header class="calendar-month-head">
+        <button class="inbox-action-btn" type="button" data-calendar-action="month-prev" aria-label="Previous month">‹</button>
+        <h3>${escapeHtml(calendarMonthLabel())}</h3>
+        <button class="inbox-action-btn" type="button" data-calendar-action="month-next" aria-label="Next month">›</button>
+      </header>
+      <div class="calendar-weekday-row" aria-hidden="true">
+        ${weekdays.map((label) => `<span>${label}</span>`).join('')}
+      </div>
+      <div class="calendar-month-grid">
+        ${cells.map((day) => {
+    if (!day) return '<div class="calendar-day-cell is-pad" aria-hidden="true"></div>';
+    const events = byDay[day] || [];
+    const isToday = isCurrentMonth && day === today.getDate();
+    const isSelected = state.calendar.selectedDay === day;
+    return `
+          <button class="calendar-day-cell ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" type="button" data-calendar-action="select-day" data-day="${day}" aria-pressed="${isSelected ? 'true' : 'false'}">
+            <span class="calendar-day-num">${day}</span>
+            <div class="calendar-day-events">
+              ${events.slice(0, 3).map((event) => `
+                <span class="calendar-day-chip ${event.kind === 'proposal' ? 'is-proposal' : 'is-fixture'}" title="${escapeHtml(event.title)}">${escapeHtml((event.time ? `${event.time} ` : '') + event.title)}</span>
+              `).join('')}
+              ${events.length > 3 ? `<span class="calendar-day-more">+${events.length - 3} more</span>` : ''}
+            </div>
+          </button>
+        `;
+  }).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function renderCalendarProposalForm(proposalId) {
   const selected = proposalId
     ? allCalendarProposals().find((entry) => entry.id === proposalId)
@@ -3306,13 +3415,31 @@ function renderCalendarReadingPane() {
       </section>
     `;
   }
-  return `<section class="lane-reading-pane is-empty" aria-label="Event details"><p class="lane-empty-state">Select an event or create one.</p></section>`;
+  if (state.calendar.selectedDay) {
+    const events = calendarEventsByDay()[state.calendar.selectedDay] || [];
+    const { year, month } = calendarViewMonthParts();
+    const dayLabel = new Date(year, month, state.calendar.selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    return `
+      <section class="lane-reading-pane" aria-label="Day details">
+        <header class="lane-reading-head">
+          <div>
+            <h3>${escapeHtml(dayLabel)}</h3>
+            <p class="lane-reading-meta">${events.length} event(s)</p>
+          </div>
+        </header>
+        ${events.length ? events.map((event) => `
+          <button class="calendar-agenda-row" type="button" data-calendar-action="${event.kind === 'proposal' ? 'select-proposal' : 'select-agenda'}" ${event.kind === 'proposal' ? `data-proposal-id="${escapeHtml(event.id)}"` : `data-focus-id="${escapeHtml(event.focusId)}"`}>
+            <time>${escapeHtml(event.time || '—')}</time>
+            <div><strong>${escapeHtml(event.title)}</strong><p>${escapeHtml(event.summary || '')}</p></div>
+          </button>
+        `).join('') : '<p class="lane-empty-state">No events on this day.</p>'}
+      </section>
+    `;
+  }
+  return `<section class="lane-reading-pane is-empty" aria-label="Event details"><p class="lane-empty-state">Select a day or event, or create one.</p></section>`;
 }
 
 function renderCalendarWorkspace() {
-  const proposals = allCalendarProposals();
-  const agenda = calendarAgendaFixtures();
-  const selectedId = state.calendar.selectedProposalId;
   return `
     <div class="lane-workspace calendar-workspace">
       <div class="lane-toolbar" role="toolbar" aria-label="Calendar actions">
@@ -3324,20 +3451,7 @@ function renderCalendarWorkspace() {
         </details>
       </div>
       <div class="lane-workspace-grid calendar-workspace-grid">
-        <div class="calendar-event-list" aria-label="Agenda">
-          ${proposals.map((proposal) => `
-            <button class="calendar-agenda-row ${proposal.id === selectedId ? 'is-selected' : ''}" type="button" data-calendar-action="select-proposal" data-proposal-id="${escapeHtml(proposal.id)}" data-inspector-focus="${escapeHtml(`calendar:local:${proposal.id}`)}">
-              <time>${escapeHtml(proposal.dateTime || '—')}</time>
-              <div><strong>${escapeHtml(proposal.title)}</strong><p>${escapeHtml(proposal.notes || '')}</p></div>
-            </button>
-          `).join('')}
-          ${agenda.map((item) => `
-            <button class="calendar-agenda-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-calendar-action="select-agenda" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
-              <time>${escapeHtml(item.time)}</time>
-              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.summary)}</p></div>
-            </button>
-          `).join('')}
-        </div>
+        ${renderCalendarMonthGrid()}
         ${renderCalendarReadingPane()}
       </div>
       ${renderCalendarEventSheet()}
@@ -5448,10 +5562,32 @@ function handleCalendarAction(action, proposalId, focusId) {
     renderShell();
     return;
   }
+  if (action === 'month-prev') {
+    shiftCalendarViewMonth(-1);
+    renderShell();
+    return;
+  }
+  if (action === 'month-next') {
+    shiftCalendarViewMonth(1);
+    renderShell();
+    return;
+  }
+  if (action === 'select-day') {
+    const day = Number(focusId);
+    if (!day) return;
+    state.calendar.selectedDay = day;
+    state.calendar.selectedProposalId = null;
+    state.focusId = `calendar:day:${state.calendar.viewMonth}:${day}`;
+    state.calendar.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'select-agenda') {
     if (!focusId) return;
     state.focusId = focusId;
     state.calendar.selectedProposalId = null;
+    state.calendar.selectedDay = null;
     state.calendar.formOpen = false;
     saveState();
     renderShell();
@@ -5467,6 +5603,7 @@ function handleCalendarAction(action, proposalId, focusId) {
     if (!proposalId) return;
     state.calendar.selectedProposalId = proposalId;
     state.focusId = `calendar:local:${proposalId}`;
+    state.calendar.selectedDay = null;
     state.calendar.formOpen = false;
     saveState();
     renderShell();
@@ -5789,7 +5926,7 @@ function bindEvents() {
       handleCalendarAction(
         calendarAction.dataset.calendarAction,
         calendarAction.dataset.proposalId,
-        calendarAction.dataset.focusId,
+        calendarAction.dataset.focusId || calendarAction.dataset.day,
       );
       return;
     }
