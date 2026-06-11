@@ -147,7 +147,7 @@ Stories:
 - Goal: make the static preview human-operable in Tier 1 (local drafts, proposals, dry-run, preview persistence) without provider/runtime writes.
 - User value: users can enter and change information; AI augments rather than replaces human action.
 - Out of scope: provider connection, send, automation execution, repo mutation, platform claims.
-- Dependencies: REQ-INBOX-001, REQ-CALENDAR-001, REQ-TASKS-001, REQ-AUTO-001, REQ-EXT-001, UI-005A architecture.
+- Dependencies: REQ-OPERABILITY-001, REQ-INBOX-001, REQ-CALENDAR-001, REQ-TASKS-001, REQ-AUTO-001, REQ-EXT-001, UI-005A architecture.
 - Blocked by: GATE-LOCAL-OPERABILITY-001 for slice start; GATE-RUNTIME-001 for Tier 2.
 - Acceptance criteria: each lane has create/edit/dry-run affordances per UI-005 contract; Tier 2 not implied.
 - Validation evidence required: EVIDENCE-REQ-OPERABILITY-001.
@@ -157,11 +157,11 @@ Stories:
 
 | ID | Story | Requirements | Acceptance Criteria | Safety / Compliance | Validation Evidence | Status | Blocked By | Related Docs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| STORY-OPER-001 | As a user triaging mail, I need to compose and save a local reply draft, so that I can prepare a response without sending. | REQ-INBOX-001, REQ-EGRESS-001 | compose/save/cancel work; send blocked with gate reason | draft-only egress | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B | `docs/ui/ui-005-local-operability-contract.md` |
-| STORY-OPER-002 | As a user, I need local proposal persistence across reload, so that preview work is not lost while testing operability. | REQ-LOCAL-001, REQ-RELIABILITY-001 | localStorage round-trip; clear control exists | no credentials in storage | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-local-operability-contract.md` |
-| STORY-OPER-003 | As a user evaluating automation, I need a rule builder with dry-run only, so that I can design rules without enabling execution. | REQ-AUTO-001, REQ-EGRESS-001 | dry-run path; enable/run blocked | execution blocked | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005E | `docs/ui/polish/14-ui-wargame-scenario-matrix.md` |
-| STORY-OPER-004 | As a user, I need local receipt preview when I save a draft or proposal, so that I can audit preview actions. | REQ-RECEIPTS-001 | receipt appended with preview provenance | no execution from receipt | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-human-operable-shell-architecture.md` |
-| STORY-OPER-005 | As a user attempting a runtime action, I need blocked escalation with gate reason, so that I understand Tier 1 vs Tier 2 boundary. | REQ-EGRESS-001, REQ-REPAIR-001 | disabled control + gate explanation | no silent fail | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-local-operability-contract.md` |
+| STORY-OPER-001 | As a user triaging mail, I need to compose and save a local reply draft, so that I can prepare a response without sending. | REQ-OPERABILITY-001, REQ-INBOX-001, REQ-EGRESS-001 | compose/save/cancel work; send blocked with gate reason | draft-only egress | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B | `docs/ui/ui-005-local-operability-contract.md` |
+| STORY-OPER-002 | As a user, I need local proposal persistence across reload, so that preview work is not lost while testing operability. | REQ-OPERABILITY-001, REQ-LOCAL-001, REQ-RELIABILITY-001 | localStorage round-trip; clear control exists | no credentials in storage | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-local-operability-contract.md` |
+| STORY-OPER-003 | As a user evaluating automation, I need a rule builder with dry-run only, so that I can design rules without enabling execution. | REQ-OPERABILITY-001, REQ-AUTO-001, REQ-EGRESS-001 | dry-run path; enable/run blocked | execution blocked | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005E | `docs/ui/polish/14-ui-wargame-scenario-matrix.md` |
+| STORY-OPER-004 | As a user, I need local receipt preview when I save a draft or proposal, so that I can audit preview actions. | REQ-OPERABILITY-001, REQ-RECEIPTS-001 | receipt appended with preview provenance | no execution from receipt | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-human-operable-shell-architecture.md` |
+| STORY-OPER-005 | As a user attempting a runtime action, I need blocked escalation with gate reason, so that I understand Tier 1 vs Tier 2 boundary. | REQ-OPERABILITY-001, REQ-EGRESS-001, REQ-REPAIR-001 | disabled control + gate explanation | no silent fail | EVIDENCE-REQ-OPERABILITY-001 | planned | UI-005B+ | `docs/ui/ui-005-local-operability-contract.md` |
 
 ### EPIC-DRAFT-001: Draft Workbench And Send-Event Spine
 

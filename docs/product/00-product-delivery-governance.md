@@ -10,13 +10,12 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 
 | ID | Area | Status | Evidence |
 | --- | --- | --- | --- |
-| GATE-UI-WARGAME-001 | UI-004A.6 simulated wargame | complete | `docs/ui/reviews/ui-004a6-wargame-review.md` |
-| GATE-UI-IMPLEMENT-001 | UI-004B shell polish | ready for bounded repair scope | `docs/product/04-build-readiness-gates.md` |
-| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | partial (UI-009/010 ready; owner UI-003E re-review pending) | `docs/ui/ui-002-local-proof-status.md` |
+| GATE-UI-IMPLEMENT-001 | UI-004A.6 wargame and UI implementation readiness | pass for UI-004B–G | `docs/ui/reviews/ui-004a6-wargame-review.md` |
+| GATE-UI-VISUAL-001 | Owner/framework visual proof | partial (UI-009/010 ready; owner UI-003E re-review pending) | `docs/ui/ui-002-local-proof-status.md` |
 | GATE-DRAFT-WORKBENCH-001 | Draft workbench Tier 1 | partial (UI-007A–C local; owner proof pending) | `docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md` |
 | GATE-RUNTIME-001 | Pass 4 runtime skeleton | blocked | `docs/architecture/platform-runtime-decision-matrix.md` |
 | GATE-ANDROID-001 | Android mail spine build proof | pending | `docs/operations/cursor-arch-002-build-proof-prompt.md` |
-| GATE-FRAMEWORK-001 | Direct framework UI import | blocked by `xi-io.net#239` | `docs/ui/polish/16-white-label-framework-feedback-plan.md` |
+| GATE-FRAMEWORK-EXPORT-001 | Direct framework UI import | blocked by `xi-io.net#239` | `docs/ui/polish/16-white-label-framework-feedback-plan.md` |
 
 ## Source-Of-Truth Document Map
 
@@ -77,8 +76,8 @@ Slices are bounded delivery units. Each slice must state scope, excluded scope, 
 | GATE-READY-001 | Definition of Ready | a slice cannot start until ready criteria are known |
 | GATE-DONE-001 | Definition of Done | a slice cannot close until evidence and TODO state are updated |
 | GATE-NO-SILENT-001 | no silent success | a failed or skipped check must be recorded as blocked, not ignored |
-| GATE-DRAFT-PR-001 | PR #12 draft state | PR #12 remains draft until owner/framework visual proof passes |
-| GATE-PASS4-001 | Pass 4 block | Pass 4 remains blocked until Android proof, UI proof, and ARCH-004 gates clear |
+| GATE-PR12-DRAFT-001 | PR #12 draft state | PR #12 remains draft until owner/framework visual proof passes |
+| GATE-RUNTIME-001 | Pass 4 block | Pass 4 remains blocked until Android proof, UI proof, and ARCH-004 gates clear |
 
 ## Build-Blocking Conditions
 
@@ -134,11 +133,11 @@ A slice is done only when:
 
 | ID | Risk | Severity | Likelihood | Mitigation | Status | Blocking Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| RISK-001 | UI implementation starts before stories/gates are normalized | high | medium | complete PLAN-001A before UI-004A.6/UI-004B | active | GATE-UI-WARGAME-001 |
-| RISK-002 | visual polish repeats generic dashboard/card patterns | high | high | use UI-004A visual standard and wargame scoring | active | GATE-VISUAL-PROOF-001 |
+| RISK-001 | UI implementation starts before stories/gates are normalized | high | medium | complete PLAN-001A before UI-004A.6/UI-004B | active | GATE-UI-IMPLEMENT-001 |
+| RISK-002 | visual polish repeats generic dashboard/card patterns | high | high | use UI-004A visual standard and wargame scoring | active | GATE-UI-VISUAL-001 |
 | RISK-003 | runtime/platform claims leak into static preview | high | medium | keep ARCH-004 gate visible and blocked | active | GATE-RUNTIME-001 |
 | RISK-004 | provider or credential behavior is implied before gates exist | high | medium | provider gates remain blocked and documented | active | GATE-PROVIDER-001 |
-| RISK-005 | reusable framework work remains product-local | medium | medium | report candidates to `xi-io.net#239` after proof | active | GATE-FRAMEWORK-001 |
+| RISK-005 | reusable framework work remains product-local | medium | medium | report candidates to `xi-io.net#239` after proof | active | GATE-FRAMEWORK-EXPORT-001 |
 
 ## Standing Rules
 
