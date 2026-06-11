@@ -1,0 +1,16 @@
+{
+  "name": "@xi-io/gmail-metadata-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Gmail metadata-only adapter (GMAIL-001C). No send, no bodies, no localStorage tokens.",
+  "scripts": {
+    "check": "node --check lib/response.js && node --check lib/token-store.js && node --check lib/receipts.js && node --check lib/adapter.js && node --check cli.js",
+    "status": "node cli.js status",
+    "connect": "node cli.js connect",
+    "wipe": "node cli.js wipe"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}

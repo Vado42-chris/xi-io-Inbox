@@ -172,7 +172,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [ ] UI-009E: Settings split User vs Advanced.
 - [ ] UI-009F: mail reading polish v2; demote fixture copy.
 - [x] GMAIL-001B: real account metadata spike plan + adapter contract (`docs/providers/gmail/gmail-001b-receipt.md`).
-- [ ] GMAIL-001C: local metadata-only adapter implementation (OAuth loopback, labels/counts; no bodies/send/draft write).
+- [x] GMAIL-001C: local metadata-only adapter CLI (`docs/providers/gmail/gmail-001c-metadata-adapter-receipt.md`).
+- [ ] GMAIL-001C smoke: owner OAuth client in `secrets/` + `node cli.js connect` + labels-counts (metadata only).
 - [ ] GMAIL-001D: draft create/update spike (throwaway account preferred; send still blocked).
 - [ ] Owner approval before primary-account metadata API smoke.
 - [ ] UI-010+ product UI provider connect — after GMAIL-001C + UI-009A wizard shell.
