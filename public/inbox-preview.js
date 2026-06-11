@@ -2,7 +2,7 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 4;
+const STORAGE_SCHEMA_VERSION = 5;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -145,6 +145,7 @@ function defaultDraftsOps() {
   return {
     items: [],
     selectedDraftId: null,
+    batchSelectedIds: [],
     receipts: [],
   };
 }
@@ -258,6 +259,7 @@ function applyPreviewEnvelope(stored) {
     ...defaultDraftsOps(),
     ...(stored.drafts || {}),
     items: stored.drafts?.items || [],
+    batchSelectedIds: stored.drafts?.batchSelectedIds || [],
     receipts: stored.drafts?.receipts || [],
   };
   state.sentEvents = {
@@ -337,6 +339,17 @@ function upgradePreviewEnvelope(envelope) {
       sentEvents: envelope.sentEvents || defaultSentEventsOps(),
       activity: envelope.activity || defaultActivityOps(),
     });
+  }
+  if (envelope.schemaVersion === 4) {
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      drafts: {
+        ...defaultDraftsOps(),
+        ...(envelope.drafts || {}),
+        batchSelectedIds: envelope.drafts?.batchSelectedIds || [],
+      },
+    };
   }
   if (envelope.schemaVersion === 3) {
     return {
@@ -1465,6 +1478,9 @@ function seedSampleDraftsIfNeeded() {
       status: 'drafting',
       approval_state: 'none',
       task_hint: 'After send: create calendar hold + transport task',
+      account_label: 'Family preview',
+      project_tag: 'Family',
+      risk_flags: ['privacy_sensitive'],
       created_at: now,
       updated_at: now,
     },
@@ -1478,6 +1494,8 @@ function seedSampleDraftsIfNeeded() {
       status: 'needs_review',
       approval_state: 'queued',
       task_hint: 'Queued draft → approve → simulate send → task proposal',
+      expects_attachment: true,
+      account_label: 'Family preview',
       created_at: now,
       updated_at: now,
     },
@@ -1491,6 +1509,7 @@ function seedSampleDraftsIfNeeded() {
       status: 'approved',
       approval_state: 'approved',
       task_hint: 'Ready to simulate send',
+      account_label: 'GitHub preview',
       created_at: now,
       updated_at: now,
     },
@@ -1825,13 +1844,145 @@ function deleteDraft(draftId) {
 }
 
 function preSendChecksForDraft(draft) {
+  return preSendChecksDetailed(draft).map((check) => `${check.label}: ${check.detail}`);
+}
+
+function draftMissingMetadata(draft) {
   if (!draft) return [];
-  const checks = [];
-  checks.push(draft.recipients?.length ? 'Recipients present' : 'Missing recipients');
-  checks.push(draft.subject?.trim() ? 'Subject present' : 'Missing subject');
-  checks.push(draft.body?.trim() ? 'Body present' : 'Missing body');
-  checks.push('Provider send blocked (Tier 1)');
-  return checks;
+  const missing = [];
+  if (!draft.recipients?.length) missing.push('recipients');
+  if (!draft.subject?.trim()) missing.push('subject');
+  if (!draft.body?.trim()) missing.push('body');
+  if (draft.expects_attachment && !draft.attachment_ref) missing.push('attachment');
+  return missing;
+}
+
+function draftRiskFlags(draft) {
+  if (!draft?.risk_flags?.length) return [];
+  return draft.risk_flags;
+}
+
+function preSendChecksDetailed(draft) {
+  if (!draft) return [];
+  const missing = draftMissingMetadata(draft);
+  return [
+    {
+      id: 'recipients',
+      label: 'Recipients',
+      status: draft.recipients?.length ? 'pass' : 'fail',
+      detail: draft.recipients?.length ? draft.recipients.join(', ') : 'Add at least one recipient',
+    },
+    {
+      id: 'subject',
+      label: 'Subject',
+      status: draft.subject?.trim() ? 'pass' : 'fail',
+      detail: draft.subject?.trim() ? draft.subject.trim() : 'Subject required before approval',
+    },
+    {
+      id: 'body',
+      label: 'Message body',
+      status: draft.body?.trim() ? 'pass' : 'warn',
+      detail: draft.body?.trim() ? 'Body present' : 'Body empty — review before send',
+    },
+    {
+      id: 'attachment',
+      label: 'Attachments',
+      status: draft.expects_attachment && !draft.attachment_ref ? 'warn' : 'pass',
+      detail: draft.attachment_ref || (draft.expects_attachment ? 'Expected attachment not linked' : 'No attachment required'),
+    },
+    {
+      id: 'metadata',
+      label: 'Required metadata',
+      status: missing.length ? 'fail' : 'pass',
+      detail: missing.length ? `Missing: ${missing.join(', ')}` : 'Required fields present',
+    },
+    {
+      id: 'tone',
+      label: 'Tone / safety review',
+      status: 'warn',
+      detail: 'Human review recommended before external send (placeholder)',
+    },
+    {
+      id: 'provider',
+      label: 'Provider send gate',
+      status: 'blocked',
+      detail: 'Tier 1 preview — provider send remains blocked',
+    },
+  ];
+}
+
+function draftExpectedReceipts(draft) {
+  if (!draft) return [];
+  const expected = [
+    { title: 'Draft saved (preview)', summary: 'Local save receipt when draft is persisted' },
+  ];
+  if (draft.approval_state === 'queued') {
+    expected.push({ title: 'Approval queued (preview)', summary: 'Draft awaits human approval; send blocked in Tier 1' });
+  }
+  if (draft.approval_state === 'approved' && draft.status !== 'sent') {
+    expected.push({ title: 'Send blocked (preview)', summary: 'Provider send gate blocks real delivery until Tier 2 gates clear' });
+  }
+  expected.push({ title: 'Consequence preview (preview)', summary: 'Post-send plan listed before simulate send' });
+  return expected;
+}
+
+function draftReceiptsFor(draftId) {
+  return (state.drafts.receipts || []).filter((entry) => entry.draftId === draftId);
+}
+
+function batchSelectedDrafts() {
+  const ids = new Set(state.drafts.batchSelectedIds || []);
+  return queuedDrafts().filter((draft) => ids.has(draft.id));
+}
+
+function toggleDraftBatchSelection(draftId) {
+  const ids = new Set(state.drafts.batchSelectedIds || []);
+  if (ids.has(draftId)) ids.delete(draftId);
+  else ids.add(draftId);
+  state.drafts.batchSelectedIds = [...ids];
+  saveState();
+}
+
+function sharedApprovalRisks(drafts) {
+  const list = drafts || queuedDrafts();
+  const risks = [];
+  if (list.some((draft) => !draft.recipients?.length)) risks.push('Missing recipients on one or more drafts');
+  if (list.some((draft) => !draft.subject?.trim())) risks.push('Missing subject on one or more drafts');
+  if (list.some((draft) => draftMissingMetadata(draft).length)) risks.push('Incomplete metadata on one or more drafts');
+  if (list.some((draft) => draft.risk_flags?.length)) risks.push('Risk flags present — review before approval');
+  risks.push('Provider send blocked in Tier 1');
+  return risks;
+}
+
+function batchApprovalPreviewSummary(drafts) {
+  const list = drafts || batchSelectedDrafts();
+  const target = list.length ? list : queuedDrafts();
+  return {
+    count: target.length,
+    subjects: target.map((draft) => draft.subject || '(no subject)'),
+    risks: sharedApprovalRisks(target),
+    consequences: target.length === 1
+      ? sendConsequencePreview(target[0])
+      : ['Activity receipts for each approved draft', 'Simulated send remains blocked', 'Post-send task/calendar proposals per draft where linked'],
+  };
+}
+
+function approveSelectedBatchDrafts() {
+  const selected = batchSelectedDrafts();
+  if (!selected.length) {
+    setStatusMessage('Select queued drafts to approve, or use Approve all.');
+    return;
+  }
+  selected.forEach((draft) => approveDraftForSend(draft.id));
+  addDraftReceipt({
+    type: 'approval',
+    title: 'Batch approve selected (preview)',
+    draftId: null,
+    summary: `Approved ${selected.length} draft(s). ${sharedApprovalRisks(selected).join('; ')}`,
+  });
+  state.drafts.batchSelectedIds = [];
+  saveState();
+  setStatusMessage(`Approved ${selected.length} selected draft(s). Send remains blocked.`, 'inbox');
 }
 
 function queuedDrafts() {
@@ -1848,9 +1999,7 @@ function approveAllQueuedDrafts() {
     setStatusMessage('No queued drafts to approve.');
     return;
   }
-  const sharedRisks = [];
-  if (queued.some((draft) => !draft.recipients?.length)) sharedRisks.push('Some drafts missing recipients');
-  if (queued.some((draft) => !draft.subject?.trim())) sharedRisks.push('Some drafts missing subject');
+  const sharedRisks = sharedApprovalRisks(queued);
   queued.forEach((draft) => approveDraftForSend(draft.id));
   addDraftReceipt({
     type: 'approval',
@@ -1872,14 +2021,19 @@ function sentEventById(eventId) {
 
 function buildPostSendPlan(draft) {
   const steps = [
-    { action: 'create_receipt', summary: 'Append simulated send receipt to local ledger' },
+    { action: 'create_receipt', summary: 'Append Activity/receipt for simulated send (local ledger)' },
     { action: 'notify_user', summary: 'Show dry-run status message (no provider delivery)' },
   ];
+  if (draft?.project_tag) {
+    steps.push({ action: 'project_update', summary: `Update project tag “${draft.project_tag}” (preview only)` });
+  }
+  steps.push({ action: 'label_update', summary: 'Apply sent label / folder move preview (no provider mutation)' });
   if (draft?.source_thread_id) {
     steps.push({ action: 'archive_thread', summary: `Mark source thread ${draft.source_thread_id} reviewed locally` });
     steps.push({ action: 'follow_up_task', summary: 'Create follow-up task proposal (local only)' });
     steps.push({ action: 'calendar_event', summary: 'Create calendar follow-up proposal (local only)' });
   }
+  steps.push({ action: 'follow_up_reminder', summary: 'Schedule follow-up reminder proposal (local only)' });
   steps.push({ action: 'post_send_automation', summary: 'Dry-run post-send automation recipes (execution blocked)' });
   return steps;
 }
@@ -3125,6 +3279,98 @@ function syncMailboxThreadSelection() {
   }
 }
 
+function renderPreSendCheckList(draft) {
+  const checks = preSendChecksDetailed(draft);
+  return `
+    <section class="draft-pre-send-checks" aria-label="Pre-send checks">
+      <h4>Pre-send checks</h4>
+      <ul class="pre-send-check-list">
+        ${checks.map((check) => `
+          <li class="pre-send-check is-${escapeHtml(check.status)}">
+            <span class="pre-send-check-label">${escapeHtml(check.label)}</span>
+            <span class="pre-send-check-detail">${escapeHtml(check.detail)}</span>
+            <span class="pre-send-check-status">${escapeHtml(label(check.status))}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </section>
+  `;
+}
+
+function renderDraftObjectSummary(draft) {
+  const thread = draft.source_thread_id
+    ? inboxThreads().find((item) => item.id === draft.source_thread_id)
+    : null;
+  const missing = draftMissingMetadata(draft);
+  const risks = draftRiskFlags(draft);
+  return `
+    <dl class="draft-object-summary">
+      <div><dt>Draft</dt><dd>${escapeHtml(draft.id)}</dd></div>
+      ${draft.account_label ? `<div><dt>Account</dt><dd>${escapeHtml(draft.account_label)}</dd></div>` : ''}
+      <div><dt>Status</dt><dd>${escapeHtml(label(draft.status || 'drafting'))}</dd></div>
+      <div><dt>Approval</dt><dd>${escapeHtml(label(draft.approval_state || 'none'))}</dd></div>
+      ${draft.project_tag ? `<div><dt>Project</dt><dd>${escapeHtml(draft.project_tag)}</dd></div>` : ''}
+      ${thread ? `<div><dt>Source thread</dt><dd><button class="inbox-link-btn" type="button" data-inbox-action="draft-open-source" data-thread-id="${escapeHtml(thread.id)}">${escapeHtml(demoteMailDisplayText(thread.title))}</button></dd></div>` : ''}
+      ${missing.length ? `<div><dt>Missing metadata</dt><dd>${escapeHtml(missing.join(', '))}</dd></div>` : ''}
+      ${risks.length ? `<div><dt>Risk flags</dt><dd>${risks.map((flag) => escapeHtml(label(flag))).join(', ')}</dd></div>` : ''}
+    </dl>
+  `;
+}
+
+function renderDraftActivityPanel(draft) {
+  const receipts = draftReceiptsFor(draft.id);
+  const expected = draftExpectedReceipts(draft);
+  return `
+    <section class="draft-activity-panel" aria-label="Activity and receipts">
+      <h4>Activity and receipts</h4>
+      ${receipts.length ? `
+        <h5>Recorded locally</h5>
+        <ul class="draft-receipt-list">
+          ${receipts.slice(0, 5).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong> · ${escapeHtml(entry.summary)}</li>`).join('')}
+        </ul>
+      ` : '<p class="form-hint">Save, queue, approve, or simulate send to create local receipts.</p>'}
+      <h5>Receipt expectations (preview)</h5>
+      <ul class="draft-receipt-expectations">
+        ${expected.map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong> · ${escapeHtml(entry.summary)}</li>`).join('')}
+      </ul>
+      <button class="inbox-action-btn" type="button" data-inbox-action="open-activity">Open Activity</button>
+    </section>
+  `;
+}
+
+function renderBatchApprovalPreview() {
+  const preview = batchApprovalPreviewSummary();
+  if (!preview.count) return '';
+  return `
+    <section class="batch-approval-preview" aria-label="Batch approval preview">
+      <h4>Batch approval preview (${preview.count})</h4>
+      <p class="form-hint">Preview only — no provider send.</p>
+      <ul class="batch-approval-subjects">${preview.subjects.map((subject) => `<li>${escapeHtml(subject)}</li>`).join('')}</ul>
+      <h5>Shared risks</h5>
+      <ul class="rail-risk-list">${preview.risks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>
+      <h5>If approved (preview)</h5>
+      <ul class="post-send-plan-list">${preview.consequences.map((step) => `<li>${escapeHtml(demoteMailDisplayText(step))}</li>`).join('')}</ul>
+      <div class="inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="button" data-inbox-action="draft-batch-approve-selected">Approve selected</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="draft-batch-approve-all">Approve all queued</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Send blocked in Tier 1">Send blocked</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderApprovalQueueToolbar() {
+  const queued = queuedDrafts();
+  const selected = batchSelectedDrafts();
+  return `
+    <div class="approval-queue-toolbar" role="toolbar" aria-label="Approval queue actions">
+      <span>${queued.length} awaiting review · ${selected.length} selected</span>
+      <button class="inbox-action-btn" type="button" data-inbox-action="draft-batch-select-all">Select all queued</button>
+      <button class="inbox-action-btn" type="button" data-inbox-action="draft-batch-clear">Clear selection</button>
+    </div>
+  `;
+}
+
 function renderDraftStatusChip(draft) {
   const labelText = draft.status === 'sent' ? 'Sent (simulated)'
     : draft.approval_state === 'approved' ? 'Approved (send blocked)'
@@ -3173,6 +3419,8 @@ function renderDraftReadingPane(draft) {
         ${renderDraftStatusChip(draft)}
       </header>
       ${draft.task_hint ? `<p class="draft-task-hint-banner">${escapeHtml(demoteMailDisplayText(draft.task_hint))}</p>` : ''}
+      ${renderDraftObjectSummary(draft)}
+      ${['queued', 'approved', 'needs_review'].includes(draft.status) || draft.approval_state !== 'none' ? renderPreSendCheckList(draft) : ''}
       <form class="inbox-draft-form" data-inbox-form="draft-edit" aria-label="Edit draft">
         <input type="hidden" name="draftId" value="${escapeHtml(draft.id)}" />
         <label for="draft-to-${escapeHtml(draft.id)}">To</label>
@@ -3199,10 +3447,7 @@ function renderDraftReadingPane(draft) {
           <button class="inbox-action-btn is-danger" type="button" data-inbox-action="draft-delete" data-draft-id="${escapeHtml(draft.id)}">Delete draft</button>
         </div>
       </form>
-      <details class="inbox-reading-details mail-advanced-details">
-        <summary>Draft details (advanced)</summary>
-        <p class="form-hint">Saved locally in this preview. Send and provider sync are not enabled.</p>
-      </details>
+      ${renderDraftActivityPanel(draft)}
       ${['queued', 'approved', 'sent'].includes(draft.status) || ['queued', 'approved'].includes(draft.approval_state) ? renderPostSendPreview(draft) : ''}
     </section>
   `;
@@ -3324,8 +3569,18 @@ function renderThreadListRow(thread, selected) {
 }
 
 function renderDraftListRow(draft, selectedId) {
+  const isApprovalQueue = state.inbox.mailboxView === 'approval-queue';
+  const isQueued = draft.approval_state === 'queued';
+  const batchSelected = (state.drafts.batchSelectedIds || []).includes(draft.id);
+  const selected = selectedId === draft.id;
+  const batchMarkup = isApprovalQueue && isQueued ? `
+    <label class="draft-batch-select">
+      <input type="checkbox" ${batchSelected ? 'checked' : ''} data-inbox-action="draft-batch-toggle" data-draft-id="${escapeHtml(draft.id)}" aria-label="Select ${escapeHtml(draft.subject || 'draft')} for batch approval" />
+    </label>
+  ` : '';
   return `
-    <button class="thread-row draft-row ${selectedId === draft.id ? 'is-selected' : ''}" type="button" data-draft-id="${escapeHtml(draft.id)}" data-inspector-focus="${escapeHtml(`inbox-draft:${draft.id}`)}" aria-pressed="${selectedId === draft.id ? 'true' : 'false'}">
+    <div class="thread-row draft-row ${selected ? 'is-selected' : ''}" data-draft-id="${escapeHtml(draft.id)}" data-inspector-focus="${escapeHtml(`inbox-draft:${draft.id}`)}" tabindex="0" role="button" aria-pressed="${selected ? 'true' : 'false'}">
+      ${batchMarkup}
       <div class="thread-row-main">
         <div class="thread-row-top">
           <strong class="thread-sender">${escapeHtml(draftRecipientsLabel(draft) || draft.kind)}</strong>
@@ -3334,9 +3589,10 @@ function renderDraftListRow(draft, selectedId) {
         <span class="thread-subject">${escapeHtml(draft.subject || '(no subject)')}</span>
         <p class="thread-snippet">${escapeHtml((draft.body || '').slice(0, 120))}</p>
         ${draft.task_hint ? `<p class="thread-task-hint">${escapeHtml(draft.task_hint)}</p>` : ''}
+        ${draft.account_label ? `<span class="thread-account-badge">${escapeHtml(draft.account_label)}</span>` : ''}
       </div>
       <div class="thread-row-meta">${renderDraftStatusChip(draft)}</div>
-    </button>
+    </div>
   `;
 }
 
@@ -3364,6 +3620,7 @@ function renderInboxWorkspace() {
   return `
     <div class="inbox-workspace is-mail-workbench">
       ${renderInboxToolbar()}
+      ${mailboxView === 'approval-queue' ? renderApprovalQueueToolbar() : ''}
       <p class="mail-view-heading">${escapeHtml(listLabel)}${state.inbox.mailSearchQuery ? ` · searching “${escapeHtml(state.inbox.mailSearchQuery)}”` : ''}</p>
       <div class="inbox-workspace-grid mail-workbench-center">
         <div class="thread-list-panel mail-list-pane" aria-label="${escapeHtml(listLabel)}">
@@ -3375,7 +3632,10 @@ function renderInboxWorkspace() {
         : 'No drafts yet. Compose or reply to create a local draft object.'}</p>`
   ) : visibleThreads.length ? visibleThreads.map((thread) => renderThreadListRow(thread, selected)).join('') : `<p class="lane-empty-state">${emptyMessage}</p>`}
         </div>
-        ${renderInboxReadingPane({ ...layoutSection, threads: visibleThreads }, selected)}
+        <div class="mail-reading-stack">
+          ${renderInboxReadingPane({ ...layoutSection, threads: visibleThreads }, selected)}
+          ${mailboxView === 'approval-queue' ? renderBatchApprovalPreview() : ''}
+        </div>
       </div>
       ${renderInboxComposeSheet()}
     </div>
@@ -5361,9 +5621,8 @@ function activeInspectorModel() {
     const queued = queuedDrafts();
     const approved = approvedDrafts();
     const selected = selectedDraft();
-    const sharedRisks = [];
-    if (queued.some((draft) => !draft.recipients?.length)) sharedRisks.push('Missing recipients on one or more drafts');
-    if (queued.some((draft) => !draft.subject?.trim())) sharedRisks.push('Missing subject on one or more drafts');
+    const sharedRisks = sharedApprovalRisks(queued);
+    const batchPreview = batchApprovalPreviewSummary(batchSelectedDrafts().length ? batchSelectedDrafts() : queued);
     return {
       kind: 'batch',
       mode: 'batch',
@@ -5381,6 +5640,7 @@ function activeInspectorModel() {
       ibalProposal: laneInspector.ibalProposal || 'Ibal may flag shared risks but cannot send.',
       receipts: (state.drafts.receipts || []).slice(0, 3).map((entry) => `${entry.title}: ${entry.summary}`).join(' ') || 'Approval receipts appear after approve actions.',
       sharedRisks,
+      sendConsequences: batchPreview.consequences,
       queuedCount: queued.length,
     };
   }
@@ -6396,6 +6656,39 @@ function handleInboxAction(action, threadId, mailboxView, draftId, filterId) {
     renderShell();
     return;
   }
+  if (action === 'draft-open-source') {
+    if (!threadId) return;
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    selectInboxThread(threadId);
+    return;
+  }
+  if (action === 'draft-batch-toggle') {
+    if (!draftId) return;
+    toggleDraftBatchSelection(draftId);
+    renderShell();
+    return;
+  }
+  if (action === 'draft-batch-select-all') {
+    state.drafts.batchSelectedIds = queuedDrafts().map((draft) => draft.id);
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'draft-batch-clear') {
+    state.drafts.batchSelectedIds = [];
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'draft-batch-approve-selected') {
+    if (window.confirm('Approve selected queued drafts locally? Send remains blocked in Tier 1.')) {
+      approveSelectedBatchDrafts();
+      renderShell();
+    }
+    return;
+  }
   if (action === 'toggle-compose') {
     state.inbox.composeOpen = !state.inbox.composeOpen;
     if (state.inbox.composeOpen) state.inbox.replyOpen = false;
@@ -6740,7 +7033,7 @@ function bindEvents() {
     }
 
     const draftRow = event.target.closest?.('[data-draft-id]');
-    if (draftRow?.dataset.draftId && !draftRow.dataset.inboxAction) {
+    if (draftRow?.dataset.draftId && !event.target.closest?.('[data-inbox-action]')) {
       state.drafts.selectedDraftId = draftRow.dataset.draftId;
       state.focusId = `inbox-draft:${draftRow.dataset.draftId}`;
       saveState();

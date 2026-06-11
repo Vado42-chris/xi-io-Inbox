@@ -647,6 +647,103 @@ input:focus-visible {
   color: var(--accent, #5b9fd4);
 }
 
+.draft-object-summary {
+  display: grid;
+  gap: 0.35rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.draft-object-summary dt {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.draft-object-summary dd {
+  margin: 0.1rem 0 0;
+}
+
+.draft-pre-send-checks,
+.draft-activity-panel,
+.batch-approval-preview {
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.draft-pre-send-checks h4,
+.draft-activity-panel h4,
+.batch-approval-preview h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+}
+
+.pre-send-check-list,
+.draft-receipt-list,
+.draft-receipt-expectations,
+.batch-approval-subjects {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.pre-send-check {
+  display: grid;
+  gap: 0.15rem;
+  margin-bottom: 0.45rem;
+}
+
+.pre-send-check-status {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.pre-send-check.is-pass .pre-send-check-status { color: #3d8b5a; }
+.pre-send-check.is-warn .pre-send-check-status { color: #b8860b; }
+.pre-send-check.is-fail .pre-send-check-status { color: #c44; }
+.pre-send-check.is-blocked .pre-send-check-status { color: var(--muted); }
+
+.approval-queue-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.draft-batch-select {
+  display: flex;
+  align-items: center;
+  margin-right: 0.35rem;
+}
+
+.draft-row {
+  display: flex;
+  align-items: stretch;
+  cursor: pointer;
+}
+
+.draft-row:focus-visible {
+  outline: 2px solid var(--accent, #5b9fd4);
+  outline-offset: 2px;
+}
+
+.mail-reading-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
 .inbox-reading-head h3 {
   margin: 0;
   font-size: 1.15rem;
