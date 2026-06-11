@@ -186,6 +186,10 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-007C Send-event dry-run wiring (`docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md`).
 - [x] `xi-io.net#239` framework freshness UI-007 backfeed (`docs/ui/reviews/ui-007-framework-freshness-239-receipt.md`).
 - [x] Merge-prep interim (owner re-review ready) — `docs/ui/reviews/ui-011-merge-prep-receipt.md`.
+- [x] UI-011A Product Capability Gap Matrix — `docs/product/ui-011a-product-capability-gap-matrix.md`.
+- [ ] UI-011B Mail baseline parity repair.
+- [ ] UI-011C–I capability repairs (see matrix sequence).
+- [ ] UI-003E owner visual proof — **blocked until UI-011B–I**.
 - [ ] Merge-prep final after owner UI-003E PASS.
 
 ## Pass 4: runtime skeleton
@@ -204,4 +208,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-10): **0 agent passes** for UI-009/010/011 interim merge-prep (complete). **Operator:** 1 commit/push pass + optional `xi-io.net#239` comment (`ui-011-merge-prep-receipt.md`). **Owner:** 1 UI-003E visual re-review; optional GMAIL-001C smoke. **After owner PASS:** ~1 agent pass merge-prep final. **If FAIL:** ~1–3 agent remediation passes. PR #12 remains draft.
+Current estimated work (2026-06-10): UI-011A complete. **UI-011B–I** (~8–12 agent passes) before UI-003E re-run. **Owner UI-003E blocked** until repairs. Optional GMAIL-001C smoke parallel. PR #12 remains draft.

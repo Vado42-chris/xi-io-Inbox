@@ -46,16 +46,17 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 
 ## Near-Term Order
 
-1. SLICE-PLAN-001A through SLICE-UI-006 — complete locally
-2. SLICE-UI-007A — complete (docs)
-3. Operator push UI-006 commits + PR body sync
-4. UI-003E owner visual proof re-run (post UI-006)
-5. SLICE-UI-007B — draft workbench implementation
-6. `xi-io.net#239` framework freshness
-7. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
-8. SLICE-PASS-004 only after gates clear
+**Corrected 2026-06-10 (UI-011A):**
 
-**Product-spine correction (2026-06-10):** lane operability slices remain valid history; draft workbench is the forward spine.
+1. SLICE-UI-011A — Product Capability Gap Matrix — **complete**
+2. SLICE-UI-011B–I — capability repairs per `docs/product/ui-011a-product-capability-gap-matrix.md`
+3. UI-003E owner visual proof re-run (after UI-011B–I)
+4. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
+5. GMAIL-001C smoke (optional parallel; local CLI only)
+6. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
+7. SLICE-PASS-004 only after gates clear
+
+Prior slices (UI-004 through UI-010, UI-007, operator push) remain complete locally.
 
 ## Slice Rules
 
