@@ -1,0 +1,2 @@
+# Local operator secrets — never commit (OAuth clients, API keys)
+secrets/
