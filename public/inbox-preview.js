@@ -2,7 +2,25 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 7;
+const STORAGE_SCHEMA_VERSION = 8;
+
+const AUTOMATION_TRIGGER_CATALOG = [
+  { id: 'mail-urgent', label: 'Urgent mail arrives', summary: 'When a thread is marked urgent in Mail.' },
+  { id: 'mail-time-mentioned', label: 'Time mentioned in mail', summary: 'When mail body/fixture mentions a date or time.' },
+  { id: 'draft-queued', label: 'Draft enters approval queue', summary: 'When a draft is submitted for approval.' },
+  { id: 'task-blocked', label: 'Task blocked', summary: 'When a task or story moves to blocked status.' },
+  { id: 'account-not-connected', label: 'Account not connected', summary: 'When provider connect is still blocked.' },
+];
+
+const AUTOMATION_CONDITION_CATALOG = [
+  { id: 'always', label: 'Always', summary: 'No extra filter (preview only).' },
+  { id: 'family-project', label: 'Family project tag', summary: 'Only when project/family context matches.' },
+  { id: 'has-source-thread', label: 'Has source thread', summary: 'Mail-linked object with thread id present.' },
+  { id: 'approval-required', label: 'Approval required', summary: 'Human gate must pass before action preview.' },
+  { id: 'business-hours', label: 'Business hours (placeholder)', summary: 'Time window check — not connected to real clock.' },
+];
+
+const AUTOMATION_GATE_DEFAULT = 'Human approval required before any runtime enablement';
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -128,7 +146,9 @@ function defaultEvidenceOps() {
 function defaultAutomationsOps() {
   return {
     selectedRuleId: null,
+    selectedActionId: null,
     rules: [],
+    actionLibrary: [],
     receipts: [],
     lastDryRun: null,
     formOpen: false,
@@ -290,6 +310,7 @@ function applyPreviewEnvelope(stored) {
     ...defaultAutomationsOps(),
     ...(stored.automations || {}),
     rules: stored.automations?.rules || [],
+    actionLibrary: stored.automations?.actionLibrary || [],
     receipts: stored.automations?.receipts || [],
     lastDryRun: stored.automations?.lastDryRun || null,
   };
@@ -356,6 +377,7 @@ function applyPreviewEnvelope(stored) {
   seedSampleDraftsIfNeeded();
   seedCalendarFixtureProposalsIfNeeded();
   seedPlanningFixturesIfNeeded();
+  seedAutomationDefaultsIfNeeded();
 }
 
 function migrateDraftItemsFromInbox(inbox) {
@@ -409,6 +431,17 @@ function upgradePreviewEnvelope(envelope) {
       activity: envelope.activity || defaultActivityOps(),
     });
   }
+  if (envelope.schemaVersion === 7) {
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      automations: {
+        ...defaultAutomationsOps(),
+        ...(envelope.automations || {}),
+        actionLibrary: envelope.automations?.actionLibrary || [],
+      },
+    };
+  }
   if (envelope.schemaVersion === 6) {
     const mapTaskStatus = (status) => ({
       proposed: 'backlog',
@@ -430,6 +463,11 @@ function upgradePreviewEnvelope(envelope) {
       planning: envelope.planning || defaultPlanningOps(),
       bugs: envelope.bugs || defaultBugsOps(),
       evidence: envelope.evidence || defaultEvidenceOps(),
+      automations: {
+        ...defaultAutomationsOps(),
+        ...(envelope.automations || {}),
+        actionLibrary: envelope.automations?.actionLibrary || [],
+      },
     };
   }
   if (envelope.schemaVersion === 5) {
@@ -1579,13 +1617,106 @@ function addAutomationReceipt({ type, title, ruleId, summary }) {
   return receipt;
 }
 
+function allAutomationActions() {
+  return state.automations.actionLibrary || [];
+}
+
+function automationActionById(actionId) {
+  return allAutomationActions().find((entry) => entry.id === actionId) || null;
+}
+
+function catalogTrigger(id) {
+  return AUTOMATION_TRIGGER_CATALOG.find((entry) => entry.id === id) || null;
+}
+
+function catalogCondition(id) {
+  return AUTOMATION_CONDITION_CATALOG.find((entry) => entry.id === id) || null;
+}
+
+function seedAutomationDefaultsIfNeeded() {
+  if (allAutomationActions().some((entry) => entry.id === 'action-draft-reply')) return;
+  const now = new Date().toISOString();
+  state.automations.actionLibrary = [
+    { id: 'action-draft-reply', title: 'Suggest draft reply', summary: 'Create local draft proposal for review.', category: 'mail', gate: 'You approve before send', createdAt: now, source: 'system' },
+    { id: 'action-calendar-hold', title: 'Propose calendar hold', summary: 'Create local calendar proposal linked to mail.', category: 'calendar', gate: 'You confirm the event', createdAt: now, source: 'system' },
+    { id: 'action-task-followup', title: 'Create follow-up task', summary: 'Add task/story proposal in Tasks lane.', category: 'tasks', gate: 'You review the task', createdAt: now, source: 'system' },
+    { id: 'action-activity-receipt', title: 'Record Activity receipt', summary: 'Append dry-run receipt to Activity ledger.', category: 'activity', gate: 'Preview only', createdAt: now, source: 'system' },
+  ];
+}
+
+function saveActionFromRule(ruleId) {
+  const rule = allLocalAutomationRules().find((entry) => entry.id === ruleId);
+  if (!rule) return;
+  const now = new Date().toISOString();
+  const action = {
+    id: createLocalId('action'),
+    title: rule.proposal?.slice(0, 60) || rule.title,
+    summary: rule.proposal || rule.title,
+    category: 'custom',
+    gate: rule.gate || AUTOMATION_GATE_DEFAULT,
+    trigger: rule.trigger,
+    condition: rule.condition,
+    createdAt: now,
+    source: 'user',
+  };
+  state.automations.actionLibrary = [action, ...(state.automations.actionLibrary || [])];
+  state.automations.selectedActionId = action.id;
+  addAutomationReceipt({ type: 'action', title: 'Action saved to library (preview)', ruleId, summary: action.title });
+  saveState();
+  setStatusMessage('Action saved to reusable library. Execution remains blocked.', 'automations');
+}
+
+function createRuleFromTemplate(template) {
+  if (!template) return;
+  const now = new Date().toISOString();
+  const id = createLocalId('auto');
+  const rule = {
+    id,
+    title: template.title,
+    trigger: template.trigger,
+    triggerId: null,
+    condition: 'Always',
+    conditionId: 'always',
+    proposal: template.summary,
+    actionId: null,
+    gate: template.gate || AUTOMATION_GATE_DEFAULT,
+    state: 'dry_run_only',
+    enabled: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  state.automations.rules = [rule, ...(state.automations.rules || [])];
+  state.automations.selectedRuleId = id;
+  state.focusId = `automations:local:${id}`;
+  addAutomationReceipt({ type: 'rule', title: 'Rule created from starter template', ruleId: id, summary: rule.title });
+  saveState();
+  setStatusMessage('Rule created from template. Dry-run before any future enablement.', 'automations');
+}
+
+function automationExpectedReceipts(rule) {
+  return [
+    { title: 'Dry-run receipt (preview)', summary: 'Recorded when Test rule runs locally' },
+    { title: 'Execution blocked (preview)', summary: 'Enable/run remains disabled in Tier 1' },
+    { title: 'Activity linkage (preview)', summary: rule ? `Actions for “${rule.title}” appear in Activity` : 'Automation receipts appear after dry-run' },
+  ];
+}
+
 function saveLocalAutomationRule(formData, ruleId) {
+  const triggerId = String(formData.get('triggerId') || '').trim();
+  const conditionId = String(formData.get('conditionId') || '').trim();
+  const actionId = String(formData.get('actionId') || '').trim();
+  const triggerEntry = catalogTrigger(triggerId);
+  const conditionEntry = catalogCondition(conditionId);
+  const actionEntry = automationActionById(actionId);
   const payload = {
     title: String(formData.get('title') || '').trim(),
-    trigger: String(formData.get('trigger') || '').trim(),
-    condition: String(formData.get('condition') || '').trim(),
-    proposal: String(formData.get('proposal') || '').trim(),
-    gate: String(formData.get('gate') || '').trim(),
+    triggerId: triggerId || null,
+    trigger: triggerEntry?.label || String(formData.get('trigger') || '').trim(),
+    conditionId: conditionId || null,
+    condition: conditionEntry?.label || String(formData.get('condition') || '').trim(),
+    actionId: actionId || null,
+    proposal: actionEntry ? `${actionEntry.title}: ${actionEntry.summary}` : String(formData.get('proposal') || '').trim(),
+    gate: String(formData.get('gate') || '').trim() || AUTOMATION_GATE_DEFAULT,
     state: 'dry_run_only',
     enabled: false,
   };
@@ -1613,15 +1744,20 @@ function saveLocalAutomationRule(formData, ruleId) {
 function runAutomationDryRun(ruleId) {
   const rule = allLocalAutomationRules().find((entry) => entry.id === ruleId);
   if (!rule) return;
+  const triggerLabel = catalogTrigger(rule.triggerId)?.label || rule.trigger || 'No trigger';
+  const conditionLabel = catalogCondition(rule.conditionId)?.label || rule.condition || 'Always';
+  const actionEntry = automationActionById(rule.actionId);
+  const actionLabel = actionEntry ? `${actionEntry.title}: ${actionEntry.summary}` : (rule.proposal || 'No action');
   state.automations.lastDryRun = {
     ruleId,
     ranAt: new Date().toISOString(),
     steps: [
-      { title: 'Trigger matched (simulated)', summary: rule.trigger || 'No trigger text', state: 'dry_run_only' },
-      { title: 'Condition evaluated (simulated)', summary: rule.condition || 'No condition text', state: 'preview_only' },
-      { title: 'Proposal prepared (not executed)', summary: rule.proposal || 'No proposal text', state: 'proposal_only' },
-      { title: 'Approval gate required', summary: rule.gate || 'Human approval required before any runtime enablement', state: 'blocked' },
+      { title: 'When (trigger matched — simulated)', summary: triggerLabel, state: 'dry_run_only' },
+      { title: 'If (condition evaluated — simulated)', summary: conditionLabel, state: 'preview_only' },
+      { title: 'Then (proposal prepared — not executed)', summary: actionLabel, state: 'proposal_only' },
+      { title: 'Approval gate required', summary: rule.gate || AUTOMATION_GATE_DEFAULT, state: 'blocked' },
       { title: 'Execution blocked', summary: 'Automation execution, provider mutation, and repo writes remain disabled in Tier 1 preview.', state: 'action_blocked' },
+      { title: 'Activity receipt (preview linkage)', summary: 'Dry-run recorded locally; full Activity drill-down in UI-011H.', state: 'preview_only' },
     ],
   };
   addAutomationReceipt({
@@ -1649,8 +1785,9 @@ function clearLocalAutomationRule(ruleId) {
 
 function clearAutomationsPreviewState() {
   state.automations = defaultAutomationsOps();
+  seedAutomationDefaultsIfNeeded();
   saveState();
-  setStatusMessage('All local Automations preview state cleared. Fixture templates unchanged.', 'automations');
+  setStatusMessage('All local Automations preview state cleared. Starter library re-seeded.', 'automations');
 }
 
 function extensionFixtures() {
@@ -5560,25 +5697,110 @@ function automationDryRunFixtures() {
   return sectionByType(activeLaneContent(), 'dry-run')?.steps || [];
 }
 
+function renderAutomationsExecutionBanner() {
+  return `
+    <div class="automations-execution-banner" role="note">
+      <strong>Execution blocked</strong>
+      <span>Rules save locally. Dry-run simulates When→If→Then. Enable, provider writes, and runtime automation remain disabled in Tier 1 preview.</span>
+    </div>
+  `;
+}
+
+function renderAutomationsBuilderBlock(label, value, hint) {
+  return `
+    <div class="automation-builder-block">
+      <span class="rule-flow-label">${escapeHtml(label)}</span>
+      <p>${escapeHtml(value || 'Not set')}</p>
+      ${hint ? `<span class="form-hint">${escapeHtml(hint)}</span>` : ''}
+    </div>
+  `;
+}
+
+function renderAutomationsVisualBuilder(rule) {
+  const trigger = catalogTrigger(rule.triggerId);
+  const condition = catalogCondition(rule.conditionId);
+  const action = automationActionById(rule.actionId);
+  return `
+    <div class="automation-visual-builder" aria-label="Visual rule builder">
+      ${renderAutomationsBuilderBlock('When', trigger?.label || rule.trigger, trigger?.summary || 'Pick a trigger in Edit')}
+      <div class="rule-flow-arrow" aria-hidden="true">→</div>
+      ${renderAutomationsBuilderBlock('If', condition?.label || rule.condition, condition?.summary || 'Add a condition row')}
+      <div class="rule-flow-arrow" aria-hidden="true">→</div>
+      ${renderAutomationsBuilderBlock('Then', action ? action.title : (rule.proposal || 'Pick an action'), action?.summary || rule.proposal || 'Choose from action library')}
+    </div>
+  `;
+}
+
+function renderAutomationsActionLibraryPanel() {
+  const actions = allAutomationActions();
+  const selectedId = state.automations.selectedActionId;
+  return `
+    <aside class="automations-action-library" aria-label="Reusable action library">
+      <p class="settings-section-label">Action library</p>
+      <p class="form-hint">System defaults plus actions you save from rules. Pick when building a rule.</p>
+      ${actions.length ? actions.map((action) => `
+        <button class="automations-list-row automations-action-row ${action.id === selectedId ? 'is-selected' : ''}" type="button" data-automations-action="select-action" data-action-id="${escapeHtml(action.id)}">
+          <span class="automations-list-badge">${escapeHtml(action.source === 'system' ? 'default' : 'saved')}</span>
+          <div>
+            <strong>${escapeHtml(action.title)}</strong>
+            <p>${escapeHtml(action.summary)}</p>
+            <span class="automation-rule-meta">${escapeHtml(label(action.category || 'custom'))} · gate: ${escapeHtml(action.gate || AUTOMATION_GATE_DEFAULT)}</span>
+          </div>
+        </button>
+      `).join('') : '<p class="form-hint">Library empty — clear state re-seeds defaults.</p>'}
+    </aside>
+  `;
+}
+
 function renderAutomationsRuleForm(ruleId) {
   const selected = ruleId
     ? allLocalAutomationRules().find((entry) => entry.id === ruleId)
     : selectedAutomationRule();
   const id = ruleId || selected?.id || '';
+  const triggerOptions = AUTOMATION_TRIGGER_CATALOG.map((entry) => `
+    <option value="${escapeHtml(entry.id)}" ${selected?.triggerId === entry.id ? 'selected' : ''}>${escapeHtml(entry.label)}</option>
+  `).join('');
+  const conditionOptions = AUTOMATION_CONDITION_CATALOG.map((entry) => `
+    <option value="${escapeHtml(entry.id)}" ${selected?.conditionId === entry.id ? 'selected' : ''}>${escapeHtml(entry.label)}</option>
+  `).join('');
+  const actionOptions = allAutomationActions().map((entry) => `
+    <option value="${escapeHtml(entry.id)}" ${selected?.actionId === entry.id ? 'selected' : ''}>${escapeHtml(entry.title)}</option>
+  `).join('');
   return `
-    <form class="inbox-draft-form" data-automations-form="rule" aria-label="Automation rule">
+    <form class="inbox-draft-form automations-rule-form" data-automations-form="rule" aria-label="Automation rule builder">
       <input type="hidden" name="ruleId" value="${escapeHtml(id)}" />
       <label for="auto-title">Rule name</label>
       <input id="auto-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
-      <label for="auto-trigger">Trigger</label>
-      <input id="auto-trigger" name="trigger" type="text" autocomplete="off" value="${escapeHtml(selected?.trigger || '')}" />
-      <label for="auto-condition">Condition</label>
-      <input id="auto-condition" name="condition" type="text" autocomplete="off" value="${escapeHtml(selected?.condition || '')}" />
-      <label for="auto-proposal">Proposed action</label>
+      <div class="automation-form-builder-row">
+        <div class="automation-builder-block">
+          <label for="auto-trigger-id">When (trigger)</label>
+          <select id="auto-trigger-id" name="triggerId">
+            <option value="">Choose trigger…</option>
+            ${triggerOptions}
+          </select>
+        </div>
+        <div class="automation-builder-block">
+          <label for="auto-condition-id">If (condition)</label>
+          <select id="auto-condition-id" name="conditionId">
+            <option value="">Choose condition…</option>
+            ${conditionOptions}
+          </select>
+        </div>
+        <div class="automation-builder-block">
+          <label for="auto-action-id">Then (action)</label>
+          <select id="auto-action-id" name="actionId">
+            <option value="">Choose from library…</option>
+            ${actionOptions}
+          </select>
+        </div>
+      </div>
+      <label for="auto-proposal">Custom action text (optional if library action selected)</label>
       <textarea id="auto-proposal" name="proposal" rows="2">${escapeHtml(selected?.proposal || '')}</textarea>
       <label for="auto-gate">Approval gate</label>
-      <input id="auto-gate" name="gate" type="text" autocomplete="off" value="${escapeHtml(selected?.gate || 'human approval required')}" />
-      <p class="form-hint">Rules are saved locally. Automatic run is not enabled in this build.</p>
+      <input id="auto-gate" name="gate" type="text" autocomplete="off" value="${escapeHtml(selected?.gate || AUTOMATION_GATE_DEFAULT)}" />
+      <input type="hidden" name="trigger" value="${escapeHtml(selected?.trigger || '')}" />
+      <input type="hidden" name="condition" value="${escapeHtml(selected?.condition || '')}" />
+      <p class="form-hint">Visual builder saves locally. Automatic run is not enabled in this build.</p>
       <div class="inbox-form-actions">
         <button class="inbox-action-btn is-primary" type="submit" data-automations-action="rule-save">${id ? 'Save changes' : 'Save rule'}</button>
         <button class="inbox-action-btn is-blocked" type="button" disabled>Enable blocked</button>
@@ -5612,28 +5834,31 @@ function renderAutomationsReadingPane() {
   const template = automationTemplateFixtures().find((entry) => entry.focusId === state.focusId);
   const dryRunSteps = automationDryRunFixtures();
   if (rule) {
+    const expectedReceipts = automationExpectedReceipts(rule);
     return `
       <section class="lane-reading-pane" aria-label="Rule details">
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(rule.title)}</h3>
-            <p class="lane-reading-meta">${rule.state === 'enabled' ? 'Enabled' : 'Off'} · not running in this build</p>
+            <p class="lane-reading-meta">${rule.state === 'enabled' ? 'Enabled' : 'Off'} · dry-run only · not running in this build</p>
           </div>
         </header>
-        <div class="automation-rule-flow" aria-label="Rule flow">
-          <div class="rule-flow-step"><span class="rule-flow-label">When</span><p>${escapeHtml(rule.trigger || 'Add a trigger')}</p></div>
-          <div class="rule-flow-arrow" aria-hidden="true">→</div>
-          <div class="rule-flow-step"><span class="rule-flow-label">If</span><p>${escapeHtml(rule.condition || 'Always')}</p></div>
-          <div class="rule-flow-arrow" aria-hidden="true">→</div>
-          <div class="rule-flow-step"><span class="rule-flow-label">Then</span><p>${escapeHtml(rule.proposal || 'Add an action')}</p></div>
-        </div>
-        <p class="form-hint">Requires: ${escapeHtml(rule.gate || 'your approval')}</p>
+        ${renderAutomationsVisualBuilder(rule)}
+        <p class="form-hint">Requires: ${escapeHtml(rule.gate || AUTOMATION_GATE_DEFAULT)}</p>
         <div class="inbox-action-toolbar">
           <button class="inbox-action-btn is-primary" type="button" data-automations-action="dry-run" data-rule-id="${escapeHtml(rule.id)}">Test rule</button>
           <button class="inbox-action-btn" type="button" data-automations-action="edit-rule" data-rule-id="${escapeHtml(rule.id)}">Edit</button>
+          <button class="inbox-action-btn" type="button" data-automations-action="save-as-action" data-rule-id="${escapeHtml(rule.id)}">Save as action</button>
+          <button class="inbox-action-btn" type="button" data-automations-action="open-activity">Open Activity</button>
           <button class="inbox-action-btn" type="button" data-automations-action="rule-clear" data-rule-id="${escapeHtml(rule.id)}">Delete</button>
           <button class="inbox-action-btn is-blocked" type="button" disabled>Turn on blocked</button>
         </div>
+        <details class="lane-reading-details">
+          <summary>Expected receipts (preview)</summary>
+          <ul class="automation-expected-receipts">
+            ${expectedReceipts.map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong> — ${escapeHtml(entry.summary)}</li>`).join('')}
+          </ul>
+        </details>
         ${state.automations.lastDryRun?.ruleId === rule.id ? `
           <details class="lane-reading-details" open>
             <summary>Dry-run result</summary>
@@ -5652,11 +5877,20 @@ function renderAutomationsReadingPane() {
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(template.title)}</h3>
-            <p class="lane-reading-meta">template · ${escapeHtml(label(template.state))}</p>
+            <p class="lane-reading-meta">starter example · ${escapeHtml(label(template.state))}</p>
           </div>
         </header>
-        <p>${escapeHtml(template.summary)}</p>
-        <p class="form-hint">Trigger: ${escapeHtml(template.trigger)} · Gate: ${escapeHtml(template.gate)}</p>
+        <div class="automation-visual-builder" aria-label="Template flow">
+          ${renderAutomationsBuilderBlock('When', template.trigger, 'Fixture trigger — map to catalog when editing')}
+          <div class="rule-flow-arrow" aria-hidden="true">→</div>
+          ${renderAutomationsBuilderBlock('If', 'Always', 'Adjust conditions after creating rule')}
+          <div class="rule-flow-arrow" aria-hidden="true">→</div>
+          ${renderAutomationsBuilderBlock('Then', template.summary, 'Pick a library action or custom text')}
+        </div>
+        <p class="form-hint">Gate: ${escapeHtml(template.gate)}</p>
+        <div class="inbox-action-toolbar">
+          <button class="inbox-action-btn is-primary" type="button" data-automations-action="use-template" data-focus-id="${escapeHtml(template.focusId)}">Create rule from template</button>
+        </div>
         ${dryRunSteps.length ? `
           <details class="lane-reading-details">
             <summary>How dry-run works</summary>
@@ -5678,6 +5912,7 @@ function renderAutomationsWorkspace() {
   const selectedId = state.automations.selectedRuleId;
   return `
     <div class="lane-workspace automations-workspace">
+      ${renderAutomationsExecutionBanner()}
       <div class="lane-toolbar" role="toolbar" aria-label="Automations actions">
         <button class="inbox-action-btn is-primary" type="button" data-automations-action="new-rule">New rule</button>
         <div id="automationsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'automations' ? state.statusMessage : '')}</div>
@@ -5686,28 +5921,26 @@ function renderAutomationsWorkspace() {
           <button class="inbox-action-btn is-danger" type="button" data-automations-action="clear-all">Clear local automations state</button>
         </details>
       </div>
-      <div class="lane-workspace-grid automations-workspace-grid">
-        <div class="automations-item-list" aria-label="Your rules">
+      <div class="lane-workspace-grid automations-workspace-grid automations-workspace-grid-three">
+        <div class="automations-item-list" aria-label="Rules and starter examples">
           <p class="settings-section-label">Your rules</p>
           ${rules.length ? rules.map((rule) => `
             <button class="automations-list-row ${rule.id === selectedId ? 'is-selected' : ''}" type="button" data-automations-action="select-rule" data-rule-id="${escapeHtml(rule.id)}" data-inspector-focus="${escapeHtml(`automations:local:${rule.id}`)}">
               <span class="automations-list-badge">${rule.state === 'enabled' ? 'on' : 'off'}</span>
               <div><strong>${escapeHtml(rule.title)}</strong><p>${escapeHtml(rule.trigger || 'No trigger yet')}</p></div>
             </button>
-          `).join('') : '<p class="form-hint">No rules yet. Create one to automate repetitive work.</p>'}
-          <details class="settings-advanced-section">
-            <summary>Starter templates</summary>
-            <div class="settings-advanced-list">
-              ${templates.map((item) => `
-                <button class="automations-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-automations-action="select-template" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
-                  <span class="automations-list-badge">idea</span>
-                  <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(demoteMailDisplayText(item.summary))}</p></div>
-                </button>
-              `).join('')}
-            </div>
-          </details>
+          `).join('') : '<p class="form-hint">No rules yet. Create one or start from a starter example below.</p>'}
+          <p class="settings-section-label">Starter examples</p>
+          <p class="form-hint">Primary templates — select to preview, then create a local rule.</p>
+          ${templates.map((item) => `
+            <button class="automations-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-automations-action="select-template" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
+              <span class="automations-list-badge">example</span>
+              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(demoteMailDisplayText(item.summary))}</p></div>
+            </button>
+          `).join('')}
         </div>
         ${renderAutomationsReadingPane()}
+        ${renderAutomationsActionLibraryPanel()}
       </div>
       ${renderAutomationsRuleSheet()}
     </div>
@@ -7275,7 +7508,7 @@ function handleExtensionsAction(action, installId, fixtureId) {
   }
 }
 
-function handleAutomationsAction(action, ruleId, focusId) {
+function handleAutomationsAction(action, ruleId, focusId, actionId) {
   if (action === 'new-rule') {
     state.automations.selectedRuleId = null;
     state.automations.formOpen = true;
@@ -7301,6 +7534,33 @@ function handleAutomationsAction(action, ruleId, focusId) {
     if (!focusId) return;
     state.focusId = focusId;
     state.automations.selectedRuleId = null;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'use-template') {
+    const template = automationTemplateFixtures().find((entry) => entry.focusId === focusId);
+    if (!template) return;
+    createRuleFromTemplate(template);
+    renderShell();
+    return;
+  }
+  if (action === 'save-as-action') {
+    if (!ruleId) return;
+    saveActionFromRule(ruleId);
+    renderShell();
+    return;
+  }
+  if (action === 'select-action') {
+    if (!actionId) return;
+    state.automations.selectedActionId = actionId;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-activity') {
+    state.laneId = 'receipts';
+    ensureRoute();
     saveState();
     renderShell();
     return;
@@ -8081,6 +8341,7 @@ function bindEvents() {
         automationsAction.dataset.automationsAction,
         automationsAction.dataset.ruleId,
         automationsAction.dataset.focusId,
+        automationsAction.dataset.actionId,
       );
       return;
     }
