@@ -2,7 +2,7 @@ const DATA_URL = './data/inbox-events.preview.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
-const STORAGE_SCHEMA_VERSION = 5;
+const STORAGE_SCHEMA_VERSION = 6;
 
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
@@ -287,6 +287,7 @@ function applyPreviewEnvelope(stored) {
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
   seedSampleDraftsIfNeeded();
+  seedCalendarFixtureProposalsIfNeeded();
 }
 
 function migrateDraftItemsFromInbox(inbox) {
@@ -339,6 +340,26 @@ function upgradePreviewEnvelope(envelope) {
       sentEvents: envelope.sentEvents || defaultSentEventsOps(),
       activity: envelope.activity || defaultActivityOps(),
     });
+  }
+  if (envelope.schemaVersion === 5) {
+    const mapProposal = (entry) => ({
+      ...entry,
+      status: entry.status || 'proposed',
+      reminderProposal: entry.reminderProposal || '',
+      draftId: entry.draftId || null,
+      projectTag: entry.projectTag || '',
+      accountLabel: entry.accountLabel || '',
+      providerSyncState: entry.providerSyncState || 'blocked',
+    });
+    return {
+      ...envelope,
+      schemaVersion: STORAGE_SCHEMA_VERSION,
+      calendar: {
+        ...defaultCalendarOps(),
+        ...(envelope.calendar || {}),
+        proposals: (envelope.calendar?.proposals || []).map(mapProposal),
+      },
+    };
   }
   if (envelope.schemaVersion === 4) {
     return {
@@ -799,7 +820,7 @@ function syncInboxCalendarProposals() {
   const existing = new Set((state.calendar.proposals || []).map((entry) => entry.id));
   inboxCalendar.forEach((proposal) => {
     if (existing.has(proposal.id)) return;
-    state.calendar.proposals = [{
+    state.calendar.proposals = [normalizeCalendarProposal({
       id: proposal.id,
       title: proposal.title,
       dateTime: proposal.dateTime || '',
@@ -807,10 +828,11 @@ function syncInboxCalendarProposals() {
       sourceRef: proposal.threadId ? `inbox-thread:${proposal.threadId}` : '',
       sourceType: 'inbox_local',
       threadId: proposal.threadId || null,
+      draftId: proposal.draftId || null,
       createdAt: proposal.createdAt,
       updatedAt: proposal.createdAt,
       state: 'local_preview_proposal',
-    }, ...state.calendar.proposals];
+    }), ...state.calendar.proposals];
   });
 }
 
@@ -839,15 +861,20 @@ function addCalendarReceipt({ type, title, proposalId, summary }) {
 }
 
 function saveCalendarProposal(formData, proposalId) {
-  const payload = {
+  const payload = normalizeCalendarProposal({
     title: String(formData.get('title') || '').trim(),
     dateTime: String(formData.get('dateTime') || '').trim(),
     notes: String(formData.get('notes') || '').trim(),
     sourceRef: String(formData.get('sourceRef') || '').trim(),
     sourceType: String(formData.get('sourceType') || 'calendar_local').trim(),
     threadId: String(formData.get('threadId') || '').trim() || null,
+    draftId: String(formData.get('draftId') || '').trim() || null,
+    reminderProposal: String(formData.get('reminderProposal') || '').trim(),
+    projectTag: String(formData.get('projectTag') || '').trim(),
+    accountLabel: String(formData.get('accountLabel') || '').trim(),
+    status: String(formData.get('status') || 'proposed').trim(),
     state: 'local_preview_proposal',
-  };
+  });
   const now = new Date().toISOString();
   if (proposalId) {
     state.calendar.proposals = (state.calendar.proposals || []).map((entry) => (
@@ -863,7 +890,7 @@ function saveCalendarProposal(formData, proposalId) {
     setStatusMessage('Local calendar proposal updated. Provider calendar write remains blocked.', 'calendar');
   } else {
     const id = createLocalId('calendar');
-    const proposal = { id, ...payload, createdAt: now, updatedAt: now };
+    const proposal = normalizeCalendarProposal({ id, ...payload, createdAt: now, updatedAt: now });
     state.calendar.proposals = [proposal, ...(state.calendar.proposals || [])];
     addCalendarReceipt({
       type: 'proposal',
@@ -887,6 +914,148 @@ function clearCalendarProposal(proposalId) {
   }
   saveState();
   setStatusMessage('Local calendar proposal cleared.', 'calendar');
+}
+
+function normalizeCalendarProposal(entry) {
+  return {
+    status: 'proposed',
+    reminderProposal: '',
+    draftId: null,
+    projectTag: '',
+    accountLabel: '',
+    providerSyncState: 'blocked',
+    ...entry,
+  };
+}
+
+function seedCalendarFixtureProposalsIfNeeded() {
+  const existing = new Set((state.calendar.proposals || []).map((entry) => entry.id));
+  if (existing.has('calendar-fixture-transport')) return;
+  const now = new Date().toISOString();
+  const { year, month } = calendarViewMonthParts();
+  const monthLabel = new Date(year, month, 1).toLocaleString(undefined, { month: 'short' });
+  state.calendar.proposals = [
+    normalizeCalendarProposal({
+      id: 'calendar-fixture-transport',
+      title: 'Create transport event draft',
+      dateTime: `${monthLabel} 12, 08:00`,
+      notes: 'Proposes a calendar event without writing to a provider. Linked from family transport mail.',
+      sourceRef: 'inbox-thread:thread-family-safety-preview',
+      sourceType: 'inbox_fixture',
+      threadId: 'thread-family-safety-preview',
+      draftId: 'draft-sample-reply',
+      status: 'proposed',
+      reminderProposal: '15 min before pickup window',
+      projectTag: 'Family',
+      accountLabel: 'Family preview',
+      providerSyncState: 'blocked',
+      createdAt: now,
+      updatedAt: now,
+      state: 'local_preview_proposal',
+    }),
+    normalizeCalendarProposal({
+      id: 'calendar-fixture-planning',
+      title: 'Schedule planning review block',
+      dateTime: `${monthLabel} 15, 15:00`,
+      notes: 'Local planning event proposal. Provider calendar sync blocked.',
+      sourceRef: 'tasks:planning',
+      sourceType: 'calendar_local',
+      threadId: null,
+      draftId: null,
+      status: 'reviewed',
+      reminderProposal: '1 day before',
+      projectTag: 'Product',
+      accountLabel: 'Preview workspace',
+      providerSyncState: 'blocked',
+      createdAt: now,
+      updatedAt: now,
+      state: 'local_preview_proposal',
+    }),
+    ...(state.calendar.proposals || []),
+  ];
+}
+
+function calendarLinkedThread(proposal) {
+  if (!proposal?.threadId) return null;
+  return inboxThreads().find((thread) => thread.id === proposal.threadId) || null;
+}
+
+function calendarLinkedDraft(proposal) {
+  if (!proposal?.draftId) return null;
+  return draftById(proposal.draftId) || null;
+}
+
+function calendarLinkedTasks(proposal) {
+  if (!proposal) return [];
+  return (state.tasks.tasks || []).filter(
+    (task) => task.calendarId === proposal.id
+      || task.sourceRef === `calendar:local:${proposal.id}`
+      || (proposal.threadId && task.threadId === proposal.threadId),
+  );
+}
+
+function calendarExpectedReceipts(proposal) {
+  if (!proposal) return [];
+  return [
+    { title: 'Proposal saved (preview)', summary: 'Local calendar proposal receipt when created or edited' },
+    { title: 'Provider sync blocked (preview)', summary: 'No Google/Outlook calendar write until gates clear' },
+    { title: 'Reminder proposal (preview)', summary: proposal.reminderProposal || 'Set a reminder before provider sync' },
+    { title: 'Activity linkage (preview)', summary: 'Calendar actions appear in Activity when saved or reviewed' },
+  ];
+}
+
+function calendarConflictPreview(targetProposal) {
+  if (!targetProposal?.dateTime) return [];
+  const { year, month } = calendarViewMonthParts();
+  const targetDay = proposalGridDay(targetProposal, year, month);
+  const conflicts = [];
+  allCalendarProposals().forEach((proposal) => {
+    if (proposal.id === targetProposal.id) return;
+    const day = proposalGridDay(proposal, year, month);
+    if (day && targetDay && day === targetDay) {
+      conflicts.push(`Overlaps with “${proposal.title}” on day ${day} (preview heuristic)`);
+    }
+  });
+  calendarAgendaFixtures().forEach((item, index) => {
+    const agendaDays = [10, 12, 15];
+    const day = agendaDays[index];
+    if (day && targetDay && day === targetDay) {
+      conflicts.push(`Fixture agenda “${item.title}” on same day (conflict check placeholder)`);
+    }
+  });
+  return conflicts;
+}
+
+function markCalendarProposalReviewed(proposalId) {
+  const proposal = allCalendarProposals().find((entry) => entry.id === proposalId);
+  if (!proposal) return;
+  proposal.status = 'reviewed';
+  proposal.updatedAt = new Date().toISOString();
+  addCalendarReceipt({
+    type: 'review',
+    title: 'Calendar proposal marked reviewed',
+    proposalId,
+    summary: `${proposal.title}. Provider sync remains blocked.`,
+  });
+  saveState();
+  setStatusMessage('Proposal marked reviewed locally. Provider calendar sync remains blocked.', 'calendar');
+}
+
+function createCalendarReminderProposal(proposalId) {
+  const proposal = allCalendarProposals().find((entry) => entry.id === proposalId);
+  if (!proposal) return;
+  const reminder = proposal.reminderProposal?.trim()
+    || `Reminder for ${proposal.title || 'event'} (preview only)`;
+  proposal.reminderProposal = reminder;
+  proposal.updatedAt = new Date().toISOString();
+  addCalendarReceipt({
+    type: 'reminder',
+    title: 'Reminder proposal saved (preview)',
+    proposalId,
+    summary: reminder,
+  });
+  saveState();
+  setStatusMessage('Reminder proposal saved locally. Provider reminders blocked.', 'calendar');
 }
 
 function clearCalendarPreviewState() {
@@ -2084,7 +2253,7 @@ function linkPostSendProposals(draft, eventId) {
   }, ...(state.tasks.tasks || [])];
   links.push({ type: 'task', id: taskId });
   const calId = createLocalId('cal');
-  state.calendar.proposals = [{
+  state.calendar.proposals = [normalizeCalendarProposal({
     id: calId,
     title: `Follow-up hold: ${draft.subject || thread.title}`,
     dateTime: '',
@@ -2092,10 +2261,13 @@ function linkPostSendProposals(draft, eventId) {
     sourceRef: `sent-event:${eventId}`,
     sourceType: 'send_simulation',
     threadId: draft.source_thread_id,
+    draftId: draft.id,
+    status: 'proposed',
+    reminderProposal: '1 day after send (preview)',
     createdAt: now,
     updatedAt: now,
     state: 'local_proposal',
-  }, ...(state.calendar.proposals || [])];
+  }), ...(state.calendar.proposals || [])];
   links.push({ type: 'calendar', id: calId });
   return links;
 }
@@ -2365,7 +2537,7 @@ function createLocalCalendarProposal(threadId) {
     state: 'local_proposal',
   };
   state.inbox.proposals = [inboxProposal, ...state.inbox.proposals].slice(0, 20);
-  state.calendar.proposals = [{
+  state.calendar.proposals = [normalizeCalendarProposal({
     id,
     title: inboxProposal.title,
     dateTime: '',
@@ -2373,10 +2545,11 @@ function createLocalCalendarProposal(threadId) {
     sourceRef: `inbox-thread:${threadId}`,
     sourceType: 'inbox_local',
     threadId,
+    draftId: null,
     createdAt,
     updatedAt: createdAt,
     state: 'local_preview_proposal',
-  }, ...(state.calendar.proposals || [])];
+  }), ...(state.calendar.proposals || [])];
   state.calendar.selectedProposalId = id;
   addLocalReceipt({
     type: 'proposal',
@@ -3854,6 +4027,15 @@ function renderDraftEgress(section) {
   `;
 }
 
+function renderCalendarProviderBanner() {
+  return `
+    <aside class="calendar-provider-banner" role="note" aria-label="Calendar provider sync status">
+      <strong>Provider calendar sync blocked</strong>
+      <p>Events and reminders are local preview proposals only. Google Calendar, Outlook, and provider writes remain disabled in Tier 1.</p>
+    </aside>
+  `;
+}
+
 function renderCalendarLocalReceipts(proposalId) {
   const receipts = (state.calendar.receipts || []).filter((entry) => !proposalId || entry.proposalId === proposalId);
   if (!receipts.length) return '<p class="form-hint">No local calendar receipts yet.</p>';
@@ -3976,8 +4158,8 @@ function renderCalendarMonthGrid() {
     const isToday = isCurrentMonth && day === today.getDate();
     const isSelected = state.calendar.selectedDay === day;
     return `
-          <button class="calendar-day-cell ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" type="button" data-calendar-action="select-day" data-day="${day}" aria-pressed="${isSelected ? 'true' : 'false'}">
-            <span class="calendar-day-num">${day}</span>
+          <button class="calendar-day-cell ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" type="button" data-calendar-action="select-day" data-day="${day}" aria-pressed="${isSelected ? 'true' : 'false'}" aria-label="${isToday ? `Today, ${day}` : `Day ${day}`}${events.length ? `, ${events.length} event(s)` : ''}">
+            <span class="calendar-day-num">${day}${isToday ? ' · Today' : ''}</span>
             <div class="calendar-day-events">
               ${events.slice(0, 3).map((event) => `
                 <span class="calendar-day-chip ${event.kind === 'proposal' ? 'is-proposal' : 'is-fixture'}" title="${escapeHtml(event.title)}">${escapeHtml((event.time ? `${event.time} ` : '') + event.title)}</span>
@@ -3988,6 +4170,133 @@ function renderCalendarMonthGrid() {
         `;
   }).join('')}
       </div>
+    </section>
+  `;
+}
+
+function renderCalendarWeekStrip() {
+  const { year, month } = calendarViewMonthParts();
+  const today = new Date();
+  const inViewMonth = today.getFullYear() === year && today.getMonth() === month;
+  const anchorDay = state.calendar.selectedDay || (inViewMonth ? today.getDate() : 1);
+  const anchor = new Date(year, month, anchorDay);
+  const mondayOffset = anchor.getDay() === 0 ? -6 : 1 - anchor.getDay();
+  const byDay = calendarEventsByDay();
+  const cells = [];
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() + mondayOffset + i);
+    cells.push(d);
+  }
+  return `
+    <div class="calendar-week-strip" aria-label="Week view">
+      ${cells.map((date) => {
+    const inMonth = date.getMonth() === month && date.getFullYear() === year;
+    const day = date.getDate();
+    const isToday = date.toDateString() === today.toDateString();
+    const isSelected = inMonth && state.calendar.selectedDay === day;
+    const eventCount = inMonth ? (byDay[day] || []).length : 0;
+    return `
+        <button class="calendar-week-day ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''} ${inMonth ? '' : 'is-outside'}" type="button"
+          data-calendar-action="${inMonth ? 'select-day' : 'shift-to-day'}"
+          ${inMonth ? `data-day="${day}"` : `data-shift-year="${date.getFullYear()}" data-shift-month="${date.getMonth() + 1}" data-shift-day="${day}"`}
+          aria-pressed="${isSelected ? 'true' : 'false'}"
+          aria-label="${escapeHtml(date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }))}${eventCount ? `, ${eventCount} event(s)` : ''}">
+          <span>${escapeHtml(date.toLocaleDateString(undefined, { weekday: 'short' }))}</span>
+          <strong>${day}</strong>
+          ${eventCount ? `<span class="calendar-week-event-count">${eventCount} event${eventCount === 1 ? '' : 's'}</span>` : ''}
+        </button>
+      `;
+  }).join('')}
+    </div>
+  `;
+}
+
+function renderCalendarDayAgendaPanel() {
+  const day = state.calendar.selectedDay;
+  if (!day) return '';
+  const events = calendarEventsByDay()[day] || [];
+  const { year, month } = calendarViewMonthParts();
+  const dayLabel = new Date(year, month, day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  return `
+    <section class="calendar-day-agenda" aria-label="Day agenda for ${escapeHtml(dayLabel)}">
+      <header class="calendar-day-agenda-head">
+        <h4>${escapeHtml(dayLabel)}</h4>
+        <span class="calendar-day-agenda-count">${events.length} event${events.length === 1 ? '' : 's'}</span>
+      </header>
+      ${events.length ? `
+        <ul class="calendar-day-agenda-list">
+          ${events.map((event) => `
+            <li>
+              <button class="calendar-agenda-row ${state.focusId === event.focusId || state.calendar.selectedProposalId === event.id ? 'is-selected' : ''}" type="button"
+                data-calendar-action="${event.kind === 'proposal' ? 'select-proposal' : 'select-agenda'}"
+                ${event.kind === 'proposal' ? `data-proposal-id="${escapeHtml(event.id)}"` : `data-focus-id="${escapeHtml(event.focusId)}"`}
+                aria-pressed="${state.focusId === event.focusId || state.calendar.selectedProposalId === event.id ? 'true' : 'false'}">
+                <time>${escapeHtml(event.time || '—')}</time>
+                <div>
+                  <strong>${escapeHtml(event.title)}</strong>
+                  <p>${escapeHtml(event.summary || '')}</p>
+                  <span class="calendar-event-kind">${event.kind === 'proposal' ? 'Local proposal' : 'Fixture agenda'}</span>
+                </div>
+              </button>
+            </li>
+          `).join('')}
+        </ul>
+      ` : '<p class="lane-empty-state">No events on this day. Create a local proposal or pick another date.</p>'}
+    </section>
+  `;
+}
+
+function renderCalendarProposalDetail(proposal) {
+  const thread = calendarLinkedThread(proposal);
+  const draft = calendarLinkedDraft(proposal);
+  const tasks = calendarLinkedTasks(proposal);
+  const conflicts = calendarConflictPreview(proposal);
+  const receipts = (state.calendar.receipts || []).filter((entry) => entry.proposalId === proposal.id);
+  const expected = calendarExpectedReceipts(proposal);
+  return `
+    <section class="lane-reading-pane calendar-event-detail" aria-label="Event details">
+      <header class="lane-reading-head">
+        <div>
+          <h3>${escapeHtml(proposal.title)}</h3>
+          <p class="lane-reading-meta">${escapeHtml(proposal.dateTime || 'No time set')}</p>
+        </div>
+        <span class="thread-status-chip ${proposal.status === 'reviewed' ? 'is-safe' : 'is-warn'}">${escapeHtml(label(proposal.status || 'proposed'))}</span>
+      </header>
+      <dl class="calendar-object-summary">
+        <div><dt>Provider sync</dt><dd>${escapeHtml(label(proposal.providerSyncState || 'blocked'))} — no provider calendar write</dd></div>
+        ${proposal.accountLabel ? `<div><dt>Account</dt><dd>${escapeHtml(proposal.accountLabel)}</dd></div>` : ''}
+        ${proposal.projectTag ? `<div><dt>Project</dt><dd>${escapeHtml(proposal.projectTag)}</dd></div>` : ''}
+        <div><dt>Source</dt><dd>${escapeHtml(proposal.sourceRef || 'none')}</dd></div>
+        ${thread ? `<div><dt>Mail thread</dt><dd><button class="inbox-link-btn" type="button" data-calendar-action="open-source-thread" data-thread-id="${escapeHtml(thread.id)}">${escapeHtml(demoteMailDisplayText(thread.title))}</button></dd></div>` : ''}
+        ${draft ? `<div><dt>Linked draft</dt><dd><button class="inbox-link-btn" type="button" data-calendar-action="open-source-draft" data-draft-id="${escapeHtml(draft.id)}">${escapeHtml(draft.subject || draft.id)}</button></dd></div>` : ''}
+        ${proposal.reminderProposal ? `<div><dt>Reminder proposal</dt><dd>${escapeHtml(proposal.reminderProposal)}</dd></div>` : ''}
+        ${tasks.length ? `<div><dt>Linked tasks</dt><dd>${tasks.map((task) => escapeHtml(task.title)).join(', ')}</dd></div>` : ''}
+      </dl>
+      <p>${escapeHtml(proposal.notes || 'No notes.')}</p>
+      ${conflicts.length ? `
+        <section class="calendar-conflict-preview" aria-label="Conflict preview">
+          <h4>Conflict preview</h4>
+          <ul>${conflicts.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>
+        </section>
+      ` : ''}
+      <div class="inbox-action-toolbar" role="toolbar" aria-label="Calendar event actions">
+        <button class="inbox-action-btn is-primary" type="button" data-calendar-action="edit-event" data-proposal-id="${escapeHtml(proposal.id)}">Edit</button>
+        ${proposal.status !== 'reviewed' ? `<button class="inbox-action-btn" type="button" data-calendar-action="mark-reviewed" data-proposal-id="${escapeHtml(proposal.id)}">Mark reviewed</button>` : ''}
+        <button class="inbox-action-btn" type="button" data-calendar-action="add-reminder" data-proposal-id="${escapeHtml(proposal.id)}">Save reminder proposal</button>
+        <button class="inbox-action-btn" type="button" data-calendar-action="open-activity">Open Activity</button>
+        <button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(proposal.id)}">Delete</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Provider calendar sync blocked">Sync blocked</button>
+      </div>
+      <section class="calendar-activity-panel" aria-label="Activity and receipts">
+        <h4>Activity and receipts</h4>
+        ${receipts.length ? `
+          <h5>Recorded locally</h5>
+          ${renderCalendarLocalReceipts(proposal.id)}
+        ` : '<p class="form-hint">Save or review this proposal to create local receipts.</p>'}
+        <h5>Receipt expectations (preview)</h5>
+        <ul class="calendar-receipt-expectations">${expected.map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong> · ${escapeHtml(entry.summary)}</li>`).join('')}</ul>
+      </section>
     </section>
   `;
 }
@@ -4010,7 +4319,18 @@ function renderCalendarProposalForm(proposalId) {
       <input id="calendar-source-ref" name="sourceRef" type="text" autocomplete="off" value="${escapeHtml(selected?.sourceRef || '')}" />
       <input type="hidden" name="sourceType" value="${escapeHtml(selected?.sourceType || 'calendar_local')}" />
       <input type="hidden" name="threadId" value="${escapeHtml(selected?.threadId || '')}" />
-      <p class="form-hint">Preview only — not scheduled on a provider calendar.</p>
+      <input type="hidden" name="draftId" value="${escapeHtml(selected?.draftId || '')}" />
+      <label for="calendar-reminder">Reminder proposal</label>
+      <input id="calendar-reminder" name="reminderProposal" type="text" autocomplete="off" value="${escapeHtml(selected?.reminderProposal || '')}" placeholder="e.g. 15 min before" />
+      <label for="calendar-project">Project</label>
+      <input id="calendar-project" name="projectTag" type="text" autocomplete="off" value="${escapeHtml(selected?.projectTag || '')}" />
+      <label for="calendar-account">Account label</label>
+      <input id="calendar-account" name="accountLabel" type="text" autocomplete="off" value="${escapeHtml(selected?.accountLabel || '')}" />
+      <label for="calendar-status">Status</label>
+      <select id="calendar-status" name="status">
+        ${['proposed', 'reviewed'].map((status) => `<option value="${status}" ${selected?.status === status ? 'selected' : ''}>${escapeHtml(label(status))}</option>`).join('')}
+      </select>
+      <p class="form-hint">Preview only — not scheduled on a provider calendar. Provider sync blocked.</p>
       <div class="inbox-form-actions">
         <button class="inbox-action-btn is-primary" type="submit" data-calendar-action="proposal-save">${id ? 'Save changes' : 'Save event'}</button>
         ${id ? `<button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(id)}">Delete</button>` : ''}
@@ -4044,111 +4364,46 @@ function renderCalendarReadingPane() {
       : null);
   const agenda = calendarAgendaFixtures().find((entry) => entry.focusId === state.focusId);
   const conflicts = calendarConflictFixtures();
-  if (proposal) {
-    return `
-      <section class="lane-reading-pane" aria-label="Event details">
-        <header class="lane-reading-head">
-          <div>
-            <h3>${escapeHtml(proposal.title)}</h3>
-            <p class="lane-reading-meta">${escapeHtml(proposal.dateTime || 'No time set')}</p>
-          </div>
-        </header>
-        <p>${escapeHtml(proposal.notes || 'No notes.')}</p>
-        <p class="form-hint">Source: ${escapeHtml(proposal.sourceRef || 'none')}</p>
-        <div class="inbox-action-toolbar">
-          <button class="inbox-action-btn is-primary" type="button" data-calendar-action="edit-event" data-proposal-id="${escapeHtml(proposal.id)}">Edit</button>
-          <button class="inbox-action-btn" type="button" data-calendar-action="proposal-clear" data-proposal-id="${escapeHtml(proposal.id)}">Delete</button>
-        </div>
-        ${(state.calendar.receipts || []).filter((r) => r.proposalId === proposal.id).length ? `
-          <details class="lane-reading-details">
-            <summary>Receipts</summary>
-            ${renderCalendarLocalReceipts(proposal.id)}
-          </details>
-        ` : ''}
-      </section>
-    `;
-  }
+  if (proposal) return renderCalendarProposalDetail(proposal);
   if (agenda) {
     return `
-      <section class="lane-reading-pane" aria-label="Event details">
+      <section class="lane-reading-pane calendar-event-detail" aria-label="Fixture event details">
         <header class="lane-reading-head">
           <div>
             <h3>${escapeHtml(agenda.title)}</h3>
             <p class="lane-reading-meta">${escapeHtml(agenda.time)}</p>
           </div>
+          <span class="thread-status-chip is-neutral">Fixture agenda</span>
         </header>
         <p>${escapeHtml(agenda.summary)}</p>
         ${agenda.tags.length ? `<p class="form-hint">${agenda.tags.map((tag) => escapeHtml(label(tag))).join(' · ')}</p>` : ''}
+        <p class="form-hint">Provider sync blocked — fixture agenda only.</p>
         ${conflicts.length ? `
-          <details class="lane-reading-details">
-            <summary>Scheduling notes</summary>
+          <section class="calendar-conflict-preview" aria-label="Scheduling notes">
+            <h4>Scheduling notes</h4>
             ${conflicts.map((item) => `<p><strong>${escapeHtml(item.title)}</strong> — ${escapeHtml(item.summary)}</p>`).join('')}
-          </details>
+          </section>
         ` : ''}
+        <button class="inbox-action-btn" type="button" data-calendar-action="open-activity">Open Activity</button>
       </section>
     `;
   }
   if (state.calendar.selectedDay) {
-    const events = calendarEventsByDay()[state.calendar.selectedDay] || [];
     const { year, month } = calendarViewMonthParts();
     const dayLabel = new Date(year, month, state.calendar.selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     return `
-      <section class="lane-reading-pane" aria-label="Day details">
-        <header class="lane-reading-head">
-          <div>
-            <h3>${escapeHtml(dayLabel)}</h3>
-            <p class="lane-reading-meta">${events.length} event(s)</p>
-          </div>
-        </header>
-        ${events.length ? events.map((event) => `
-          <button class="calendar-agenda-row" type="button" data-calendar-action="${event.kind === 'proposal' ? 'select-proposal' : 'select-agenda'}" ${event.kind === 'proposal' ? `data-proposal-id="${escapeHtml(event.id)}"` : `data-focus-id="${escapeHtml(event.focusId)}"`}>
-            <time>${escapeHtml(event.time || '—')}</time>
-            <div><strong>${escapeHtml(event.title)}</strong><p>${escapeHtml(event.summary || '')}</p></div>
-          </button>
-        `).join('') : '<p class="lane-empty-state">No events on this day.</p>'}
+      <section class="lane-reading-pane is-empty calendar-day-summary" aria-label="Day summary">
+        <p class="lane-empty-state">Selected ${escapeHtml(dayLabel)}. Pick an event in the day agenda or create a local proposal.</p>
       </section>
     `;
   }
   return `<section class="lane-reading-pane is-empty" aria-label="Event details"><p class="lane-empty-state">Select a day or event, or create one.</p></section>`;
 }
 
-function renderCalendarWeekStrip() {
-  const { year, month } = calendarViewMonthParts();
-  const today = new Date();
-  const inViewMonth = today.getFullYear() === year && today.getMonth() === month;
-  const anchorDay = state.calendar.selectedDay || (inViewMonth ? today.getDate() : 1);
-  const anchor = new Date(year, month, anchorDay);
-  const mondayOffset = anchor.getDay() === 0 ? -6 : 1 - anchor.getDay();
-  const cells = [];
-  for (let i = 0; i < 7; i += 1) {
-    const d = new Date(anchor);
-    d.setDate(anchor.getDate() + mondayOffset + i);
-    cells.push(d);
-  }
-  return `
-    <div class="calendar-week-strip" aria-label="Week view">
-      ${cells.map((date) => {
-    const inMonth = date.getMonth() === month && date.getFullYear() === year;
-    const day = date.getDate();
-    const isToday = date.toDateString() === today.toDateString();
-    const isSelected = inMonth && state.calendar.selectedDay === day;
-    return `
-        <button class="calendar-week-day ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''} ${inMonth ? '' : 'is-outside'}" type="button"
-          data-calendar-action="${inMonth ? 'select-day' : 'shift-to-day'}"
-          ${inMonth ? `data-day="${day}"` : `data-shift-year="${date.getFullYear()}" data-shift-month="${date.getMonth() + 1}" data-shift-day="${day}"`}
-          aria-pressed="${isSelected ? 'true' : 'false'}">
-          <span>${escapeHtml(date.toLocaleDateString(undefined, { weekday: 'short' }))}</span>
-          <strong>${day}</strong>
-        </button>
-      `;
-  }).join('')}
-    </div>
-  `;
-}
-
 function renderCalendarWorkspace() {
   return `
     <div class="lane-workspace calendar-workspace">
+      ${renderCalendarProviderBanner()}
       <div class="lane-toolbar" role="toolbar" aria-label="Calendar actions">
         <button class="inbox-action-btn is-primary" type="button" data-calendar-action="new-event">New event</button>
         <div id="calendarStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'calendar' ? state.statusMessage : '')}</div>
@@ -4161,6 +4416,7 @@ function renderCalendarWorkspace() {
         <div class="calendar-main-pane">
           ${renderCalendarWeekStrip()}
           ${renderCalendarMonthGrid()}
+          ${renderCalendarDayAgendaPanel()}
         </div>
         ${renderCalendarReadingPane()}
       </div>
@@ -6514,7 +6770,7 @@ function handleActivityAction(action, filterId, laneId, threadId, mailboxView, d
   }
 }
 
-function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth, shiftDay) {
+function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth, shiftDay, threadId, draftId) {
   if (action === 'shift-to-day' && shiftYear && shiftMonth && shiftDay) {
     state.calendar.viewMonth = `${shiftYear}-${String(shiftMonth).padStart(2, '0')}`;
     state.calendar.selectedDay = Number(shiftDay);
@@ -6581,10 +6837,51 @@ function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth
   }
   if (action === 'select-proposal') {
     if (!proposalId) return;
+    const proposal = allCalendarProposals().find((entry) => entry.id === proposalId);
+    const { year, month } = calendarViewMonthParts();
+    const day = proposal ? proposalGridDay(proposal, year, month) : null;
     state.calendar.selectedProposalId = proposalId;
     state.focusId = `calendar:local:${proposalId}`;
-    state.calendar.selectedDay = null;
+    if (day) state.calendar.selectedDay = day;
     state.calendar.formOpen = false;
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'mark-reviewed') {
+    markCalendarProposalReviewed(proposalId);
+    renderShell();
+    return;
+  }
+  if (action === 'add-reminder') {
+    createCalendarReminderProposal(proposalId);
+    renderShell();
+    return;
+  }
+  if (action === 'open-activity') {
+    state.laneId = 'receipts';
+    ensureRoute();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-source-thread') {
+    if (!threadId) return;
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    ensureRoute();
+    selectInboxThread(threadId);
+    return;
+  }
+  if (action === 'open-source-draft') {
+    if (!draftId) return;
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'drafts';
+    state.drafts.selectedDraftId = draftId;
+    state.focusId = `inbox-draft:${draftId}`;
+    ensureRoute();
     saveState();
     renderShell();
     return;
@@ -7015,6 +7312,8 @@ function bindEvents() {
         calendarAction.dataset.shiftYear,
         calendarAction.dataset.shiftMonth,
         calendarAction.dataset.shiftDay,
+        calendarAction.dataset.threadId,
+        calendarAction.dataset.draftId,
       );
       return;
     }
