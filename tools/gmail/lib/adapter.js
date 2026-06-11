@@ -1,6 +1,7 @@
 import http from 'http';
 import fs from 'fs/promises';
 import path from 'path';
+import { randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { envelope, blocked } from './response.js';
@@ -89,10 +90,12 @@ export async function providerStatus() {
 
 export async function providerConnectStart() {
   const oauth2 = await loadOAuthClient();
+  const state = randomBytes(32).toString('base64url');
   const authUrl = oauth2.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
     prompt: 'consent',
+    state,
   });
 
   return new Promise((resolve, reject) => {
@@ -102,6 +105,12 @@ export async function providerConnectStart() {
         if (url.pathname !== '/oauth2callback') {
           res.writeHead(404);
           res.end('Not found');
+          return;
+        }
+        const callbackState = url.searchParams.get('state');
+        if (callbackState !== state) {
+          res.writeHead(400);
+          res.end('Invalid state');
           return;
         }
         const code = url.searchParams.get('code');

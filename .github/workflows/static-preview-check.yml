@@ -5,6 +5,7 @@ on:
     paths:
       - "package.json"
       - "public/**"
+      - "tools/gmail/**"
       - ".github/workflows/static-preview-check.yml"
   workflow_dispatch:
 
@@ -28,3 +29,6 @@ jobs:
 
       - name: Run static preview checks
         run: npm run check
+
+      - name: Run Gmail adapter checks
+        run: npm --prefix tools/gmail run check
