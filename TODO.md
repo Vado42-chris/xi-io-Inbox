@@ -167,7 +167,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Owner UI-003E re-review — FAIL product UX not user-facing (`docs/ui/reviews/ui-009-product-ux-gap-audit.md`).
 - [x] UI-009A: remove fixture accounts; Gmail queue + Connect CLI wizard (`docs/ui/reviews/ui-009a-account-wizard-receipt.md`).
 - [x] UI-009B: calendar month-grid shell (`docs/ui/reviews/ui-009b-calendar-grid-receipt.md`).
-- [ ] UI-009C: tasks board/sprint layout + mail source links.
+- [x] UI-009C: tasks kanban board + mail source links (`docs/ui/reviews/ui-009c-tasks-kanban-receipt.md`).
 - [ ] UI-009D: Activity (Receipts) rename + user-facing filters.
 - [ ] UI-009E: Settings split User vs Advanced.
 - [ ] UI-009F: mail reading polish v2; demote fixture copy.

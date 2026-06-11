@@ -27,6 +27,13 @@ const state = {
 };
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
+const TASK_COLUMN_MAP = {
+  proposed: 'Proposed',
+  active: 'In progress',
+  deferred: 'Blocked',
+  reviewed: 'Review',
+  'done-preview': 'Done',
+};
 
 function defaultInboxOps() {
   return {
@@ -3510,6 +3517,102 @@ function taskLinkFixtures() {
   return sectionByType(activeLaneContent(), 'task-links')?.links || [];
 }
 
+function parseTaskMetaSource(meta) {
+  if (!meta) return null;
+  const lower = meta.toLowerCase();
+  if (lower.includes('source inbox') || lower.includes('inbox')) return { lane: 'inbox', label: 'Mail' };
+  if (lower.includes('source calendar') || lower.includes('calendar')) return { lane: 'calendar', label: 'Calendar' };
+  if (lower.includes('source receipts') || lower.includes('receipts')) return { lane: 'receipts', label: 'Activity' };
+  if (lower.includes('source settings') || lower.includes('settings')) return { lane: 'settings', label: 'Settings' };
+  return null;
+}
+
+function taskSourceJumpTarget(taskOrRef) {
+  const threadId = taskOrRef?.threadId;
+  const sourceRef = taskOrRef?.sourceRef || '';
+  if (threadId) return { lane: 'inbox', threadId, label: 'Open mail thread' };
+  if (sourceRef.startsWith('inbox-thread:')) {
+    return { lane: 'inbox', threadId: sourceRef.replace('inbox-thread:', ''), label: 'Open mail thread' };
+  }
+  const metaSource = parseTaskMetaSource(taskOrRef?.meta);
+  if (metaSource) return { lane: metaSource.lane, label: `Open ${metaSource.label}` };
+  return null;
+}
+
+function renderTaskSourceLink(item) {
+  const jump = taskSourceJumpTarget(item.kind === 'local' ? item.task : item);
+  if (!jump) return item.sourceRef ? `<span class="task-source-hint">${escapeHtml(item.sourceRef || item.task?.sourceRef || '')}</span>` : '';
+  return `<button class="task-source-link" type="button" data-tasks-action="source-jump" data-lane-id="${escapeHtml(jump.lane)}" ${jump.threadId ? `data-thread-id="${escapeHtml(jump.threadId)}"` : ''}>${escapeHtml(jump.label)}</button>`;
+}
+
+function taskBoardColumns() {
+  const content = activeLaneContent();
+  const section = sectionByType(content, 'task-board');
+  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
+  const columns = (section?.columns || []).map((column, columnIndex) => ({
+    label: column.label,
+    state: column.state,
+    items: (column.items || []).map((item, index) => ({
+      kind: 'fixture',
+      focusId: `tasks:task-board:${sectionIndex}:${columnIndex}-${index}`,
+      title: item.title,
+      summary: item.summary,
+      meta: item.meta,
+      state: item.state,
+    })),
+  }));
+  if (!columns.some((col) => col.label === 'In progress')) {
+    columns.splice(1, 0, { label: 'In progress', state: 'active', items: [] });
+  }
+  allLocalTasks().forEach((task) => {
+    const colLabel = TASK_COLUMN_MAP[task.status] || 'Proposed';
+    const col = columns.find((entry) => entry.label === colLabel) || columns[0];
+    col.items.push({
+      kind: 'local',
+      id: task.id,
+      focusId: `tasks:local:${task.id}`,
+      title: task.title,
+      summary: task.notes || task.dueDate || '',
+      task,
+    });
+  });
+  return columns;
+}
+
+function renderTasksKanbanBoard() {
+  const selectedId = state.tasks.selectedTaskId;
+  const columns = taskBoardColumns();
+  return `
+    <div class="tasks-kanban-board" aria-label="Task board">
+      ${columns.map((column) => `
+        <section class="tasks-kanban-column">
+          <header class="tasks-kanban-column-head">
+            <h4>${escapeHtml(column.label)}</h4>
+            <span>${column.items.length}</span>
+          </header>
+          <div class="tasks-kanban-cards">
+            ${column.items.length ? column.items.map((item) => {
+    const isSelected = item.kind === 'local'
+      ? item.id === selectedId
+      : state.focusId === item.focusId;
+    return `
+              <button class="tasks-kanban-card ${isSelected ? 'is-selected' : ''}" type="button"
+                data-tasks-action="${item.kind === 'local' ? 'select-task' : 'select-fixture'}"
+                ${item.kind === 'local' ? `data-task-id="${escapeHtml(item.id)}"` : `data-focus-id="${escapeHtml(item.focusId)}"`}
+                data-inspector-focus="${escapeHtml(item.focusId)}">
+                <strong>${escapeHtml(item.title)}</strong>
+                <p>${escapeHtml(item.summary || '')}</p>
+                ${renderTaskSourceLink(item)}
+              </button>
+            `;
+  }).join('') : '<p class="tasks-kanban-empty">No tasks</p>'}
+          </div>
+        </section>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderTasksTaskForm(taskId) {
   const selected = taskId
     ? allLocalTasks().find((entry) => entry.id === taskId)
@@ -3577,7 +3680,8 @@ function renderTasksReadingPane() {
           </div>
         </header>
         <p>${escapeHtml(task.notes || 'No notes.')}</p>
-        <p class="form-hint">Source: ${escapeHtml(task.sourceRef || 'none')}</p>
+        <div class="task-source-row">${renderTaskSourceLink({ kind: 'local', task })}</div>
+        ${task.sourceRef ? `<p class="form-hint">Ref: ${escapeHtml(task.sourceRef)}</p>` : ''}
         ${renderTaskStatusButtons(task.id, task.status || 'proposed')}
         <div class="inbox-action-toolbar">
           <button class="inbox-action-btn is-primary" type="button" data-tasks-action="edit-task" data-task-id="${escapeHtml(task.id)}">Edit</button>
@@ -3599,6 +3703,7 @@ function renderTasksReadingPane() {
           </div>
         </header>
         <p>${escapeHtml(fixture.summary)}</p>
+        <div class="task-source-row">${renderTaskSourceLink(fixture)}</div>
         ${fixture.meta ? `<p class="form-hint">${escapeHtml(fixture.meta)}</p>` : ''}
         ${links.length ? `
           <details class="lane-reading-details">
@@ -3613,9 +3718,6 @@ function renderTasksReadingPane() {
 }
 
 function renderTasksWorkspace() {
-  const tasks = allLocalTasks();
-  const fixtures = taskBoardFixtures();
-  const selectedId = state.tasks.selectedTaskId;
   return `
     <div class="lane-workspace tasks-workspace">
       <div class="lane-toolbar" role="toolbar" aria-label="Tasks actions">
@@ -3626,21 +3728,8 @@ function renderTasksWorkspace() {
           <button class="inbox-action-btn is-danger" type="button" data-tasks-action="clear-all">Clear local tasks state</button>
         </details>
       </div>
-      <div class="lane-workspace-grid tasks-workspace-grid">
-        <div class="tasks-item-list" aria-label="Tasks">
-          ${tasks.map((task) => `
-            <button class="tasks-list-row ${task.id === selectedId ? 'is-selected' : ''}" type="button" data-tasks-action="select-task" data-task-id="${escapeHtml(task.id)}" data-inspector-focus="${escapeHtml(`tasks:local:${task.id}`)}">
-              <span class="tasks-list-status">${escapeHtml(label(task.status))}</span>
-              <div><strong>${escapeHtml(task.title)}</strong><p>${escapeHtml(task.notes || task.dueDate || '')}</p></div>
-            </button>
-          `).join('')}
-          ${fixtures.map((item) => `
-            <button class="tasks-list-row ${state.focusId === item.focusId ? 'is-selected' : ''}" type="button" data-tasks-action="select-fixture" data-focus-id="${escapeHtml(item.focusId)}" data-inspector-focus="${escapeHtml(item.focusId)}">
-              <span class="tasks-list-status">${escapeHtml(item.column)}</span>
-              <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.summary)}</p></div>
-            </button>
-          `).join('')}
-        </div>
+      <div class="lane-workspace-grid tasks-workspace-grid is-kanban">
+        ${renderTasksKanbanBoard()}
         ${renderTasksReadingPane()}
       </div>
       ${renderTasksTaskSheet()}
@@ -5519,6 +5608,23 @@ function handleTasksAction(action, taskId, status, focusId) {
     renderShell();
     return;
   }
+  if (action === 'source-jump') {
+    const lane = focusId;
+    const thread = status;
+    if (!lane) return;
+    state.laneId = lane;
+    if (thread) {
+      state.threadId = thread;
+      state.inbox.mailboxView = 'inbox';
+      state.focusId = `inbox-thread:${thread}`;
+    } else {
+      state.focusId = defaultFocusIdForLane(lane);
+    }
+    window.location.hash = `${ROUTE_PREFIX}${lane}`;
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'select-task') {
     if (!taskId) return;
     state.tasks.selectedTaskId = taskId;
@@ -5914,8 +6020,8 @@ function bindEvents() {
       handleTasksAction(
         tasksAction.dataset.tasksAction,
         tasksAction.dataset.taskId,
-        tasksAction.dataset.taskStatus,
-        tasksAction.dataset.focusId,
+        tasksAction.dataset.threadId || tasksAction.dataset.taskStatus,
+        tasksAction.dataset.laneId || tasksAction.dataset.focusId,
       );
       return;
     }
