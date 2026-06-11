@@ -1108,6 +1108,40 @@ input:focus-visible {
   flex-wrap: wrap;
 }
 
+.activity-workspace {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.activity-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.activity-filter-btn {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.activity-filter-btn.is-active {
+  border-color: rgba(91, 159, 212, 0.7);
+  background: rgba(91, 159, 212, 0.15);
+}
+
+.activity-subtitle {
+  margin: 0;
+}
+
+.activity-advanced {
+  margin-top: 0.35rem;
+}
+
 .tasks-workspace-grid,
 .calendar-workspace-grid,
 .automations-workspace-grid,

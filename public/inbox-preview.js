@@ -24,7 +24,17 @@ const state = {
   account: defaultAccountOps(),
   drafts: defaultDraftsOps(),
   sentEvents: defaultSentEventsOps(),
+  activity: defaultActivityOps(),
 };
+
+const ACTIVITY_FILTERS = [
+  { id: 'user', label: 'Your activity' },
+  { id: 'proposals', label: 'Proposals' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'sent', label: 'Simulated sends' },
+  { id: 'build', label: 'Build evidence' },
+  { id: 'all', label: 'All' },
+];
 
 const TASK_STATUSES = ['proposed', 'active', 'deferred', 'reviewed', 'done-preview'];
 const TASK_COLUMN_MAP = {
@@ -144,6 +154,16 @@ function defaultSentEventsOps() {
   };
 }
 
+function defaultActivityOps() {
+  return { filter: 'user' };
+}
+
+function laneDisplayLabel(laneId, fallback) {
+  if (laneId === 'inbox') return 'Mail';
+  if (laneId === 'receipts') return 'Activity';
+  return fallback;
+}
+
 function previewStateEnvelope() {
   const { composeOpen, replyOpen, ...inboxPersist } = state.inbox;
   const { formOpen: calendarFormOpen, ...calendarPersist } = state.calendar;
@@ -166,6 +186,7 @@ function previewStateEnvelope() {
     account: state.account,
     drafts: state.drafts,
     sentEvents: state.sentEvents,
+    activity: state.activity,
   };
 }
 
@@ -240,6 +261,10 @@ function applyPreviewEnvelope(stored) {
     ...(stored.sentEvents || {}),
     events: stored.sentEvents?.events || [],
     receipts: stored.sentEvents?.receipts || [],
+  };
+  state.activity = {
+    ...defaultActivityOps(),
+    ...(stored.activity || {}),
   };
   if (state.laneId === IBAL_LEGACY_LANE) {
     state.laneId = DEFAULT_LANE;
@@ -1773,7 +1798,7 @@ function simulateSendDraft(draftId) {
     summary: `Draft ${draft.id} → sent-event ${eventId}. Downstream proposals linked locally.`,
   });
   saveState();
-  setStatusMessage('Send simulated (dry-run). View event in Receipts lane.', 'inbox');
+  setStatusMessage('Send simulated (dry-run). View event in Activity lane.', 'inbox');
   return event;
 }
 
@@ -1822,6 +1847,7 @@ function renderRailOutcomesBlock({ threadId, draft } = {}) {
       <div class="rail-outcome-links">
         <a class="lane-link is-inline" href="#/tasks">Open Tasks</a>
         <a class="lane-link is-inline" href="#/calendar">Open Calendar</a>
+        <a class="lane-link is-inline" href="#/receipts">Open Activity</a>
       </div>
     </section>
   `;
@@ -2565,7 +2591,7 @@ function renderNavigation() {
         const hint = laneNavHint(lane.status);
         return `
           <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
-            <span>${escapeHtml(lane.id === 'inbox' ? 'Mail' : lane.label)}</span>
+            <span>${escapeHtml(laneDisplayLabel(lane.id, lane.label))}</span>
             ${hint ? `<span class="lane-nav-hint">${escapeHtml(hint)}</span>` : ''}
           </a>
         `;
@@ -2832,7 +2858,7 @@ function renderDraftReadingPane(draft) {
             <button class="inbox-action-btn is-blocked" type="button" disabled>Provider send blocked</button>
             <button class="inbox-action-btn" type="button" data-inbox-action="draft-dequeue" data-draft-id="${escapeHtml(draft.id)}">Return to drafts</button>
           ` : ''}
-          ${draft.status === 'sent' ? `<p class="form-hint">Simulated send complete. Open Receipts lane for sent-event ledger.</p>` : ''}
+          ${draft.status === 'sent' ? `<p class="form-hint">Simulated send complete. Open Activity lane for sent-event ledger.</p>` : ''}
           <button class="inbox-action-btn is-danger" type="button" data-inbox-action="draft-delete" data-draft-id="${escapeHtml(draft.id)}">Delete draft</button>
         </div>
       </form>
@@ -4502,45 +4528,91 @@ function renderSecretBoundary(section) {
   `;
 }
 
-function renderReceiptLedger(section) {
-  const sectionIndex = (activeLaneContent().sections || []).findIndex((entry) => entry === section);
+function activityKindMatches(kind, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'build') return kind === 'proof';
+  if (filter === 'user') return kind !== 'proof';
+  if (filter === 'proposals') return ['proposal', 'draft'].includes(kind);
+  if (filter === 'blocked') return ['gate', 'blocked'].includes(kind);
+  if (filter === 'sent') return kind === 'send_sim';
+  return true;
+}
+
+function activityLedgerRows() {
+  const content = activeLaneContent();
+  const section = sectionByType(content, 'receipt-ledger');
+  const sectionIndex = (content.sections || []).findIndex((entry) => entry === section);
+  const rows = (section?.rows || []).map((row, index) => ({
+    kind: row.kind || 'proof',
+    title: row.title,
+    source: row.source,
+    state: row.state,
+    focusId: `receipts:receipt-ledger:${sectionIndex}:${index}`,
+  }));
+  allSentEvents().forEach((event) => {
+    rows.push({
+      kind: 'send_sim',
+      title: event.subject || 'Simulated send',
+      source: `draft:${event.draft_id || ''}`,
+      state: 'dry_run_only',
+      focusId: `sent-event:${event.id}`,
+    });
+  });
+  return rows;
+}
+
+function renderActivityLedgerTable() {
+  const filter = state.activity.filter || 'user';
+  const rows = activityLedgerRows().filter((row) => activityKindMatches(row.kind, filter));
   return `
-    <section class="lane-section receipt-ledger" aria-label="${escapeHtml(section.title)}">
-      ${renderSectionHeader(section)}
-      <div class="receipt-ledger-table" role="table" aria-label="${escapeHtml(section.title)}">
-        <div class="receipt-ledger-head" role="row">
-          <span role="columnheader">Type</span>
-          <span role="columnheader">Entry</span>
-          <span role="columnheader">Source</span>
-          <span role="columnheader">State</span>
-        </div>
-        ${(section.rows || []).map((row, index) => {
-          const focusId = `${state.laneId}:receipt-ledger:${sectionIndex}:${index}`;
-          const focused = state.focusId === focusId;
-          return `
-            <button class="receipt-ledger-row is-inspector-focusable ${focused ? 'is-inspector-focused' : ''}" type="button" role="row" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
-              <span class="receipt-kind receipt-kind-${escapeHtml(row.kind || 'proof')}" role="cell">${escapeHtml(row.kind)}</span>
-              <strong role="cell">${escapeHtml(row.title)}</strong>
-              <span role="cell">${escapeHtml(row.source)}</span>
-              <span class="receipt-state" role="cell">${escapeHtml(label(row.state || 'preview_only'))}</span>
-            </button>
-          `;
-        }).join('')}
-        ${allSentEvents().map((event, index) => {
-          const focusId = `sent-event:${event.id}`;
-          const focused = state.focusId === focusId;
-          return `
-            <button class="receipt-ledger-row is-inspector-focusable is-local-sent ${focused ? 'is-inspector-focused' : ''}" type="button" role="row" data-inspector-focus="${escapeHtml(focusId)}" aria-selected="${focused ? 'true' : 'false'}">
-              <span class="receipt-kind receipt-kind-send" role="cell">send_sim</span>
-              <strong role="cell">${escapeHtml(event.subject || 'Simulated send')}</strong>
-              <span role="cell">draft:${escapeHtml(event.draft_id || '')}</span>
-              <span class="receipt-state" role="cell">${escapeHtml(label('dry_run_only'))}</span>
-            </button>
-          `;
-        }).join('')}
+    <div class="receipt-ledger-table" role="table" aria-label="Activity ledger">
+      <div class="receipt-ledger-head" role="row">
+        <span role="columnheader">Type</span>
+        <span role="columnheader">What happened</span>
+        <span role="columnheader">Source</span>
+        <span role="columnheader">State</span>
       </div>
-    </section>
+      ${rows.length ? rows.map((row) => {
+    const focused = state.focusId === row.focusId;
+    return `
+        <button class="receipt-ledger-row is-inspector-focusable ${row.kind === 'send_sim' ? 'is-local-sent' : ''} ${focused ? 'is-inspector-focused' : ''}" type="button" role="row" data-inspector-focus="${escapeHtml(row.focusId)}" aria-selected="${focused ? 'true' : 'false'}">
+          <span class="receipt-kind receipt-kind-${escapeHtml(row.kind)}" role="cell">${escapeHtml(row.kind)}</span>
+          <strong role="cell">${escapeHtml(row.title)}</strong>
+          <span role="cell">${escapeHtml(row.source)}</span>
+          <span class="receipt-state" role="cell">${escapeHtml(label(row.state || 'preview_only'))}</span>
+        </button>
+      `;
+  }).join('') : '<p class="lane-empty-state">No entries for this filter.</p>'}
+    </div>
   `;
+}
+
+function renderActivityWorkspace() {
+  const filter = state.activity.filter || 'user';
+  const groupsSection = sectionByType(activeLaneContent(), 'receipt-groups');
+  return `
+    <div class="lane-workspace activity-workspace">
+      <div class="lane-toolbar" role="toolbar" aria-label="Activity filters">
+        <div class="activity-filter-bar" role="tablist" aria-label="Filter activity">
+          ${ACTIVITY_FILTERS.map((entry) => `
+            <button class="activity-filter-btn ${filter === entry.id ? 'is-active' : ''}" type="button" role="tab" aria-selected="${filter === entry.id ? 'true' : 'false'}" data-activity-action="set-filter" data-activity-filter="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>
+          `).join('')}
+        </div>
+      </div>
+      <p class="form-hint activity-subtitle">Audit trail of drafts, proposals, blocked actions, and simulated sends. Build/CI evidence is under <strong>Build evidence</strong>.</p>
+      ${renderActivityLedgerTable()}
+      ${groupsSection ? `
+        <details class="lane-reading-details activity-advanced">
+          <summary>What we record (advanced)</summary>
+          ${renderReceiptGroups(groupsSection)}
+        </details>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderReceiptLedger(section) {
+  return renderActivityLedgerTable();
 }
 
 function renderReceiptGroups(section) {
@@ -4709,13 +4781,13 @@ function renderMainLane() {
   const content = activeLaneContent();
   return `
     <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
-      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? ' is-compact' : ''}">
+      <header class="lane-header${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
-          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
-          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Extensions', settings: 'Settings' }[lane.id] || (content.title || lane.label))}</h2>
-          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
+          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
+          <h2>${escapeHtml({ inbox: 'Inbox', calendar: 'Calendar', tasks: 'Tasks', automations: 'Automations', extensions: 'Extensions', settings: 'Settings', receipts: 'Activity' }[lane.id] || (content.title || lane.label))}</h2>
+          ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p>${escapeHtml(content.summary || lane.description || '')}</p>`}
         </div>
-        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : `
+        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `
         <div class="lane-status-line">
           <span>${escapeHtml(label(content.proofState || lane.status || 'preview_only'))}</span>
           <span>${escapeHtml(label(lane.status || 'preview_only'))}</span>
@@ -4734,7 +4806,8 @@ function renderMainLane() {
         ${lane.id === 'automations' ? renderAutomationsWorkspace() : ''}
         ${lane.id === 'extensions' ? renderExtensionsWorkspace() : ''}
         ${lane.id === 'settings' ? renderSettingsWorkspace() : ''}
-        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
+        ${lane.id === 'receipts' ? renderActivityWorkspace() : ''}
+        ${['inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : (content.sections || []).map(renderLaneSection).join('')}
       </div>
     </main>
   `;
@@ -4853,8 +4926,8 @@ function activeInspectorModel() {
     return {
       kind: 'sent',
       mode: 'sent',
-      title: activeLaneContent().title || 'Receipts',
-      summary: `Sent-event ledger: ${events.length} simulated send(s). Fixture receipts below.`,
+      title: 'Activity',
+      summary: `Audit trail: ${events.length} simulated send(s). Filter by type above.`,
       context: events.length
         ? `Latest: ${events[0].subject || events[0].id} (${events[0].created_at}).`
         : 'No simulated sends yet. Approve a draft and run Simulate send in Approval Queue.',
@@ -5647,6 +5720,14 @@ function handleTasksAction(action, taskId, status, focusId) {
   }
 }
 
+function handleActivityAction(action, filterId) {
+  if (action === 'set-filter' && filterId) {
+    state.activity.filter = filterId;
+    saveState();
+    renderShell();
+  }
+}
+
 function handleCalendarAction(action, proposalId, focusId) {
   if (action === 'new-event') {
     state.calendar.selectedProposalId = null;
@@ -6023,6 +6104,13 @@ function bindEvents() {
         tasksAction.dataset.threadId || tasksAction.dataset.taskStatus,
         tasksAction.dataset.laneId || tasksAction.dataset.focusId,
       );
+      return;
+    }
+
+    const activityAction = event.target.closest?.('[data-activity-action]');
+    if (activityAction?.dataset.activityAction) {
+      event.preventDefault();
+      handleActivityAction(activityAction.dataset.activityAction, activityAction.dataset.activityFilter);
       return;
     }
 

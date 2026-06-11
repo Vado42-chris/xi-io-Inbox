@@ -168,7 +168,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-009A: remove fixture accounts; Gmail queue + Connect CLI wizard (`docs/ui/reviews/ui-009a-account-wizard-receipt.md`).
 - [x] UI-009B: calendar month-grid shell (`docs/ui/reviews/ui-009b-calendar-grid-receipt.md`).
 - [x] UI-009C: tasks kanban board + mail source links (`docs/ui/reviews/ui-009c-tasks-kanban-receipt.md`).
-- [ ] UI-009D: Activity (Receipts) rename + user-facing filters.
+- [x] UI-009D: Activity lane rename + filters (`docs/ui/reviews/ui-009d-activity-lane-receipt.md`).
 - [ ] UI-009E: Settings split User vs Advanced.
 - [ ] UI-009F: mail reading polish v2; demote fixture copy.
 - [x] GMAIL-001B: real account metadata spike plan + adapter contract (`docs/providers/gmail/gmail-001b-receipt.md`).
