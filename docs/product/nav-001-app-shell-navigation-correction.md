@@ -91,7 +91,9 @@ Next product ingress step: `docs/product/gmail-002-real-email-ingress-plan.md`.
 
 ## UI-012D pause
 
-**UI-012D (interaction / state polish) remains paused until NAV-001 passes.**
+**UI-012D (interaction / state polish) is paused until GMAIL-002A completes** (or product owner explicitly chooses UI-012D first).
+
+NAV-001 status: **complete** (see `docs/ui/reviews/nav-001-self-peer-review.md`).
 
 Sequence after NAV-001:
 

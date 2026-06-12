@@ -46,19 +46,21 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 
 ## Near-Term Order
 
-**Corrected 2026-06-10 (UI-011A):**
+**Corrected 2026-06-10 (peer review after UI-012C):**
 
 1. SLICE-UI-011A — Product Capability Gap Matrix — **complete**
-2. SLICE-UI-011B–I — capability repairs per `docs/product/ui-011a-product-capability-gap-matrix.md`
-3. SLICE-UI-012A — Ibal/Rabbit visual parity brief (docs) — **complete** (`ui-012a-ibal-rabbit-visual-parity-brief.md`)
+2. SLICE-UI-011B–I — capability repairs — **complete**
+3. SLICE-UI-012A — Ibal/Rabbit visual parity brief (docs) — **complete**
 4. SLICE-UI-012B — visual token/component alignment — **complete**
-5. SLICE-UI-012C — layout/composition polish — **complete** (`ui-012c-layout-composition-polish-receipt.md`)
-6. SLICE-UI-012D–F — visual polish — **next (UI-012D)**
-5. UI-003E owner visual proof re-run (after UI-011I + UI-012F)
-6. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
-5. GMAIL-001C smoke (optional parallel; local CLI only)
-6. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
-7. SLICE-PASS-004 only after gates clear
+5. SLICE-UI-012C — layout/composition polish — **complete**
+6. SLICE-NAV-001 — app shell / navigation correction — **complete** (`nav-001-app-shell-navigation-correction-receipt.md`)
+7. SLICE-GMAIL-002A — real Gmail metadata bridge — **next recommended** (`gmail-002-real-email-ingress-plan.md`)
+8. SLICE-UI-012D–F — visual polish — **paused** (resume after GMAIL-002A or owner choice)
+9. UI-003E owner visual proof re-run (after UI-012F)
+10. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
+11. GMAIL-001C smoke (optional parallel; local CLI only)
+12. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
+13. SLICE-PASS-004 only after gates clear
 
 Prior slices (UI-004 through UI-010, UI-007, operator push) remain complete locally.
 

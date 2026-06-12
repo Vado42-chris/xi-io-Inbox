@@ -149,6 +149,10 @@ Browser preview not connected. Gmail CLI path documented in account drawer only.
 
 **GMAIL-002A** — local Gmail metadata bridge per `docs/product/gmail-002-real-email-ingress-plan.md`. UI-012D may resume after GMAIL-002A unless product owner explicitly prioritizes interaction polish first.
 
+## Self peer review
+
+`docs/ui/reviews/nav-001-self-peer-review.md` — regression repair for mail folders/mailboxes/views; plan/compliance sync.
+
 ## Decision value
 
 `NAV_001_PASS_READY_FOR_GMAIL_002A_OR_UI_012D`

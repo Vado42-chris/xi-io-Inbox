@@ -4359,6 +4359,10 @@ function renderMailContextNav() {
   const draftLinkedCount = baseThreadsForFilters().filter((thread) => threadMailbox(thread) === 'inbox' && draftForThread(thread.id)).length;
   const inboxActive = activeView === 'inbox' && !state.inbox.labelFilter && !state.inbox.accountFilter && !state.inbox.folderFilter
     && !['mail-unread', 'mail-draft-linked', 'mail-search-results'].includes(activeContextSubNav);
+  const smartViews = (inboxLayoutSection().views || []).filter((view) => {
+    const viewId = mailboxViewId(view.label);
+    return !['drafts', 'sent', 'archive', 'trash', 'spam', 'approval-queue'].includes(viewId);
+  });
   return `
     ${renderContextNavSection('Mail', [
       contextNavButton('Accounts', 'mail-accounts', allPreviewAccounts().length, activeContextSubNav === 'mail-accounts'),
@@ -4368,12 +4372,28 @@ function renderMailContextNav() {
       contextNavButton('Draft-linked', 'mail-draft-linked', draftLinkedCount, activeContextSubNav === 'mail-draft-linked'),
       contextNavButton('Search results', 'mail-search-results', searchQuery ? threadsForMailboxView().length : null, Boolean(searchQuery) || activeContextSubNav === 'mail-search-results'),
     ].join(''))}
+    ${smartViews.length ? renderContextNavSection('Views', smartViews.map((view) => {
+    const viewId = mailboxViewId(view.label);
+    return `<button class="context-nav-item ${activeView === viewId && !state.inbox.labelFilter ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}"><span>${escapeHtml(view.label)}</span><strong>${view.count ?? countMailThreads({ mailboxView: viewId })}</strong></button>`;
+  }).join('')) : ''}
     ${meta.labels.length ? renderContextNavSection('Labels', meta.labels.map((entry) => `
       <button class="context-nav-item ${state.inbox.labelFilter === entry.id ? 'is-active' : ''}" type="button" data-inbox-action="select-label-filter" data-label-id="${escapeHtml(entry.id)}">
         <span>${escapeHtml(entry.label)}</span>
         <strong>${entry.count ?? countMailThreads({ labelFilter: entry.id, mailboxView: 'inbox' })}</strong>
       </button>
     `).join('')) : ''}
+    ${meta.folders.length ? renderContextNavSection('Folders', meta.folders.map((folder) => `
+      <button class="context-nav-item ${state.inbox.folderFilter === folder.id ? 'is-active' : ''}" type="button" data-inbox-action="select-folder-filter" data-folder-id="${escapeHtml(folder.id)}">
+        <span>${escapeHtml(folder.label)}</span>
+        <strong>${folder.count ?? countMailThreads({ folderId: folder.id, mailboxView: 'inbox' })}</strong>
+      </button>
+    `).join('')) : ''}
+    ${renderContextNavSection('Mailboxes', [
+      `<button class="context-nav-item ${activeView === 'sent' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="sent"><span>Sent</span><strong>${countMailThreads({ mailboxView: 'sent' })}</strong></button>`,
+      `<button class="context-nav-item ${activeView === 'archive' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="archive"><span>Archive</span><strong>${countMailThreads({ mailboxView: 'archive' })}</strong></button>`,
+      `<button class="context-nav-item ${activeView === 'trash' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="trash"><span>Trash</span><strong>${countMailThreads({ mailboxView: 'trash' })}</strong></button>`,
+      `<button class="context-nav-item ${activeView === 'spam' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="spam"><span>Spam</span><strong>${countMailThreads({ mailboxView: 'spam' })}</strong></button>`,
+    ].join(''))}
     ${renderContextNavSection('Accounts', allPreviewAccounts().length ? allPreviewAccounts().map((account) => `
       <button class="context-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}">
         <span>${escapeHtml(account.displayName)}</span>
@@ -4531,71 +4551,6 @@ function renderTopBar() {
         </button>
       </section>
     </header>
-  `;
-}
-
-function renderInboxMailNav() {
-  const section = inboxLayoutSection();
-  const meta = mailLayoutMeta();
-  const activeView = state.inbox.mailboxView || 'inbox';
-  const draftListCount = allDraftItems().filter((draft) => draft.approval_state === 'none' && draft.status !== 'sent').length;
-  const approvalCount = allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state) && draft.status !== 'sent').length;
-  const sentCount = countMailThreads({ mailboxView: 'sent' });
-  const smartViews = (section.views || []).filter((view) => {
-    const viewId = mailboxViewId(view.label);
-    return !['drafts', 'sent', 'archive', 'trash', 'spam'].includes(viewId);
-  });
-  const mailNavItem = (viewId, labelText, count, extraActive = false) => {
-    const isActive = (activeView === viewId && !state.inbox.labelFilter) || extraActive;
-    return `
-      <button class="mail-nav-item ${isActive ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}" aria-current="${isActive ? 'page' : 'false'}">
-        <span>${escapeHtml(labelText)}</span>
-        <strong>${count}</strong>
-      </button>
-    `;
-  };
-  return `
-    <div class="mail-nav-section" aria-label="Mail folders and views">
-      <p class="mail-nav-label">Mail</p>
-      ${mailNavItem('inbox', 'All inboxes', countMailThreads({ mailboxView: 'inbox' }), activeView === 'inbox' && !state.inbox.accountFilter && !state.inbox.labelFilter)}
-      ${mailNavItem('drafts', 'Drafts', draftListCount)}
-      ${mailNavItem('sent', 'Sent', sentCount)}
-      ${mailNavItem('archive', 'Archive', countMailThreads({ mailboxView: 'archive' }))}
-      ${mailNavItem('trash', 'Trash', countMailThreads({ mailboxView: 'trash' }))}
-      ${mailNavItem('spam', 'Spam', countMailThreads({ mailboxView: 'spam' }))}
-      ${mailNavItem('approval-queue', 'Approval queue', approvalCount)}
-      ${smartViews.length ? `<p class="mail-nav-label">Views</p>${smartViews.map((view) => {
-    const viewId = mailboxViewId(view.label);
-    return mailNavItem(viewId, view.label, view.count || countMailThreads({ mailboxView: viewId }));
-  }).join('')}` : ''}
-      ${meta.folders.length ? `
-        <p class="mail-nav-label">Folders</p>
-        ${meta.folders.map((folder) => `
-          <button class="mail-nav-item ${state.inbox.folderFilter === folder.id ? 'is-active' : ''}" type="button" data-inbox-action="select-folder-filter" data-folder-id="${escapeHtml(folder.id)}">
-            <span>${escapeHtml(folder.label)}</span>
-            <strong>${folder.count ?? countMailThreads({ folderId: folder.id, mailboxView: 'inbox' })}</strong>
-          </button>
-        `).join('')}
-      ` : ''}
-      ${meta.labels.length ? `
-        <p class="mail-nav-label">Labels</p>
-        ${meta.labels.map((entry) => `
-          <button class="mail-nav-item ${state.inbox.labelFilter === entry.id ? 'is-active' : ''}" type="button" data-inbox-action="select-label-filter" data-label-id="${escapeHtml(entry.id)}">
-            <span>${escapeHtml(entry.label)}</span>
-            <strong>${entry.count ?? countMailThreads({ labelFilter: entry.id, mailboxView: 'inbox' })}</strong>
-          </button>
-        `).join('')}
-        <p class="form-hint mail-nav-hint">Provider labels load after Gmail metadata connect.</p>
-      ` : ''}
-      <p class="mail-nav-label">Accounts</p>
-      ${allPreviewAccounts().length ? allPreviewAccounts().map((account) => `
-        <button class="mail-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}" aria-current="${state.inbox.accountFilter === account.accountId ? 'page' : 'false'}">
-          <span>${escapeHtml(account.displayName)}</span>
-          <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>
-          <strong>${account.counts?.unread ?? 0}</strong>
-        </button>
-      `).join('') : '<p class="form-hint mail-nav-hint">No accounts yet. Add Gmail in Settings.</p>'}
-    </div>
   `;
 }
 

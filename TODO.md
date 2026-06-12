@@ -199,9 +199,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-012A Ibal/Rabbit visual parity brief — `docs/ui/polish/ui-012a-ibal-rabbit-visual-parity-brief.md`.
 - [x] UI-012B visual token / component alignment — `docs/ui/reviews/ui-012b-visual-token-component-alignment-receipt.md`.
 - [x] UI-012C layout / composition polish — `docs/ui/reviews/ui-012c-layout-composition-polish-receipt.md`.
-- [x] NAV-001 app shell / navigation correction — `docs/ui/reviews/nav-001-app-shell-navigation-correction-receipt.md`.
+- [x] NAV-001 app shell / navigation correction — `docs/ui/reviews/nav-001-app-shell-navigation-correction-receipt.md` · self-review `docs/ui/reviews/nav-001-self-peer-review.md`.
 - [ ] GMAIL-002A real Gmail metadata bridge — **next recommended** (`docs/product/gmail-002-real-email-ingress-plan.md`).
-- [ ] UI-012D interaction / state polish — **paused until NAV-001 complete** (NAV-001 done; resume after GMAIL-002A or owner choice).
+- [ ] UI-012D interaction / state polish — **paused** (resume after GMAIL-002A or owner choice).
 - [ ] UI-012E accessibility / contrast / focus polish.
 - [ ] UI-012F final visual readiness gate.
 - [ ] UI-003E owner visual proof — **blocked until UI-012F**.
