@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-`de6149fd77096f0c9d84237bdad563cc0710d6db`
+`de6149f`
 
 ## Scope
 
@@ -20,7 +20,7 @@ UI-012B visual token and component alignment per `docs/ui/polish/ui-012a-ibal-ra
 
 - UI-012C+ layout/composition overhaul
 - Owner UI-003E visual proof
-- schemaVersion / localStorage changes
+- schemaVersion / localStorage / fixture / data-model changes
 - Provider runtime, send, OAuth
 - Screenshots committed to repo
 
@@ -76,19 +76,39 @@ Calm drawer/surface treatment; concierge open state uses accent-soft; proposal-o
 
 ## Accessibility result
 
-Focus visible preserved/improved; selected vs focus distinguished; blocked/disabled dashed borders + opacity; no color-only pill/status (text labels retained). Automated contrast measurement not available — manual visual review via before/after captures noted below.
+Focus visible preserved/improved (WCAG 2.2 Focus Visible / Focus Appearance); selected vs focus distinguished; blocked/disabled dashed borders + opacity; no color-only pill/status — Use of Color criterion addressed via text labels. **Automated contrast measurement unavailable**; manual visual review via before/after captures below.
+
+## Accessibility references used
+
+- [WCAG 2.2 (W3C Recommendation)](https://www.w3.org/TR/WCAG22/) — Focus Visible (2.4.7), Focus Appearance (2.4.13), Keyboard (2.1), Use of Color (1.4.1), Contrast (Minimum) (1.4.3), Consistent Navigation (3.2.3), Consistent Identification (3.2.4)
+- [NN/g Ten Usability Heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/) — visibility of system status, consistency, recognition over recall, match between system and real world
+
+## Before capture status
+
+**yes** — 9 PNG captures in `/tmp/xi-io-inbox-ui-012b/before/` (Playwright headless, 1440×900)
+
+## After capture status
+
+**yes** — 9 PNG captures in `/tmp/xi-io-inbox-ui-012b/after/` (same views, same tooling)
 
 ## Before/after visual artifact result
 
-**yes** — 9 views captured before and after (mail-inbox, drafts, approval-queue, calendar, tasks, automations, extensions, activity, settings).
+**yes** — mail-inbox, drafts, approval-queue, calendar, tasks, automations, extensions, activity, settings
 
 ## Visual artifact path
 
-`/tmp/xi-io-inbox-ui-012b/before/` and `/tmp/xi-io-inbox-ui-012b/after/` (Playwright headless, 1440×900)
+`/tmp/xi-io-inbox-ui-012b/before/` and `/tmp/xi-io-inbox-ui-012b/after/`
 
 ## Screenshots committed
 
 **no**
+
+## Visual risks still needing owner review
+
+- Mail list density vs competitive mail clients (layout pass deferred to UI-012C)
+- Accent color choice vs framework teal / ibal orange (product decision)
+- Formal contrast ratios not machine-verified in this pass
+- Icon system still text-heavy (deferred)
 
 ## Regression result for UI-011B–I
 
@@ -96,7 +116,7 @@ No JS/HTML/JSON changes. Capability lanes preserved. `npm run check` pass.
 
 ## Storage result
 
-Unchanged. No migration code touched.
+Unchanged. No migration code touched. **No fixture or data-model files changed.**
 
 ## schemaVersion
 
