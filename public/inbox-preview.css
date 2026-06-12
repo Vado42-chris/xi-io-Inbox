@@ -4778,3 +4778,210 @@ textarea:focus-visible,
     grid-template-columns: 1fr;
   }
 }
+
+/* NAV-001 — app shell / navigation correction */
+
+.app-topbar {
+  grid-template-columns: minmax(12rem, auto) minmax(0, 1fr) minmax(16rem, auto);
+  align-items: stretch;
+}
+
+.topbar-leading,
+.topbar-trailing {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.brand-block {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.product-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.env-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.product-level-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0;
+  min-width: 0;
+}
+
+.product-nav-item {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.product-nav-item.is-active {
+  border-color: rgba(105, 210, 255, 0.55);
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--cyan);
+}
+
+.topbar-trailing {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.command-box {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: min(100%, 14rem);
+}
+
+.command-box-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.account-status-trigger {
+  display: grid;
+  gap: 0.1rem;
+  max-width: 12rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(20, 22, 26, 0.72);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-status-trigger.is-open {
+  border-color: rgba(105, 210, 255, 0.55);
+}
+
+.account-status-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.account-status-state {
+  font-size: 0.76rem;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.help-control-root {
+  position: relative;
+}
+
+.help-control-trigger {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.help-control-root.is-open .help-control-trigger {
+  border-color: rgba(105, 210, 255, 0.55);
+  color: var(--text);
+}
+
+.help-control-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 30;
+  width: min(22rem, 90vw);
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.help-control-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.help-control-list {
+  margin: 0.45rem 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.context-nav-pane .context-nav-label,
+.context-nav-pane .lane-nav-label {
+  margin-top: 0.35rem;
+}
+
+.context-nav-item,
+.mail-nav-item {
+  width: 100%;
+}
+
+.context-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.42rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.context-nav-item.is-active {
+  border-color: rgba(105, 210, 255, 0.45);
+  background: rgba(105, 210, 255, 0.06);
+}
+
+.account-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0 1rem 0.75rem;
+}
+
+@media (max-width: 1180px) {
+  .app-topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .product-level-nav {
+    order: 3;
+  }
+}

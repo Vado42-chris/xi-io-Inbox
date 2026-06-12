@@ -199,7 +199,9 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-012A Ibal/Rabbit visual parity brief — `docs/ui/polish/ui-012a-ibal-rabbit-visual-parity-brief.md`.
 - [x] UI-012B visual token / component alignment — `docs/ui/reviews/ui-012b-visual-token-component-alignment-receipt.md`.
 - [x] UI-012C layout / composition polish — `docs/ui/reviews/ui-012c-layout-composition-polish-receipt.md`.
-- [ ] UI-012D interaction / state polish — **next**.
+- [x] NAV-001 app shell / navigation correction — `docs/ui/reviews/nav-001-app-shell-navigation-correction-receipt.md`.
+- [ ] GMAIL-002A real Gmail metadata bridge — **next recommended** (`docs/product/gmail-002-real-email-ingress-plan.md`).
+- [ ] UI-012D interaction / state polish — **paused until NAV-001 complete** (NAV-001 done; resume after GMAIL-002A or owner choice).
 - [ ] UI-012E accessibility / contrast / focus polish.
 - [ ] UI-012F final visual readiness gate.
 - [ ] UI-003E owner visual proof — **blocked until UI-012F**.
@@ -221,4 +223,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-12): UI-012C complete. **UI-012D–F** (~2–3 passes). Owner UI-003E blocked until UI-012F. xi-io.net framework backfeed (~1 pass). PR #12 draft. **~3–4 passes** to merge-ready after owner PASS.
+Current estimated work (2026-06-10): UI-012C complete. NAV-001 complete. **GMAIL-002A** (~1 pass). **UI-012D–F** (~2–3 passes). Owner UI-003E blocked until UI-012F. xi-io.net framework backfeed (~1 pass). PR #12 draft. **~4–5 passes** to merge-ready after owner PASS.

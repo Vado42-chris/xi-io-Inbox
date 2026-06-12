@@ -14,6 +14,28 @@ const PRODUCT_GATE_COPY = {
   activityLabel: 'Activity shows what happened; receipts are the audit objects.',
 };
 
+const PRODUCT_LEVEL_NAV = [
+  { id: 'mail', label: 'Mail' },
+  { id: 'drafts', label: 'Drafts' },
+  { id: 'approvals', label: 'Approvals' },
+  { id: 'plan', label: 'Plan' },
+  { id: 'automations', label: 'Automations' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'integrations', label: 'Integrations' },
+];
+
+const INTEGRATIONS_NAV_CATEGORIES = [
+  { id: 'integrations-email', label: 'Email', categoryFilter: 'email' },
+  { id: 'integrations-storage', label: 'Storage', categoryFilter: 'cloud-storage' },
+  { id: 'integrations-automation', label: 'Automation', categoryFilter: 'automation-connectors' },
+  { id: 'integrations-communication', label: 'Communication', categoryFilter: 'communication' },
+  { id: 'integrations-local-tools', label: 'Local tools', categoryFilter: 'local-tools' },
+  { id: 'integrations-developer', label: 'Developer', categoryFilter: 'developer' },
+];
+
+let activeContextSubNav = null;
+let helpPanelOpen = false;
+
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
   { id: 'user:accounts', label: 'Accounts', badge: 'mail', summary: 'Queued accounts · metadata-only · not connected in browser' },
@@ -1038,6 +1060,12 @@ function threadsForMailboxView() {
     }
     if (view === 'provider-gates') {
       return mailbox === 'inbox' && ((thread.labels || []).includes('provider_gate') || thread.state === 'provider_blocked');
+    }
+    if (activeContextSubNav === 'mail-unread' && view === 'inbox') {
+      return mailbox === 'inbox' && Boolean(thread.unread);
+    }
+    if (activeContextSubNav === 'mail-draft-linked' && view === 'inbox') {
+      return mailbox === 'inbox' && Boolean(draftForThread(thread.id));
     }
     return mailbox === 'inbox';
   });
@@ -2661,10 +2689,23 @@ function replyDraftFor(threadId) {
 function draftsForMailboxView() {
   const view = state.inbox.mailboxView || 'inbox';
   if (view === 'drafts') {
-    return allDraftItems().filter((draft) => draft.approval_state === 'none' && draft.status !== 'sent');
+    let drafts = allDraftItems().filter((draft) => draft.approval_state === 'none' && draft.status !== 'sent');
+    if (activeContextSubNav === 'drafts-composed') drafts = drafts.filter((draft) => draft.kind === 'compose');
+    if (activeContextSubNav === 'drafts-replies') drafts = drafts.filter((draft) => draft.kind === 'reply');
+    if (activeContextSubNav === 'drafts-needs-approval') drafts = drafts.filter((draft) => draft.approval_state === 'queued');
+    if (activeContextSubNav === 'drafts-approved') drafts = drafts.filter((draft) => draft.approval_state === 'approved');
+    if (activeContextSubNav === 'drafts-blocked') drafts = drafts.filter((draft) => draft.status === 'blocked');
+    if (activeContextSubNav === 'drafts-templates') drafts = drafts.filter((draft) => draft.kind === 'template');
+    return drafts;
   }
   if (view === 'approval-queue') {
-    return allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state) && draft.status !== 'sent');
+    let drafts = allDraftItems().filter((draft) => ['queued', 'approved'].includes(draft.approval_state) && draft.status !== 'sent');
+    if (activeContextSubNav === 'approvals-ready') drafts = drafts.filter((draft) => draft.approval_state === 'queued');
+    if (activeContextSubNav === 'approvals-blocked') drafts = drafts.filter((draft) => draft.status === 'blocked');
+    if (activeContextSubNav === 'approvals-risk-flags') drafts = drafts.filter((draft) => draft.risk_flag || draft.requires_review);
+    if (activeContextSubNav === 'approvals-batch') drafts = drafts.filter((draft) => draft.approval_state === 'queued');
+    if (activeContextSubNav === 'approvals-send-blocked') drafts = drafts.filter((draft) => draft.approval_state === 'approved' && draft.status !== 'sent');
+    return drafts;
   }
   return [];
 }
@@ -4221,19 +4262,244 @@ function selectInspectorFocus(focusId) {
   document.querySelector(`[data-inspector-focus="${CSS.escape(focusId)}"]`)?.focus({ preventScroll: true });
 }
 
-function renderTrustRail() {
+function activeProductWorkspace() {
+  if (state.laneId === 'inbox') {
+    const view = state.inbox.mailboxView || 'inbox';
+    if (view === 'drafts') return 'drafts';
+    if (view === 'approval-queue') return 'approvals';
+    return 'mail';
+  }
+  if (state.laneId === 'tasks' || state.laneId === 'calendar') return 'plan';
+  if (state.laneId === 'automations') return 'automations';
+  if (state.laneId === 'receipts') return 'activity';
+  if (state.laneId === 'extensions') return 'integrations';
+  if (state.laneId === 'settings') return 'settings';
+  return null;
+}
+
+function environmentStatusBadge() {
+  return 'Preview · Local · Metadata-only';
+}
+
+function providerAccountStatusSummary() {
+  const account = selectedAccountFixture();
+  const sync = String(account?.syncState || 'provider_blocked').toLowerCase();
+  if (sync === 'connected') return 'Connected · verify via CLI';
+  if (sync === 'metadata_only') return 'Metadata-only · CLI path';
+  if (sync === 'awaiting_local_connect') return 'Queued · not connected';
+  return PRODUCT_GATE_COPY.browserNotConnected;
+}
+
+function contextualHelpContent() {
+  const workspace = activeProductWorkspace();
   const policy = getPayload().egressPolicy || {};
   const statements = policy.safetyStatements || [];
+  const workspaceHints = {
+    mail: 'Mail shows fixture threads. Provider sync, body read, draft write, and send remain blocked.',
+    drafts: 'Drafts save locally in this browser. Submit for approval without provider write.',
+    approvals: 'Approval queue is local-only. Send stays blocked until GMAIL-002D and owner proof.',
+    plan: 'Tasks, calendar, epics, and bugs are local planning objects — not synced providers.',
+    automations: 'Automations dry-run only. External execution and provider mutation stay blocked.',
+    activity: 'Activity records local receipts — what happened, what was proposed, and what was blocked.',
+    integrations: 'Integrations show provider gates honestly. Connect paths run outside the browser preview.',
+    settings: 'Settings hold preferences and gates. Provider OAuth tokens never load in this preview.',
+  };
+  const label = PRODUCT_LEVEL_NAV.find((entry) => entry.id === workspace)?.label || 'Workspace';
+  return {
+    title: `${label} help`,
+    body: workspaceHints[workspace] || 'This build is a static preview. Live provider actions stay gated.',
+    statements,
+  };
+}
+
+function contextNavButton(label, subNavId, count, isActive) {
+  const active = Boolean(isActive);
   return `
-    <details class="trust-help-panel" aria-label="Help and safety">
-      <summary>Help</summary>
-      <div class="trust-help-body">
-        <p>This build saves drafts locally. Live mail sync and send are not enabled yet.</p>
-        <ul>
-          ${statements.map((item) => `<li>${escapeHtml(demoteMailDisplayText(item))}</li>`).join('')}
-        </ul>
+    <button class="context-nav-item ${active ? 'is-active' : ''}" type="button" data-context-nav-action="select" data-context-sub-nav="${escapeHtml(subNavId)}" aria-current="${active ? 'page' : 'false'}">
+      <span>${escapeHtml(label)}</span>
+      ${count != null ? `<strong>${count}</strong>` : ''}
+    </button>
+  `;
+}
+
+function renderHelpControl() {
+  const help = contextualHelpContent();
+  return `
+    <div class="help-control-root ${helpPanelOpen ? 'is-open' : ''}">
+      <button class="help-control-trigger" type="button" data-help-action="toggle" aria-expanded="${helpPanelOpen ? 'true' : 'false'}" aria-controls="contextHelpPanel" title="Help, shortcuts, and docs">?</button>
+      <div id="contextHelpPanel" class="help-control-panel" role="dialog" aria-label="Context help" ${helpPanelOpen ? '' : 'hidden'}>
+        <header class="help-control-head">
+          <strong>${escapeHtml(help.title)}</strong>
+          <button class="inbox-action-btn" type="button" data-help-action="close">Close</button>
+        </header>
+        <p>${escapeHtml(help.body)}</p>
+        ${help.statements.length ? `<ul class="help-control-list">${help.statements.map((item) => `<li>${escapeHtml(demoteMailDisplayText(item))}</li>`).join('')}</ul>` : ''}
+        <p class="form-hint">Ask Ibal for screen-specific guidance. Search supports mail, commands, activity, providers, and tasks.</p>
       </div>
-    </details>
+    </div>
+  `;
+}
+
+function renderProductLevelNav() {
+  const activeWorkspace = activeProductWorkspace();
+  return `
+    <nav class="product-level-nav" aria-label="Product navigation">
+      ${PRODUCT_LEVEL_NAV.map((entry) => `
+        <button class="product-nav-item ${activeWorkspace === entry.id ? 'is-active' : ''}" type="button" data-product-nav-action="select-workspace" data-product-workspace="${escapeHtml(entry.id)}" aria-current="${activeWorkspace === entry.id ? 'page' : 'false'}">${escapeHtml(entry.label)}</button>
+      `).join('')}
+    </nav>
+  `;
+}
+
+function renderMailContextNav() {
+  const meta = mailLayoutMeta();
+  const activeView = state.inbox.mailboxView || 'inbox';
+  const searchQuery = (state.inbox.mailSearchQuery || '').trim();
+  const unreadCount = baseThreadsForFilters().filter((thread) => threadMailbox(thread) === 'inbox' && thread.unread).length;
+  const draftLinkedCount = baseThreadsForFilters().filter((thread) => threadMailbox(thread) === 'inbox' && draftForThread(thread.id)).length;
+  const inboxActive = activeView === 'inbox' && !state.inbox.labelFilter && !state.inbox.accountFilter && !state.inbox.folderFilter
+    && !['mail-unread', 'mail-draft-linked', 'mail-search-results'].includes(activeContextSubNav);
+  return `
+    ${renderContextNavSection('Mail', [
+      contextNavButton('Accounts', 'mail-accounts', allPreviewAccounts().length, activeContextSubNav === 'mail-accounts'),
+      contextNavButton('Inbox', 'mail-inbox', countMailThreads({ mailboxView: 'inbox' }), inboxActive),
+      contextNavButton('Unread', 'mail-unread', unreadCount, activeContextSubNav === 'mail-unread'),
+      contextNavButton('Needs reply', 'mail-needs-reply', countMailThreads({ mailboxView: 'needs-reply' }), activeView === 'needs-reply'),
+      contextNavButton('Draft-linked', 'mail-draft-linked', draftLinkedCount, activeContextSubNav === 'mail-draft-linked'),
+      contextNavButton('Search results', 'mail-search-results', searchQuery ? threadsForMailboxView().length : null, Boolean(searchQuery) || activeContextSubNav === 'mail-search-results'),
+    ].join(''))}
+    ${meta.labels.length ? renderContextNavSection('Labels', meta.labels.map((entry) => `
+      <button class="context-nav-item ${state.inbox.labelFilter === entry.id ? 'is-active' : ''}" type="button" data-inbox-action="select-label-filter" data-label-id="${escapeHtml(entry.id)}">
+        <span>${escapeHtml(entry.label)}</span>
+        <strong>${entry.count ?? countMailThreads({ labelFilter: entry.id, mailboxView: 'inbox' })}</strong>
+      </button>
+    `).join('')) : ''}
+    ${renderContextNavSection('Accounts', allPreviewAccounts().length ? allPreviewAccounts().map((account) => `
+      <button class="context-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}">
+        <span>${escapeHtml(account.displayName)}</span>
+        <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>
+        <strong>${account.counts?.unread ?? 0}</strong>
+      </button>
+    `).join('') : '<p class="form-hint mail-nav-hint">No accounts yet. Add Gmail in Settings.</p>')}
+  `;
+}
+
+function renderDraftsContextNav() {
+  const drafts = allDraftItems().filter((draft) => draft.approval_state === 'none' && draft.status !== 'sent');
+  return renderContextNavSection('Drafts', [
+    contextNavButton('Composed', 'drafts-composed', drafts.filter((draft) => draft.kind === 'compose').length, activeContextSubNav === 'drafts-composed'),
+    contextNavButton('Replies', 'drafts-replies', drafts.filter((draft) => draft.kind === 'reply').length, activeContextSubNav === 'drafts-replies'),
+    contextNavButton('Needs approval', 'drafts-needs-approval', allDraftItems().filter((draft) => draft.approval_state === 'queued').length, activeContextSubNav === 'drafts-needs-approval'),
+    contextNavButton('Approved', 'drafts-approved', allDraftItems().filter((draft) => draft.approval_state === 'approved' && draft.status !== 'sent').length, activeContextSubNav === 'drafts-approved'),
+    contextNavButton('Blocked', 'drafts-blocked', drafts.filter((draft) => draft.status === 'blocked').length, activeContextSubNav === 'drafts-blocked'),
+    contextNavButton('Templates', 'drafts-templates', drafts.filter((draft) => draft.kind === 'template').length, activeContextSubNav === 'drafts-templates'),
+  ].join(''));
+}
+
+function renderApprovalsContextNav() {
+  const queued = queuedDrafts();
+  const approved = approvedDrafts();
+  return `
+    ${renderContextNavSection('Approvals', [
+      contextNavButton('Ready', 'approvals-ready', queued.length, activeContextSubNav === 'approvals-ready'),
+      contextNavButton('Blocked', 'approvals-blocked', allDraftItems().filter((draft) => draft.status === 'blocked').length, activeContextSubNav === 'approvals-blocked'),
+      contextNavButton('Risk flags', 'approvals-risk-flags', allDraftItems().filter((draft) => draft.risk_flag || draft.requires_review).length, activeContextSubNav === 'approvals-risk-flags'),
+      contextNavButton('Batch approval', 'approvals-batch', queued.length, activeContextSubNav === 'approvals-batch'),
+      contextNavButton('Send blocked', 'approvals-send-blocked', approved.length, activeContextSubNav === 'approvals-send-blocked'),
+    ].join(''))}
+    <p class="form-hint mail-nav-hint">Send remains blocked in Tier 1 preview. Approved drafts can simulate send only.</p>
+  `;
+}
+
+function renderPlanContextNav() {
+  const tasksCount = (state.tasks.tasks || []).length;
+  const epicsCount = (state.planning.epics || []).length;
+  const storiesCount = (state.planning.stories || []).length;
+  const bugsCount = (state.bugs.items || []).length;
+  const evidenceCount = (state.evidence.items || []).length;
+  return renderContextNavSection('Plan', [
+    contextNavButton('Tasks', 'plan-tasks', tasksCount, state.laneId === 'tasks' && (state.tasks.viewMode || 'planning') === 'planning'),
+    contextNavButton('Calendar', 'plan-calendar', state.calendar.proposals?.length || 0, state.laneId === 'calendar'),
+    contextNavButton('Epics', 'plan-epics', epicsCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && Boolean(state.tasks.selectedEpicId)),
+    contextNavButton('Stories', 'plan-stories', storiesCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && Boolean(state.tasks.selectedStoryId)),
+    contextNavButton('Bugs', 'plan-bugs', bugsCount, state.laneId === 'tasks' && Boolean(state.tasks.selectedBugId)),
+    contextNavButton('Evidence', 'plan-evidence', evidenceCount, activeContextSubNav === 'plan-evidence'),
+  ].join(''));
+}
+
+function renderAutomationsContextNav() {
+  const rules = allLocalAutomationRules();
+  const dryRunCount = rules.filter((rule) => rule.lastDryRunAt || state.automations.lastDryRun?.ruleId === rule.id).length;
+  const blockedCount = rules.filter((rule) => rule.state === 'blocked' || rule.executionBlocked).length;
+  return renderContextNavSection('Automations', [
+    contextNavButton('Rules', 'automations-rules', rules.length, activeContextSubNav === 'automations-rules' || !activeContextSubNav),
+    contextNavButton('Dry-runs', 'automations-dry-runs', dryRunCount || null, activeContextSubNav === 'automations-dry-runs'),
+    contextNavButton('Action library', 'automations-action-library', allAutomationActions().length, activeContextSubNav === 'automations-action-library'),
+    contextNavButton('Templates', 'automations-templates', automationTemplateFixtures().length, activeContextSubNav === 'automations-templates'),
+    contextNavButton('Blocked runs', 'automations-blocked-runs', blockedCount || null, activeContextSubNav === 'automations-blocked-runs'),
+  ].join(''));
+}
+
+function renderActivityContextNav() {
+  const filter = state.activity.filter || 'user';
+  const scope = state.activity.scopeFilter || 'all';
+  return renderContextNavSection('Activity', [
+    contextNavButton('All', 'activity-all', null, filter === 'all'),
+    contextNavButton('Blocked', 'activity-blocked', null, filter === 'blocked'),
+    contextNavButton('Proposed', 'activity-proposed', null, filter === 'proposals'),
+    contextNavButton('Completed', 'activity-completed', null, filter === 'sent'),
+    contextNavButton('Provider gates', 'activity-provider-gates', null, scope === 'external'),
+    contextNavButton('Receipts', 'activity-receipts', null, filter === 'build'),
+  ].join(''));
+}
+
+function renderIntegrationsContextNav() {
+  const category = state.extensions.categoryFilter || 'all';
+  return renderContextNavSection('Integrations', INTEGRATIONS_NAV_CATEGORIES.map((entry) => {
+    const count = entry.categoryFilter === 'all'
+      ? EXTENSION_PROVIDER_CATALOG.length
+      : EXTENSION_PROVIDER_CATALOG.filter((provider) => provider.category === entry.categoryFilter).length;
+    return contextNavButton(entry.label, entry.id, count, category === entry.categoryFilter);
+  }).join(''));
+}
+
+function renderSettingsContextNav() {
+  const selectedKey = state.settings.selectedKey;
+  const renderRow = (section) => contextNavButton(section.label, `settings-${section.id}`, null, selectedKey === section.id);
+  return `
+    ${renderContextNavSection('Settings', SETTINGS_USER_SECTIONS.map(renderRow).join(''))}
+    ${renderContextNavSection('Advanced', SETTINGS_ADVANCED_SECTIONS.map(renderRow).join(''))}
+    <p class="form-hint mail-nav-hint">Settings is a utility area — open from the account menu or this rail.</p>
+  `;
+}
+
+function renderContextNavSection(label, itemsHtml) {
+  return `
+    <div class="context-nav-section">
+      <p class="context-nav-label">${escapeHtml(label)}</p>
+      ${itemsHtml}
+    </div>
+  `;
+}
+
+function renderContextualLeftRail() {
+  const workspace = activeProductWorkspace();
+  let body = '';
+  if (workspace === 'mail') body = renderMailContextNav();
+  else if (workspace === 'drafts') body = renderDraftsContextNav();
+  else if (workspace === 'approvals') body = renderApprovalsContextNav();
+  else if (workspace === 'plan') body = renderPlanContextNav();
+  else if (workspace === 'automations') body = renderAutomationsContextNav();
+  else if (workspace === 'activity') body = renderActivityContextNav();
+  else if (workspace === 'integrations') body = renderIntegrationsContextNav();
+  else if (workspace === 'settings') body = renderSettingsContextNav();
+  else body = `<p class="form-hint mail-nav-hint">Choose Mail, Drafts, Plan, or another workspace from the top bar.</p>`;
+  const workspaceLabel = PRODUCT_LEVEL_NAV.find((entry) => entry.id === workspace)?.label || 'Workspace';
+  return `
+    <nav class="lane-nav context-nav-pane" aria-label="${escapeHtml(workspaceLabel)} navigation">
+      <p class="lane-nav-label">${escapeHtml(workspaceLabel)}</p>
+      ${body}
+    </nav>
   `;
 }
 
@@ -4241,32 +4507,29 @@ function renderTopBar() {
   const workspace = getPayload().workspace || {};
   return `
     <header class="app-topbar" role="banner">
-      <section class="brand-block" aria-label="Product identity">
-        <p class="eyebrow">xi-io</p>
-        <h1>Inbox</h1>
-      </section>
+      <div class="topbar-leading">
+        <section class="brand-block" aria-label="Product identity">
+          <h1 class="product-title">XI-IO Inbox</h1>
+          <span class="env-status-badge">${escapeHtml(environmentStatusBadge())}</span>
+        </section>
+      </div>
 
-      <section class="topbar-context trust-cluster" aria-label="Account">
-        <button class="account-session-trigger user-card-trigger ${state.account.open ? 'is-open' : ''}" type="button" data-account-action="toggle" aria-expanded="${state.account.open ? 'true' : 'false'}" aria-controls="accountSessionPanel">
-          <span class="user-card-avatar" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'P').slice(0, 1).toUpperCase())}</span>
-          <span class="trust-cluster-line">
-            <strong>${escapeHtml(activeSessionDisplayName())}</strong>
-            <span>${escapeHtml(selectedAccountFixture()?.displayName || activeWorkspaceLabel())}</span>
-          </span>
-        </button>
-      </section>
+      ${renderProductLevelNav()}
 
-      <section class="topbar-command-cluster" aria-label="Search and Ibal">
+      <section class="topbar-trailing" aria-label="Search, help, and account">
+        <form class="command-box" data-ibal-form="command" aria-label="Search and command entry">
+          <span class="command-box-label">Search</span>
+          <input type="search" name="prompt" autocomplete="off" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Search mail, commands, activity…')}" value="${escapeHtml(state.ibal.prompt || '')}" />
+        </form>
         <button class="ibal-concierge-btn ${state.ibal.open ? 'is-open' : ''}" type="button" data-ibal-action="toggle" aria-expanded="${state.ibal.open ? 'true' : 'false'}" aria-controls="ibalConciergeDrawer">
           Ask Ibal
         </button>
-        <form class="command-box" data-ibal-form="command" aria-label="Search and command entry">
-          <span>Search</span>
-          <input type="search" name="prompt" autocomplete="off" placeholder="${escapeHtml(workspace.commandPlaceholder || 'Search mail and commands')}" value="${escapeHtml(state.ibal.prompt || '')}" />
-        </form>
+        ${renderHelpControl()}
+        <button class="account-status-trigger ${state.account.open ? 'is-open' : ''}" type="button" data-account-action="toggle" aria-expanded="${state.account.open ? 'true' : 'false'}" aria-controls="accountSessionPanel">
+          <span class="account-status-label">Account</span>
+          <span class="account-status-state">${escapeHtml(providerAccountStatusSummary())}</span>
+        </button>
       </section>
-
-      ${renderTrustRail()}
     </header>
   `;
 }
@@ -4337,21 +4600,7 @@ function renderInboxMailNav() {
 }
 
 function renderNavigation() {
-  return `
-    <nav class="lane-nav mail-nav-pane" aria-label="Primary navigation">
-      <p class="lane-nav-label">Menu</p>
-      ${navLanes().map((lane) => {
-        const hint = laneNavHint(lane.status);
-        return `
-          <a class="lane-link ${lane.id === state.laneId ? 'is-active' : ''}" href="${escapeHtml(lane.route)}" aria-current="${lane.id === state.laneId ? 'page' : 'false'}">
-            <span>${escapeHtml(laneDisplayLabel(lane.id, lane.label))}</span>
-            ${hint ? `<span class="lane-nav-hint">${escapeHtml(hint)}</span>` : ''}
-          </a>
-        `;
-      }).join('')}
-      ${state.laneId === 'inbox' ? renderInboxMailNav() : ''}
-    </nav>
-  `;
+  return renderContextualLeftRail();
 }
 
 function renderMetricCard(item) {
@@ -8189,15 +8438,20 @@ function renderAccountSessionPanel() {
       <aside id="accountSessionPanel" class="account-session-panel" role="dialog" aria-modal="true" aria-label="Your account" tabindex="-1">
         <header class="account-session-head">
           <div class="user-card-header">
-            <span class="user-card-avatar is-large" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'P').slice(0, 1).toUpperCase())}</span>
+            <span class="user-card-avatar is-large" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || 'A').slice(0, 1).toUpperCase())}</span>
             <div>
-              <p class="section-eyebrow">Your account</p>
+              <p class="section-eyebrow">Account and provider status</p>
               <h2>${escapeHtml(activeSessionDisplayName())}</h2>
-              <p>${escapeHtml(activeAccount?.displayName || 'No email account active')}${activeAccount ? ` · ${escapeHtml(activeAccount.syncState === 'awaiting_local_connect' ? 'Awaiting connect' : label(activeAccount.syncState))}` : ''}</p>
+              <p>${escapeHtml(activeAccount?.displayName || 'No email account active')}${activeAccount ? ` · ${escapeHtml(accountSyncStatusLabel(activeAccount.syncState))}` : ''}</p>
+              <p class="form-hint">${escapeHtml(providerAccountStatusSummary())} · ${escapeHtml(environmentStatusBadge())}</p>
             </div>
           </div>
           <button class="inbox-action-btn" type="button" data-account-action="close">Close</button>
         </header>
+        <div class="account-session-actions">
+          <button class="inbox-action-btn" type="button" data-account-action="open-settings">Settings</button>
+          <button class="inbox-action-btn" type="button" data-account-action="connect-gmail">Gmail CLI path</button>
+        </div>
         <section class="account-switch-list" aria-label="Email accounts">
           ${renderEmailAccountsBlock()}
         </section>
@@ -8311,6 +8565,142 @@ function renderShell() {
   `;
 }
 
+function handleHelpAction(action) {
+  if (action === 'toggle') {
+    helpPanelOpen = !helpPanelOpen;
+    renderShell();
+    if (helpPanelOpen) document.getElementById('contextHelpPanel')?.focus?.();
+    return;
+  }
+  if (action === 'close') {
+    helpPanelOpen = false;
+    renderShell();
+  }
+}
+
+function handleProductNavAction(workspaceId) {
+  if (!workspaceId) return;
+  activeContextSubNav = null;
+  helpPanelOpen = false;
+  if (workspaceId === 'mail') {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+  } else if (workspaceId === 'drafts') {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'drafts';
+  } else if (workspaceId === 'approvals') {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'approval-queue';
+  } else if (workspaceId === 'plan') {
+    state.laneId = 'tasks';
+    state.tasks.viewMode = 'planning';
+  } else if (workspaceId === 'automations') {
+    state.laneId = 'automations';
+  } else if (workspaceId === 'activity') {
+    state.laneId = 'receipts';
+    state.activity.filter = 'all';
+  } else if (workspaceId === 'integrations') {
+    state.laneId = 'extensions';
+    state.extensions.categoryFilter = 'all';
+  } else {
+    return;
+  }
+  state.focusId = defaultFocusIdForLane(state.laneId);
+  window.location.hash = `${ROUTE_PREFIX}${state.laneId}`;
+  saveState();
+  renderShell();
+}
+
+function handleContextNavAction(subNavId) {
+  if (!subNavId) return;
+  activeContextSubNav = subNavId;
+  if (subNavId === 'mail-inbox') {
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    state.inbox.accountFilter = null;
+    activeContextSubNav = null;
+  } else if (subNavId === 'mail-unread' || subNavId === 'mail-draft-linked' || subNavId === 'mail-accounts' || subNavId === 'mail-search-results') {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    if (subNavId === 'mail-accounts') state.inbox.accountFilter = null;
+  } else if (subNavId === 'mail-needs-reply') {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'needs-reply';
+    activeContextSubNav = null;
+  } else if (subNavId.startsWith('drafts-')) {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'drafts';
+    if (subNavId === 'drafts-needs-approval') {
+      state.inbox.mailboxView = 'approval-queue';
+      activeContextSubNav = 'approvals-ready';
+    }
+  } else if (subNavId.startsWith('approvals-')) {
+    state.laneId = 'inbox';
+    state.inbox.mailboxView = 'approval-queue';
+  } else if (subNavId === 'plan-tasks') {
+    state.laneId = 'tasks';
+    state.tasks.viewMode = 'planning';
+    activeContextSubNav = null;
+    window.location.hash = `${ROUTE_PREFIX}tasks`;
+  } else if (subNavId === 'plan-calendar') {
+    state.laneId = 'calendar';
+    activeContextSubNav = null;
+    window.location.hash = `${ROUTE_PREFIX}calendar`;
+  } else if (subNavId === 'plan-epics' || subNavId === 'plan-stories' || subNavId === 'plan-bugs') {
+    state.laneId = 'tasks';
+    state.tasks.viewMode = 'board';
+    window.location.hash = `${ROUTE_PREFIX}tasks`;
+  } else if (subNavId === 'plan-evidence') {
+    state.laneId = 'tasks';
+    state.tasks.viewMode = 'board';
+    window.location.hash = `${ROUTE_PREFIX}tasks`;
+  } else if (subNavId.startsWith('automations-')) {
+    state.laneId = 'automations';
+    window.location.hash = `${ROUTE_PREFIX}automations`;
+    if (subNavId === 'automations-action-library') {
+      state.automations.selectedActionId = allAutomationActions()[0]?.id || null;
+    }
+    if (subNavId === 'automations-templates') {
+      const template = automationTemplateFixtures()[0];
+      if (template?.focusId) state.focusId = template.focusId;
+    }
+  } else if (subNavId.startsWith('activity-')) {
+    state.laneId = 'receipts';
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
+    if (subNavId === 'activity-all') state.activity.filter = 'all';
+    if (subNavId === 'activity-blocked') state.activity.filter = 'blocked';
+    if (subNavId === 'activity-proposed') state.activity.filter = 'proposals';
+    if (subNavId === 'activity-completed') state.activity.filter = 'sent';
+    if (subNavId === 'activity-provider-gates') state.activity.scopeFilter = 'external';
+    if (subNavId === 'activity-receipts') state.activity.filter = 'build';
+  } else if (subNavId.startsWith('integrations-')) {
+    state.laneId = 'extensions';
+    window.location.hash = `${ROUTE_PREFIX}extensions`;
+    const match = INTEGRATIONS_NAV_CATEGORIES.find((entry) => entry.id === subNavId);
+    if (match) state.extensions.categoryFilter = match.categoryFilter;
+  } else if (subNavId.startsWith('settings-')) {
+    state.laneId = 'settings';
+    window.location.hash = `${ROUTE_PREFIX}settings`;
+    const settingsKey = subNavId.slice('settings-'.length);
+    const section = [...SETTINGS_USER_SECTIONS, ...SETTINGS_ADVANCED_SECTIONS].find((entry) => entry.id === settingsKey);
+    if (section) {
+      state.settings.selectedKey = section.id;
+      state.focusId = defaultFocusIdForLane('settings');
+    }
+  }
+  if (!window.location.hash.includes(state.laneId)) {
+    window.location.hash = `${ROUTE_PREFIX}${state.laneId}`;
+  }
+  if (!state.focusId) state.focusId = defaultFocusIdForLane(state.laneId);
+  saveState();
+  renderShell();
+}
+
 function handleAccountAction(action, accountId) {
   if (action === 'toggle') {
     toggleAccountSession();
@@ -8320,6 +8710,16 @@ function handleAccountAction(action, accountId) {
   }
   if (action === 'close') {
     toggleAccountSession(false);
+    renderShell();
+    return;
+  }
+  if (action === 'open-settings') {
+    toggleAccountSession(false);
+    state.laneId = 'settings';
+    state.settings.selectedKey = state.settings.selectedKey || 'user:profile';
+    state.focusId = defaultFocusIdForLane('settings');
+    window.location.hash = `${ROUTE_PREFIX}settings`;
+    saveState();
     renderShell();
     return;
   }
@@ -9459,6 +9859,27 @@ function bindEvents() {
   });
 
   document.addEventListener('click', (event) => {
+    const helpAction = event.target.closest?.('[data-help-action]');
+    if (helpAction?.dataset.helpAction) {
+      event.preventDefault();
+      handleHelpAction(helpAction.dataset.helpAction);
+      return;
+    }
+
+    const productNavAction = event.target.closest?.('[data-product-nav-action]');
+    if (productNavAction?.dataset.productNavAction === 'select-workspace') {
+      event.preventDefault();
+      handleProductNavAction(productNavAction.dataset.productWorkspace);
+      return;
+    }
+
+    const contextNavAction = event.target.closest?.('[data-context-nav-action]');
+    if (contextNavAction?.dataset.contextNavAction === 'select') {
+      event.preventDefault();
+      handleContextNavAction(contextNavAction.dataset.contextSubNav);
+      return;
+    }
+
     const accountAction = event.target.closest?.('[data-account-action]');
     if (accountAction?.dataset.accountAction && accountAction.dataset.accountAction !== 'session-save') {
       event.preventDefault();
