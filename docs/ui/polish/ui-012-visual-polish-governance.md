@@ -40,14 +40,14 @@ Rabbit_mod structure (for auditors): `public/style.css`, `public/pages/`, `publi
 
 | Slice | Type | Scope |
 | --- | --- | --- |
-| **UI-012A** | docs | Rabbit_mod visual parity brief; icon/token checklist; **no product code** |
-| **UI-012B** | code | Global tokens, typography, spacing, focus (shell) |
-| **UI-012C** | code | Mail list/reading density + icons |
-| **UI-012D** | code | Calendar, Tasks, Automations visual pass |
-| **UI-012E** | code | Extensions, Activity, Settings visual pass |
-| **UI-012F** | docs | Visual QA receipt; owner re-review readiness |
+| **UI-012A** | docs | Ibal/Rabbit visual parity brief + audit — **complete** (`ui-012a-ibal-rabbit-visual-parity-brief.md`) |
+| **UI-012B** | code | Visual token + component alignment (shell buttons, chips, pills, nav) |
+| **UI-012C** | code | Layout + composition polish (lane rhythms, mail-first) |
+| **UI-012D** | code | Interaction + state polish (hover/selected/empty/Ibal proposals) |
+| **UI-012E** | code | Accessibility + contrast + focus polish |
+| **UI-012F** | docs | Final visual readiness gate receipt; owner re-review readiness |
 
-Exact B–F boundaries may shrink if UI-012A finds overlap with existing UI-004 polish plans — **update, do not duplicate** `00-xi-io-visual-product-standard.md`.
+Exact boundaries follow the canonical brief — **update, do not duplicate** `00-xi-io-visual-product-standard.md`.
 
 ## Parallel work (allowed)
 
@@ -81,7 +81,8 @@ Rules for parallel audit:
 - `docs/product/ui-011a-product-capability-gap-matrix.md`
 - `docs/ui/polish/00-xi-io-visual-product-standard.md`
 - `docs/ui/polish/16-white-label-framework-feedback-plan.md`
-- `docs/ui/polish/ui-012a-rabbit-mod-visual-parity-brief.md`
+- `docs/ui/polish/ui-012a-ibal-rabbit-visual-parity-brief.md`
+- `docs/ui/polish/ui-012a-rabbit-mod-visual-parity-brief.md` (redirect)
 
 ## Decision value
 
