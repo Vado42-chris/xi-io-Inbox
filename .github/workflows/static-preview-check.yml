@@ -26,5 +26,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install Gmail CLI dependencies
+        working-directory: tools/gmail
+        run: npm ci
+
       - name: Run static preview checks
         run: npm run check
