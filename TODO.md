@@ -203,8 +203,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] GMAIL-002A real Gmail metadata bridge — `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md`.
 - [x] GMAIL-002A-HARDEN metadata adapter hardening — `docs/ui/reviews/gmail-002a-hardening-receipt.md`.
 - [x] GMAIL-002B read-only body gate — `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md`.
-- [ ] ACC-001 account/mail organization UX — **next recommended** (GitHub taxonomy, accordion mail views).
-- [ ] UI-012D interaction / state polish — **paused**.
+- [x] ACC-001 account/mail organization UX — `docs/ui/reviews/acc-001-account-mail-organization-ux-receipt.md`.
+- [ ] UI-012D interaction / state polish — **next recommended**.
 - [ ] UI-012E accessibility / contrast / focus polish.
 - [ ] UI-012F final visual readiness gate.
 - [ ] UI-003E owner visual proof — **blocked until UI-012F**.
@@ -226,4 +226,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-12): GMAIL-002B complete. **ACC-001 or UI-012D** (~1 pass). **UI-012E–F** (~2 passes). Owner UI-003E blocked until UI-012F. xi-io.net backfeed (~1 pass). PR #12 draft. **~4 passes** to merge-ready after owner PASS.
+Current estimated work (2026-06-12): ACC-001 complete. **UI-012D** (~1 pass). **UI-012E–F** (~2 passes). Owner UI-003E blocked until UI-012F. xi-io.net backfeed (~1 pass). PR #12 draft. **~4 passes** to merge-ready after owner PASS.

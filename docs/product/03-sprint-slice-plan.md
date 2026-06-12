@@ -57,13 +57,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 7. SLICE-GMAIL-002A — real Gmail metadata bridge — **complete** (`gmail-002a-real-gmail-metadata-ingress-receipt.md`)
 8. SLICE-GMAIL-002A-HARDEN — adapter/security hardening — **complete** (`gmail-002a-hardening-receipt.md`)
 9. SLICE-GMAIL-002B — read-only body gate — **complete** (`gmail-002b-read-only-body-gate-receipt.md`)
-10. SLICE-ACC-001 or SLICE-UI-012D — **next recommended**
-9. SLICE-UI-012E–F — visual polish — **paused**
-9. UI-003E owner visual proof re-run (after UI-012F)
-10. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
-11. GMAIL-001C smoke (optional parallel; local CLI only)
-12. SLICE-ARCH-002 and SLICE-ARCH-004 as separate tracks
-13. SLICE-PASS-004 only after gates clear
+10. SLICE-ACC-001 — account/mail organization UX — **complete** (`acc-001-account-mail-organization-ux-receipt.md`)
+11. SLICE-UI-012D — interaction/state polish — **next recommended**
+12. SLICE-UI-012E–F — visual polish — **paused**
 
 Prior slices (UI-004 through UI-010, UI-007, operator push) remain complete locally.
 

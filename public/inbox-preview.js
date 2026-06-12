@@ -18,6 +18,9 @@ const PRODUCT_GATE_COPY = {
   activityLabel: 'Activity shows what happened; receipts are the audit objects.',
 };
 
+const MAIL_PROVIDER_IDS = new Set(['gmail', 'imap', 'outlook', 'microsoft', 'exchange', 'fixture']);
+const INTEGRATION_PROVIDER_IDS = new Set(['github', 'slack', 'discord', 'jira', 'linear', 'zapier', 'make', 'n8n', 'calendar', 'drive']);
+
 const PRODUCT_LEVEL_NAV = [
   { id: 'mail', label: 'Mail' },
   { id: 'drafts', label: 'Drafts' },
@@ -960,7 +963,7 @@ function mailLayoutMeta() {
 }
 
 function accountById(accountId) {
-  return allPreviewAccounts().find((entry) => entry.accountId === accountId) || null;
+  return mailAccountById(accountId) || allPreviewAccounts().find((entry) => entry.accountId === accountId) || null;
 }
 
 function accountLabelForThread(thread) {
@@ -977,6 +980,7 @@ function accountSyncStatusLabel(syncState) {
   if (normalized === 'awaiting_local_connect') return 'Queued';
   if (normalized === 'metadata_only') return 'Metadata only';
   if (normalized === 'metadata_snapshot') return 'Metadata snapshot';
+  if (normalized === 'readonly_body_snapshot') return 'Body snapshot';
   if (normalized === 'provider_blocked' || normalized === 'demo_fixture') return 'Demo';
   return label(syncState || 'not connected');
 }
@@ -987,6 +991,7 @@ function accountSyncStatusClass(syncState) {
   if (normalized === 'awaiting_local_connect') return 'is-queued';
   if (normalized === 'metadata_only') return 'is-metadata';
   if (normalized === 'metadata_snapshot') return 'is-metadata-snapshot';
+  if (normalized === 'readonly_body_snapshot') return 'is-body-snapshot';
   return 'is-demo';
 }
 
@@ -2460,6 +2465,188 @@ function allPreviewAccounts() {
   return state.account.previewAccounts || [];
 }
 
+function isMailProviderId(providerId) {
+  const id = String(providerId || '').toLowerCase();
+  if (INTEGRATION_PROVIDER_IDS.has(id)) return false;
+  return MAIL_PROVIDER_IDS.has(id) || id.includes('gmail') || id.includes('mail');
+}
+
+function isIntegrationProviderId(providerId) {
+  return INTEGRATION_PROVIDER_IDS.has(String(providerId || '').toLowerCase());
+}
+
+function resolveMailAccountMode(account) {
+  const sync = String(account?.syncState || '').toLowerCase();
+  if (sync === 'readonly_body_snapshot') return 'read-only-body';
+  if (sync === 'metadata_snapshot') return 'metadata-only';
+  if (sync === 'metadata_only') return 'metadata-only';
+  if (sync === 'awaiting_local_connect') return 'queued';
+  if (sync === 'connected') return 'connected';
+  if (sync === 'demo_fixture') return 'fixture';
+  return 'fixture';
+}
+
+function enrichMailAccount(account) {
+  const mode = resolveMailAccountMode(account);
+  const bodyRead = mode === 'read-only-body' ? 'available_local_snapshot' : 'blocked';
+  const metadata = ['metadata-only', 'read-only-body', 'connected'].includes(mode) ? 'available' : (mode === 'fixture' ? 'fixture' : 'blocked');
+  return {
+    ...account,
+    accountKind: 'mail',
+    mode,
+    metadataState: metadata,
+    bodyReadState: bodyRead,
+    draftWriteState: 'blocked',
+    sendState: 'blocked',
+    mutationState: 'blocked',
+    nextAction: accountNextAction(account, mode),
+  };
+}
+
+function accountNextAction(account, mode = resolveMailAccountMode(account)) {
+  if (mode === 'queued') return 'Connect via tools/gmail CLI (metadata or readonly opt-in).';
+  if (mode === 'metadata-only') return 'Import metadata snapshot or escalate to readonly body gate locally.';
+  if (mode === 'read-only-body') return 'Import read-only body snapshot for preview reading.';
+  if (mode === 'fixture') return 'Fixture preview — not connected.';
+  return 'Review provider gates in Settings.';
+}
+
+function accountModeLabel(account) {
+  const mode = resolveMailAccountMode(account);
+  if (mode === 'read-only-body') return 'Read-only body snapshot';
+  if (mode === 'metadata-only') return 'Metadata-only snapshot';
+  if (mode === 'queued') return 'Queued · CLI connect';
+  if (mode === 'connected') return 'Connected · verify CLI';
+  if (mode === 'fixture') return 'Fixture preview';
+  return label(mode);
+}
+
+function fixtureMailAccountsFromPayload() {
+  return (getPayload().accounts || [])
+    .filter((entry) => isMailProviderId(entry.providerId))
+    .map(enrichMailAccount);
+}
+
+function allMailAccounts() {
+  const map = new Map();
+  for (const account of fixtureMailAccountsFromPayload()) {
+    map.set(account.accountId, account);
+  }
+  for (const account of allPreviewAccounts().filter((entry) => isMailProviderId(entry.providerId))) {
+    map.set(account.accountId, enrichMailAccount(account));
+  }
+  if (!map.size) {
+    map.set('personal-gmail-preview', enrichMailAccount({
+      accountId: 'personal-gmail-preview',
+      displayName: 'Personal Gmail preview',
+      providerId: 'gmail',
+      syncState: 'demo_fixture',
+      privacyProfile: 'private_mail',
+      counts: { unread: 0, needsReply: 0, drafts: 0, blocked: 0 },
+    }));
+  }
+  return [...map.values()];
+}
+
+function mailAccountById(accountId) {
+  return allMailAccounts().find((entry) => entry.accountId === accountId) || null;
+}
+
+function integrationAccountCards() {
+  return allExtensionProviders()
+    .filter((provider) => isIntegrationProviderId(provider.id) || provider.category === 'developer')
+    .map((provider) => ({
+      integrationId: provider.id,
+      displayName: provider.name,
+      providerId: provider.id,
+      accountKind: 'integration',
+      category: provider.category,
+      syncState: provider.status || 'blocked',
+      permissions: provider.permissions || 'Planning only',
+      dataTouched: provider.dataTouched || 'Metadata only',
+      currentGate: provider.currentGate || PRODUCT_GATE_COPY.browserNotConnected,
+      allowedPreviewAction: provider.allowedPreviewAction || 'View integration card',
+      blockedRuntimeAction: provider.blockedRuntimeAction || 'Connect · mutate',
+      relatedAreas: provider.relatedAreas || ['Integrations', 'Activity'],
+    }));
+}
+
+function groupThreadsByAccount(threads) {
+  const groups = new Map();
+  for (const thread of threads) {
+    const accountId = thread.accountId || 'unassigned';
+    if (!groups.has(accountId)) groups.set(accountId, []);
+    groups.get(accountId).push(thread);
+  }
+  return groups;
+}
+
+function ibalMailContextLabel() {
+  const thread = selectedInboxThread();
+  const account = mailAccountById(thread?.accountId) || selectedAccountFixture();
+  const mailbox = state.inbox.mailboxView || 'inbox';
+  const threadTitle = thread?.title ? demoteMailDisplayText(thread.title) : 'No thread selected';
+  return `Mail context: ${account?.displayName || 'No account'} · ${label(mailbox)} · ${threadTitle}. Imported snapshot/fixture only — Ibal cannot send, mutate providers, or read live mail beyond preview context.`;
+}
+
+function renderAccountStatusGrid(account) {
+  const row = enrichMailAccount(account);
+  return `
+    <dl class="account-status-grid">
+      <div><dt>Provider</dt><dd>${escapeHtml(row.providerId)}</dd></div>
+      <div><dt>Mode</dt><dd>${escapeHtml(accountModeLabel(row))}</dd></div>
+      <div><dt>Metadata</dt><dd>${escapeHtml(label(row.metadataState))}</dd></div>
+      <div><dt>Body read</dt><dd>${escapeHtml(label(row.bodyReadState))}</dd></div>
+      <div><dt>Draft write</dt><dd>blocked</dd></div>
+      <div><dt>Send</dt><dd>blocked</dd></div>
+      <div><dt>Mutation</dt><dd>blocked</dd></div>
+    </dl>
+    <p class="form-hint">${escapeHtml(row.nextAction)}</p>
+  `;
+}
+
+function renderGroupedMailThreadList(threads, selected) {
+  if (!threads.length) return '';
+  if (state.inbox.accountFilter || threads.length <= 2) {
+    return threads.map((thread) => renderThreadListRow(thread, selected)).join('');
+  }
+  return [...groupThreadsByAccount(threads).entries()].map(([accountId, groupThreads]) => {
+    const account = mailAccountById(accountId);
+    return `
+      <details class="mail-thread-group" open>
+        <summary class="mail-thread-group-summary">
+          <span>${escapeHtml(account?.displayName || accountLabelForThread(groupThreads[0]) || accountId)}</span>
+          <strong>${groupThreads.length}</strong>
+        </summary>
+        <div class="mail-thread-group-body">
+          ${groupThreads.map((thread) => renderThreadListRow(thread, selected)).join('')}
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
+function renderMailAccountAccordion(account) {
+  const accountId = account.accountId;
+  const open = state.inbox.accountFilter === accountId || !state.inbox.accountFilter;
+  const inboxCount = countMailThreads({ mailboxView: 'inbox', accountFilter: accountId });
+  return `
+    <details class="mail-account-accordion" ${open ? 'open' : ''}>
+      <summary class="mail-account-accordion-summary">
+        <span>${escapeHtml(account.displayName)}</span>
+        <span class="mail-account-mode">${escapeHtml(accountModeLabel(account))}</span>
+      </summary>
+      <div class="mail-account-mailboxes">
+        <button class="context-nav-item ${state.inbox.accountFilter === accountId && (state.inbox.mailboxView || 'inbox') === 'inbox' ? 'is-active' : ''}" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="inbox"><span>Inbox</span><strong>${inboxCount}</strong></button>
+        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="sent"><span>Sent</span><strong>${countMailThreads({ mailboxView: 'sent', accountFilter: accountId })}</strong></button>
+        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="archive"><span>Archive</span><strong>${countMailThreads({ mailboxView: 'archive', accountFilter: accountId })}</strong></button>
+        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="trash"><span>Trash</span><strong>${countMailThreads({ mailboxView: 'trash', accountFilter: accountId })}</strong></button>
+        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="spam"><span>Spam</span><strong>${countMailThreads({ mailboxView: 'spam', accountFilter: accountId })}</strong></button>
+      </div>
+    </details>
+  `;
+}
+
 function isValidEmailAddress(email) {
   if (!email || typeof email !== 'string') return false;
   const parts = email.split('@');
@@ -2541,6 +2728,7 @@ function savePendingAccountConnect(formData) {
     email,
     displayName: email,
     providerId: 'gmail',
+    accountKind: 'mail',
     syncState: 'awaiting_local_connect',
     privacyProfile: 'private_mail',
     counts: { unread: 0, needsReply: 0, drafts: 0, blocked: 0 },
@@ -2581,7 +2769,7 @@ function workspaceOptions() {
 }
 
 function selectedAccountFixture() {
-  const accounts = allPreviewAccounts();
+  const accounts = allMailAccounts();
   const activeId = state.account.activeAccountId || accounts[0]?.accountId || null;
   return accounts.find((entry) => entry.accountId === activeId) || accounts[0] || null;
 }
@@ -2653,6 +2841,10 @@ function clearAccountPreviewState() {
 function ensureAccountDefaults() {
   if (!state.account.workspaceId) {
     state.account.workspaceId = workspaceOptions()[0]?.id || null;
+  }
+  state.account.previewAccounts = allPreviewAccounts().filter((entry) => isMailProviderId(entry.providerId));
+  if (!state.account.activeAccountId && allMailAccounts()[0]) {
+    state.account.activeAccountId = allMailAccounts()[0].accountId;
   }
 }
 
@@ -3491,6 +3683,8 @@ function applyMetadataSnapshotToAccounts(snapshot) {
     displayName: email,
     providerId: 'gmail',
     syncState: snapshot.mode === 'read-only-body' ? 'readonly_body_snapshot' : 'metadata_snapshot',
+    accountKind: 'mail',
+    mode: snapshot.mode === 'read-only-body' ? 'read-only-body' : 'metadata-only',
     privacyProfile: 'private_mail',
     counts: {
       unread,
@@ -3935,7 +4129,10 @@ function collectUnifiedActivityEntries() {
     relatedGate: 'Runtime gate apply blocked',
   })));
   (state.account.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'account', {
-    activityType: r.type === 'metadata_bridge_missing' ? 'provider_gate_viewed' : (r.type === 'metadata_bridge' ? 'build_evidence' : 'local_state_changed'),
+    activityType: r.type === 'account_selected' ? 'account_selected'
+      : r.type === 'local_data_wipe' ? 'local_data_wipe'
+        : r.type === 'metadata_bridge_missing' ? 'provider_gate_viewed'
+          : (r.type === 'metadata_bridge' ? 'build_evidence' : 'local_state_changed'),
     capabilityArea: 'Mail',
     scope: 'external',
     relatedGate: 'Gmail metadata bridge (metadata-only)',
@@ -4591,6 +4788,7 @@ function providerAccountStatusSummary() {
   if (sync === 'connected') return 'Connected · verify via CLI';
   if (sync === 'metadata_only') return 'Metadata-only · CLI path';
   if (sync === 'metadata_snapshot') return 'Metadata snapshot · re-import after reload';
+  if (sync === 'readonly_body_snapshot') return 'Read-only body snapshot · re-import after reload';
   if (sync === 'awaiting_local_connect') return 'Queued · not connected';
   return PRODUCT_GATE_COPY.browserNotConnected;
 }
@@ -4669,8 +4867,9 @@ function renderMailContextNav() {
     return !['drafts', 'sent', 'archive', 'trash', 'spam', 'approval-queue'].includes(viewId);
   });
   return `
+    ${renderContextNavSection('Mail accounts', allMailAccounts().map((account) => renderMailAccountAccordion(account)).join('') || '<p class="form-hint mail-nav-hint">No mail accounts yet. Add Gmail in Settings.</p>')}
     ${renderContextNavSection('Mail', [
-      contextNavButton('Accounts', 'mail-accounts', allPreviewAccounts().length, activeContextSubNav === 'mail-accounts'),
+      contextNavButton('All accounts', 'mail-accounts', allMailAccounts().length, activeContextSubNav === 'mail-accounts'),
       contextNavButton('Inbox', 'mail-inbox', countMailThreads({ mailboxView: 'inbox' }), inboxActive),
       contextNavButton('Unread', 'mail-unread', unreadCount, activeContextSubNav === 'mail-unread'),
       contextNavButton('Needs reply', 'mail-needs-reply', countMailThreads({ mailboxView: 'needs-reply' }), activeView === 'needs-reply'),
@@ -4693,19 +4892,16 @@ function renderMailContextNav() {
         <strong>${folder.count ?? countMailThreads({ folderId: folder.id, mailboxView: 'inbox' })}</strong>
       </button>
     `).join('')) : ''}
-    ${renderContextNavSection('Mailboxes', [
+    ${renderContextNavSection('System mailboxes (all)', [
       `<button class="context-nav-item ${activeView === 'sent' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="sent"><span>Sent</span><strong>${countMailThreads({ mailboxView: 'sent' })}</strong></button>`,
       `<button class="context-nav-item ${activeView === 'archive' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="archive"><span>Archive</span><strong>${countMailThreads({ mailboxView: 'archive' })}</strong></button>`,
       `<button class="context-nav-item ${activeView === 'trash' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="trash"><span>Trash</span><strong>${countMailThreads({ mailboxView: 'trash' })}</strong></button>`,
       `<button class="context-nav-item ${activeView === 'spam' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="spam"><span>Spam</span><strong>${countMailThreads({ mailboxView: 'spam' })}</strong></button>`,
     ].join(''))}
-    ${renderContextNavSection('Accounts', allPreviewAccounts().length ? allPreviewAccounts().map((account) => `
-      <button class="context-nav-item ${state.inbox.accountFilter === account.accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-filter" data-thread-id="${escapeHtml(account.accountId)}">
-        <span>${escapeHtml(account.displayName)}</span>
-        <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>
-        <strong>${account.counts?.unread ?? 0}</strong>
-      </button>
-    `).join('') : '<p class="form-hint mail-nav-hint">No accounts yet. Add Gmail in Settings.</p>')}
+    ${gmailMetadataBridgeActive() || gmailBodyBridgeActive() ? renderContextNavSection('Imported snapshots', [
+      gmailMetadataBridgeActive() ? `<p class="form-hint mail-nav-hint">${escapeHtml(metadataBridgeStatusLabel())}</p>` : '',
+      gmailBodyBridgeActive() ? `<p class="form-hint mail-nav-hint">${escapeHtml(metadataBridgeStatusLabel())}</p>` : '',
+    ].filter(Boolean).join('')) : ''}
   `;
 }
 
@@ -4984,7 +5180,7 @@ function homeDashboardStats() {
     { label: 'Awaiting approval', value: approvalCount, action: 'open-mailbox', lane: 'inbox', mailboxView: 'approval-queue' },
     { label: 'Open tasks', value: allLocalTasks().length, action: 'open-lane', lane: 'tasks' },
     { label: 'Upcoming events', value: allCalendarProposals().length, action: 'open-lane', lane: 'calendar' },
-    { label: 'Email accounts', value: allPreviewAccounts().length, action: 'open-lane', lane: 'settings', settingsKey: 'user:accounts' },
+    { label: 'Email accounts', value: allMailAccounts().length, action: 'open-lane', lane: 'settings', settingsKey: 'user:accounts' },
   ];
 }
 
@@ -5390,6 +5586,7 @@ function renderThreadListRow(thread, selected) {
         <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
         ${renderMailLabelChips(thread.labels)}
         ${accountLabel ? `<span class="thread-account-badge">${escapeHtml(accountLabel)}</span>` : ''}
+        ${thread.integrationSource ? `<span class="thread-integration-badge">${escapeHtml(label(thread.integrationSource))} integration</span>` : ''}
       </div>
       <div class="thread-row-meta">
         ${threadHasAttachmentIndicator(thread) ? '<span class="thread-attachment-indicator" title="Has attachment">Attach</span>' : ''}
@@ -5462,7 +5659,7 @@ function renderInboxWorkspace() {
       : `<p class="lane-empty-state">${mailboxView === 'approval-queue'
         ? 'No drafts in approval queue. Submit a draft from the Drafts view.'
         : 'No drafts yet. Compose or reply to create a local draft object.'}</p>`
-  ) : visibleThreads.length ? visibleThreads.map((thread) => renderThreadListRow(thread, selected)).join('') : `<p class="lane-empty-state">${emptyMessage}</p>`}
+  ) : visibleThreads.length ? renderGroupedMailThreadList(visibleThreads, selected) : `<p class="lane-empty-state">${emptyMessage}</p>`}
         </div>
         <div class="mail-reading-stack">
           ${renderInboxReadingPane({ ...layoutSection, threads: visibleThreads }, selected)}
@@ -7478,20 +7675,21 @@ function renderSettingsEditSheet() {
 }
 
 function renderEmailAccountsBlock() {
-  const accounts = allPreviewAccounts();
+  const accounts = allMailAccounts();
   const activeAccount = selectedAccountFixture();
   const activeAccountId = activeAccount?.accountId || '';
   return `
     <div class="settings-accounts-block">
       <div class="inbox-form-actions">
-        <h3>Email accounts (${accounts.length})</h3>
+        <h3>Mail accounts (${accounts.length})</h3>
         <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-body-snapshot">Import read-only body snapshot</button>
+        <button class="inbox-action-btn" type="button" data-account-action="wipe-gmail-local-hint">Wipe local Gmail CLI data</button>
         ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
         ${gmailBodyBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-body-snapshot">Clear body snapshot</button>' : ''}
       </div>
-      <p class="form-hint">${escapeHtml(gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Export metadata with `cd tools/gmail && node cli.js export-metadata-snapshot`. Read-only bodies require `GMAIL_ACCESS_MODE=readonly` connect, then `export-readonly-body-snapshot`. Copy exports to public/data/*.local.json (gitignored) and import here.')}</p>
+      <p class="form-hint">${escapeHtml(gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Mail accounts use the local Gmail CLI outside the browser. GitHub and other integrations live under Integrations — not Mail accounts.')}</p>
       ${state.account.accountFormOpen ? `
         <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
           <label for="settings-account-email-input">Gmail address</label>
@@ -7507,8 +7705,8 @@ function renderEmailAccountsBlock() {
         <article class="account-switch-row ${account.accountId === activeAccountId ? 'is-active' : ''}">
           <div>
             <strong>${escapeHtml(account.displayName)}</strong>
-            <p>${escapeHtml(account.providerId)} · ${escapeHtml(label(account.syncState))}</p>
-            <span class="form-hint">unread ${account.counts?.unread ?? 0} · needs reply ${account.counts?.needsReply ?? 0}</span>
+            <p>${escapeHtml(account.providerId)} · ${escapeHtml(accountSyncStatusLabel(account.syncState))}</p>
+            ${renderAccountStatusGrid(account)}
           </div>
           <div class="inbox-form-actions">
             <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
@@ -7519,7 +7717,36 @@ function renderEmailAccountsBlock() {
             <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
           </div>
         </article>
-      `).join('') : '<p class="lane-empty-state">No email accounts yet. Add your Gmail address, then connect via the local adapter CLI.</p>'}
+      `).join('') : '<p class="lane-empty-state">No mail accounts yet. Add your Gmail address, then connect via the local adapter CLI.</p>'}
+    </div>
+  `;
+}
+
+function renderIntegrationAccountsBlock() {
+  const cards = integrationAccountCards();
+  return `
+    <div class="settings-integrations-block">
+      <h3>Integration accounts (${cards.length})</h3>
+      <p class="form-hint">Integrations are not mail accounts. GitHub, Slack, and similar providers connect under Integrations with their own scopes — not inbox folders.</p>
+      ${cards.map((card) => `
+        <article class="account-switch-row is-integration">
+          <div>
+            <strong>${escapeHtml(card.displayName)}</strong>
+            <p>${escapeHtml(card.category)} · ${escapeHtml(label(card.syncState))}</p>
+            <dl class="account-status-grid">
+              <div><dt>Permissions</dt><dd>${escapeHtml(card.permissions)}</dd></div>
+              <div><dt>Data</dt><dd>${escapeHtml(card.dataTouched)}</dd></div>
+              <div><dt>Gate</dt><dd>${escapeHtml(card.currentGate)}</dd></div>
+              <div><dt>Allowed</dt><dd>${escapeHtml(card.allowedPreviewAction)}</dd></div>
+              <div><dt>Blocked</dt><dd>${escapeHtml(card.blockedRuntimeAction)}</dd></div>
+            </dl>
+          </div>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="button" data-settings-action="open-extension-provider" data-settings-key="${escapeHtml(card.integrationId)}">Open Integrations</button>
+            <button class="inbox-action-btn is-blocked" type="button" disabled>Connect blocked</button>
+          </div>
+        </article>
+      `).join('')}
     </div>
   `;
 }
@@ -7742,14 +7969,15 @@ function renderUserPreferencesPane() {
 
 function renderUserAccountsPane() {
   return `
-    <section class="lane-reading-pane" aria-label="Email accounts">
+    <section class="lane-reading-pane" aria-label="Accounts">
       <header class="lane-reading-head">
         <div>
-          <h3>Email accounts</h3>
-          <p class="lane-reading-meta">Add Gmail, then finish connect in the local CLI · metadata only</p>
+          <h3>Accounts</h3>
+          <p class="lane-reading-meta">Mail accounts vs integration accounts · draft write and send blocked</p>
         </div>
       </header>
       ${renderEmailAccountsBlock()}
+      ${renderIntegrationAccountsBlock()}
       <details class="lane-reading-details settings-advanced-hint">
         <summary>How Gmail connect works (advanced)</summary>
         <pre class="settings-cli-hint">${escapeHtml(gmailConnectInstructions())}</pre>
@@ -8774,6 +9002,7 @@ function renderIbalConciergeDrawer() {
             <p class="section-eyebrow">Assistant</p>
             <h2>Ibal</h2>
             <p>Suggests next steps. Does not send mail or run automations for you.</p>
+            <p class="form-hint">${escapeHtml(ibalMailContextLabel())}</p>
           </div>
           <button class="inbox-action-btn" type="button" data-ibal-action="close" aria-label="Close concierge">Close</button>
         </header>
@@ -9042,6 +9271,18 @@ function handleAccountAction(action, accountId) {
   if (action === 'clear-body-snapshot') {
     clearGmailBodySnapshot();
     setStatusMessage('Read-only body snapshot cleared.');
+    renderShell();
+    return;
+  }
+  if (action === 'wipe-gmail-local-hint') {
+    window.alert('Run locally:\n\ncd tools/gmail && node cli.js wipe --dry-run\n# review paths, then:\ncd tools/gmail && node cli.js wipe\n\nRemoves OAuth token, metadata/body snapshots, receipts, and generated data under tools/gmail/. Clear browser-imported snapshots separately in Settings → Accounts.');
+    addAccountReceipt({
+      type: 'local_data_wipe',
+      title: 'Local Gmail CLI wipe instructions shown',
+      summary: 'Operator runs tools/gmail wipe on device. Preview snapshot imports cleared separately via Settings.',
+    });
+    setStatusMessage('Gmail wipe is CLI-only. Browser preview does not delete tools/gmail/data automatically.');
+    saveState();
     renderShell();
     return;
   }
@@ -9814,6 +10055,24 @@ function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth
 }
 
 function handleInboxAction(action, threadId, mailboxView, draftId, filterId) {
+  if (action === 'select-account-mailbox') {
+    const accountId = threadId;
+    const view = mailboxView || 'inbox';
+    if (!accountId) return;
+    state.inbox.accountFilter = accountId;
+    state.inbox.mailboxView = view;
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    addAccountReceipt({
+      type: 'account_selected',
+      title: 'Mail account mailbox selected',
+      summary: `${mailAccountById(accountId)?.displayName || accountId} · ${label(view)} · fixture/snapshot only`,
+    });
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'select-account-filter') {
     const id = threadId;
     if (!id) {
@@ -10272,7 +10531,7 @@ function bindEvents() {
       event.preventDefault();
       handleInboxAction(
         inboxAction.dataset.inboxAction,
-        inboxAction.dataset.threadId,
+        inboxAction.dataset.threadId || inboxAction.dataset.accountId,
         inboxAction.dataset.mailboxView,
         inboxAction.dataset.draftId,
         inboxAction.dataset.labelId || inboxAction.dataset.folderId,

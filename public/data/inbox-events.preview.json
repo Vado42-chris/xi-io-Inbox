@@ -142,7 +142,7 @@
       "proofState": "preview_only",
       "layout": "email-triage-layout",
       "metrics": [
-        { "label": "Accounts", "value": "2 preview", "note": "No OAuth/provider connection." },
+        { "label": "Accounts", "value": "1 mail · GitHub in Integrations", "note": "No OAuth/provider connection." },
         { "label": "Selectable threads", "value": "3", "note": "Static fixture selection only." },
         { "label": "Blocked actions", "value": "8", "note": "Dangerous egress disabled." }
       ],
@@ -153,8 +153,7 @@
           "title": "Accounts, smart views, and thread list",
           "state": "provider_blocked",
           "accounts": [
-            { "name": "Personal Gmail preview", "meta": "Sample mail · not connected", "state": "demo_fixture" },
-            { "name": "GitHub notifications preview", "meta": "Sample notifications · not connected", "state": "demo_fixture" }
+            { "name": "Personal Gmail preview", "meta": "Sample mail · not connected", "state": "demo_fixture" }
           ],
           "folders": [
             { "id": "family", "label": "Family", "count": 1 },
@@ -227,7 +226,8 @@
             },
             {
               "id": "thread-github-review-preview",
-              "accountId": "github-notifications-preview",
+              "accountId": "personal-gmail-preview",
+              "integrationSource": "github",
               "mailbox": "inbox",
               "folder": "projects",
               "unread": true,
@@ -855,6 +855,7 @@
       "accountId": "personal-gmail-preview",
       "displayName": "Personal Gmail preview",
       "providerId": "gmail",
+      "accountKind": "mail",
       "syncState": "demo_fixture",
       "privacyProfile": "private_mail",
       "counts": {
@@ -862,19 +863,6 @@
         "needsReply": 3,
         "drafts": 2,
         "blocked": 1
-      }
-    },
-    {
-      "accountId": "github-notifications-preview",
-      "displayName": "GitHub notifications preview",
-      "providerId": "github",
-      "syncState": "demo_fixture",
-      "privacyProfile": "project_ops",
-      "counts": {
-        "unread": 5,
-        "needsReply": 1,
-        "drafts": 0,
-        "blocked": 2
       }
     }
   ],

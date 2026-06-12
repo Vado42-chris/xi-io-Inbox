@@ -12,7 +12,8 @@
     "check:json": "node -e \"const fs=require('fs'); JSON.parse(fs.readFileSync('public/data/inbox-events.preview.json','utf8')); console.log('xi-io Inbox preview JSON valid');\"",
     "check:js": "node --check public/inbox-preview.js",
     "check:gmail": "npm run check --prefix tools/gmail",
+    "check:acc": "node scripts/acc-001-model-check.mjs",
     "setup:gmail": "npm ci --prefix tools/gmail",
-    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:gmail"
+    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:gmail"
   }
 }
