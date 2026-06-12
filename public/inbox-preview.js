@@ -9113,7 +9113,7 @@ function handleSettingsAction(action, settingsKey) {
   }
   if (action === 'open-activity') {
     state.laneId = 'receipts';
-    ensureRoute();
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
     saveState();
     renderShell();
     return;
@@ -9271,7 +9271,7 @@ function handleExtensionsAction(action, params = {}) {
   }
   if (action === 'open-activity') {
     state.laneId = 'receipts';
-    ensureRoute();
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
     saveState();
     renderShell();
     return;
@@ -9336,7 +9336,7 @@ function handleAutomationsAction(action, ruleId, focusId, actionId) {
   }
   if (action === 'open-activity') {
     state.laneId = 'receipts';
-    ensureRoute();
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
     saveState();
     renderShell();
     return;
@@ -9466,7 +9466,7 @@ function handleTasksAction(action, params = {}) {
   }
   if (action === 'open-activity') {
     state.laneId = 'receipts';
-    ensureRoute();
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
     saveState();
     renderShell();
     return;
@@ -9779,7 +9779,7 @@ function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth
   }
   if (action === 'open-activity') {
     state.laneId = 'receipts';
-    ensureRoute();
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
     saveState();
     renderShell();
     return;
@@ -9867,7 +9867,7 @@ function handleInboxAction(action, threadId, mailboxView, draftId, filterId) {
   }
   if (action === 'open-activity') {
     state.laneId = 'receipts';
-    ensureRoute();
+    window.location.hash = `${ROUTE_PREFIX}receipts`;
     saveState();
     renderShell();
     return;

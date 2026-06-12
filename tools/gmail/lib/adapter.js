@@ -195,7 +195,6 @@ export async function providerConnectStart() {
             res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end('<p>OAuth callback path mismatch. Check redirect URI in Google Cloud Console.</p>');
           }
-          finish(new Error('OAuth callback path mismatch.'));
           return;
         }
 
