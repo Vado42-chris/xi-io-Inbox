@@ -40,24 +40,28 @@ GMAIL-002B-LIVE-PROOF — operator validation of existing metadata + read-only b
 
 ## OAuth client present
 
-**no** — expected path `secrets/gmail-oauth-client.json` absent (only unrelated `secrets/API Key/openai-api-key.txt` present)
+**yes** (2026-06-12 follow-up) — `secrets/gmail-oauth-client.json` present and gitignored
 
 ## OAuth configured
 
-**no** — `secretsConfigured: false`, `connected: false`, no token at `tools/gmail/data/token.json`
+**yes** (2026-06-12 follow-up) — `connected: true`, token at `tools/gmail/data/token.json` (gitignored, not staged)
 
 ## Readonly scope available
 
-**no** — cannot connect without OAuth client; `GMAIL_ACCESS_MODE=readonly` reports token missing
+**yes on token** — token includes `gmail.readonly` and `gmail.metadata`; body read still requires `GMAIL_ACCESS_MODE=readonly` at runtime (fail-closed opt-in)
 
 ## Metadata proof result
 
-**blocked** — `node cli.js profile` fails closed: `OAuth client secrets missing. Place JSON at secrets/gmail-oauth-client.json (gitignored) or set GMAIL_OAUTH_CLIENT_PATH.`
+**blocked (2026-06-12 follow-up)** — OAuth OK; Gmail API disabled in Google Cloud project `273926245217`:
 
-Fail-closed status verified:
+```text
+Gmail API has not been used in project 273926245217 before or it is disabled.
+Enable: https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=273926245217
+```
 
-- `node cli.js status` → `connected: false`, `secretsConfigured: false`, `bodiesBlocked: true`, draft/send/mutation blocked
-- No metadata export run (OAuth unavailable)
+`profile` and `labels-counts` fail until API enabled (propagation may take a few minutes after Enable).
+
+Prior pass (2026-06-12 initial): **blocked** — OAuth client absent.
 
 ## Body-gate proof result
 
@@ -141,11 +145,10 @@ No operator-selected safe message (OAuth unavailable; no arbitrary mail read att
 
 ## Remaining blockers
 
-- OAuth client JSON not placed at `secrets/gmail-oauth-client.json`
-- Live metadata/profile/labels export not proven
-- Live read-only body export + redaction not proven against real mail
-- No operator-selected safe message for body proof
-- Preview import of live snapshot not proven
+- **Gmail API not enabled** in Google Cloud project `273926245217` (blocks profile, labels, snapshots)
+- Live metadata/profile/labels export not yet proven (waiting on API enable)
+- Live read-only body export + redaction not yet proven against real mail
+- Preview import of live snapshot not yet proven
 - Dependabot disabled
 - Bugbot triage pending
 - `gmail.readonly` restricted-scope production verification
@@ -154,12 +157,13 @@ No operator-selected safe message (OAuth unavailable; no arbitrary mail read att
 
 ## Operator steps to unblock (local only)
 
-1. Create Google Cloud OAuth client (Desktop/loopback) with redirect `http://127.0.0.1:8787/oauth2callback`
-2. Save client JSON to `secrets/gmail-oauth-client.json` (gitignored)
-3. `cd tools/gmail && npm install`
-4. Metadata proof: `node cli.js connect` → `profile` → `labels-counts` → `export-metadata-snapshot`
-5. Read-only proof: `GMAIL_ACCESS_MODE=readonly node cli.js connect` → `body-gate-status` → select low-risk message → `read-message-body <id>` → `export-readonly-body-snapshot --max 1`
-6. Preview: copy redacted snapshot to `public/data/gmail-body.local.json` (gitignored) and import in Settings → Accounts
+0. **Enable Gmail API** for project `273926245217`: https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=273926245217 — wait 2–5 minutes after Enable
+1. OAuth client already at `secrets/gmail-oauth-client.json` ✓
+2. Token already at `tools/gmail/data/token.json` ✓
+3. Metadata proof: `node cli.js profile` → `labels-counts` → `export-metadata-snapshot --max 5`
+4. Copy export to `public/data/gmail-metadata.local.json` (gitignored) and import in preview Settings → Accounts
+5. Read-only proof: `GMAIL_ACCESS_MODE=readonly node cli.js body-gate-status` → `export-readonly-body-snapshot --max 1 --max-messages 1`
+6. Copy redacted body snapshot to `public/data/gmail-body.local.json` (gitignored) and import in Settings
 7. Never commit tokens, client JSON, or private body content
 
 Official references:
@@ -174,3 +178,13 @@ Re-run **GMAIL-002B-LIVE-PROOF** after operator OAuth setup and safe message sel
 ## Decision value
 
 `GMAIL_002B_LIVE_PROOF_PARTIAL_OAUTH_OR_SAFE_MESSAGE_REQUIRED`
+
+## Verification log
+
+| When | Check | Result |
+| --- | --- | --- |
+| 2026-06-12 initial | OAuth client | absent |
+| 2026-06-12 follow-up | OAuth client + token | present, gitignored |
+| 2026-06-12 follow-up | `node cli.js status` | `connected: true`, metadata+readonly scopes on token |
+| 2026-06-12 follow-up | `node cli.js profile` | blocked — Gmail API disabled in GCP project 273926245217 |
+| 2026-06-12 follow-up | `node cli.js labels-counts` | same Gmail API disabled error |

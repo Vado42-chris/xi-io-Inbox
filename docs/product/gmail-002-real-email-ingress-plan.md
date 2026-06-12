@@ -93,10 +93,10 @@ Receipt: `docs/ui/reviews/gmail-002b-live-proof-receipt.md`
 
 Decision: `GMAIL_002B_LIVE_PROOF_PARTIAL_OAUTH_OR_SAFE_MESSAGE_REQUIRED`
 
-- OAuth client not present at `secrets/gmail-oauth-client.json` on operator machine during proof pass
-- Fail-closed CLI behavior verified (status, body-gate, blocked methods)
-- Live metadata export, read-only body read, redaction against real mail, and preview import **not proven**
-- Re-run after operator places OAuth client JSON locally and selects a low-risk test message
+- Initial pass: OAuth client absent locally
+- Follow-up (2026-06-12): OAuth client + token present (Antigravity operator setup); `status` connected with `gmail.metadata` + `gmail.readonly` on token
+- **Current blocker:** Gmail API disabled in Google Cloud project `273926245217` — enable at [Gmail API console](https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=273926245217), wait 2–5 minutes, then re-run profile → labels-counts → export-metadata-snapshot
+- Live metadata export, read-only body read, redaction against real mail, and preview import **not proven yet**
 
 ## GMAIL-002B — Read-only body gate (detail)
 

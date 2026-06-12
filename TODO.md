@@ -204,7 +204,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] GMAIL-002A-HARDEN metadata adapter hardening — `docs/ui/reviews/gmail-002a-hardening-receipt.md`.
 - [x] GMAIL-002B read-only body gate — `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md`.
 - [x] ACC-001 account/mail organization UX — `docs/ui/reviews/acc-001-account-mail-organization-ux-receipt.md`.
-- [ ] GMAIL-002B-LIVE-PROOF operator live proof — **partial** · `docs/ui/reviews/gmail-002b-live-proof-receipt.md` · blocker: OAuth client missing at `secrets/gmail-oauth-client.json`.
+- [ ] GMAIL-002B-LIVE-PROOF operator live proof — **partial** · `docs/ui/reviews/gmail-002b-live-proof-receipt.md` · OAuth connected ✓ · **blocker: enable Gmail API in GCP project 273926245217**.
 - [ ] UI-012D interaction / state polish — **after live proof pass or owner accepts partial blocker**.
 - [ ] UI-012E accessibility / contrast / focus polish.
 - [ ] UI-012F final visual readiness gate.
