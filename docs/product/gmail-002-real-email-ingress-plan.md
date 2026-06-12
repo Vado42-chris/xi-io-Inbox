@@ -87,6 +87,17 @@ Provider doc: `docs/providers/gmail/gmail-002b-readonly-body-gate.md`
 - Redacted body read/export CLI + preview import
 - Draft write, send, mutation remain blocked
 
+## GMAIL-002B-LIVE-PROOF — Operator live proof — **partial** (2026-06-12)
+
+Receipt: `docs/ui/reviews/gmail-002b-live-proof-receipt.md`
+
+Decision: `GMAIL_002B_LIVE_PROOF_PARTIAL_OAUTH_OR_SAFE_MESSAGE_REQUIRED`
+
+- OAuth client not present at `secrets/gmail-oauth-client.json` on operator machine during proof pass
+- Fail-closed CLI behavior verified (status, body-gate, blocked methods)
+- Live metadata export, read-only body read, redaction against real mail, and preview import **not proven**
+- Re-run after operator places OAuth client JSON locally and selects a low-risk test message
+
 ## GMAIL-002B — Read-only body gate (detail)
 
 **Goal:** Explicit operator/user approval before `gmail.readonly`.
