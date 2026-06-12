@@ -28,9 +28,12 @@ Official reference: [Choose Gmail API scopes | Google for Developers](https://de
 
 ```bash
 cd tools/gmail
-npm install
-npm run check
+npm run setup:gmail   # from repo root: npm run setup:gmail
+npm run check         # from repo root: npm run check (includes check:gmail)
 node cli.js status
+node cli.js connect   # OAuth with state validation + timeout (local operator only)
+node cli.js wipe --dry-run
+node cli.js wipe
 node cli.js profile
 node cli.js list-labels
 node cli.js labels-counts

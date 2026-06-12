@@ -30,6 +30,18 @@ Prior art: `docs/providers/gmail/gmail-001b-local-oauth-adapter-plan.md`, `gmail
 
 ## GMAIL-002A — Metadata bridge — **complete** (2026-06-10)
 
+## GMAIL-002A-HARDEN — Adapter hardening — **complete** (2026-06-12)
+
+Receipt: `docs/ui/reviews/gmail-002a-hardening-receipt.md`
+
+- CI explicitly runs `npm ci` in `tools/gmail` before `npm run check`
+- Root `npm run setup:gmail` for local bootstrap; `check:gmail` fails closed if dependencies missing
+- OAuth connect: state validation, redirect URI port alignment, timeout, server close on all paths
+- Wipe: token + snapshot + receipts + generated data files; `wipe --dry-run`
+- Expanded metadata guard tests and snapshot schema validation
+
+## GMAIL-002A — Metadata bridge detail (2026-06-10)
+
 **Goal:** Expose real account metadata to the app via existing local Gmail CLI/OAuth adapter.
 
 Receipt: `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md`
@@ -132,6 +144,7 @@ NAV-001 corrected shell placement for account status and Integrations taxonomy s
 | Stage | Depends on | Receipt target |
 | --- | --- | --- |
 | GMAIL-002A | NAV-001 pass | `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md` |
-| GMAIL-002B | GMAIL-002A stable | TBD |
+| GMAIL-002A-HARDEN | GMAIL-002A pass | `docs/ui/reviews/gmail-002a-hardening-receipt.md` |
+| GMAIL-002B | GMAIL-002A-HARDEN pass | TBD |
 | GMAIL-002C | GMAIL-002B stable | TBD |
 | GMAIL-002D | Approval + UI-003E path | TBD |

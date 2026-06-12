@@ -5,6 +5,17 @@ import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { envelope, blocked } from './response.js';
 import { loadToken, saveToken, wipeToken } from './token-store.js';
+import { wipeLocalAdapterData, SNAPSHOT_PATH } from './local-data.js';
+import {
+  CONNECT_TIMEOUT_MS,
+  DEFAULT_LOOPBACK_HOST,
+  DEFAULT_LOOPBACK_PORT,
+  connectTimeoutMessage,
+  generateOAuthState,
+  resolveLoopbackFromRedirectUri,
+  validateOAuthState,
+} from './oauth-loopback.js';
+import { validateMetadataSnapshot } from './snapshot-schema.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SCOPES = [
@@ -12,8 +23,8 @@ const SCOPES = [
   'email',
   'https://www.googleapis.com/auth/gmail.metadata',
 ];
-const LOOPBACK_HOST = '127.0.0.1';
-const LOOPBACK_PORT = Number(process.env.GMAIL_OAUTH_PORT || 8787);
+const LOOPBACK_HOST = DEFAULT_LOOPBACK_HOST;
+const LOOPBACK_PORT = DEFAULT_LOOPBACK_PORT;
 
 const BLOCKED_METHODS = new Set([
   'gmail.messages.getBody',
@@ -24,13 +35,13 @@ const BLOCKED_METHODS = new Set([
   'gmail.users.messages.send',
   'gmail.users.messages.modify',
   'gmail.users.messages.trash',
+  'gmail.users.messages.delete',
   'gmail.users.drafts.create',
   'gmail.users.drafts.update',
   'gmail.users.drafts.send',
 ]);
 
 const METADATA_HEADERS = ['Subject', 'From', 'To', 'Date'];
-const SNAPSHOT_PATH = path.join(ROOT, 'data', 'metadata-snapshot.json');
 
 function headersMap(payload) {
   return Object.fromEntries((payload?.headers || []).map((h) => [h.name, h.value]));
@@ -69,6 +80,11 @@ export async function resolveClientSecretsPath() {
 }
 
 async function loadOAuthClient() {
+  const { oauth2 } = await loadOAuthClientBundle();
+  return oauth2;
+}
+
+async function loadOAuthClientBundle() {
   const secretsPath = await resolveClientSecretsPath();
   if (!secretsPath) {
     throw new Error('OAuth client secrets missing. Place JSON at secrets/gmail-oauth-client.json (gitignored) or set GMAIL_OAUTH_CLIENT_PATH.');
@@ -79,11 +95,13 @@ async function loadOAuthClient() {
   if (!installed?.client_id || !installed?.client_secret) {
     throw new Error('Invalid OAuth client JSON. Expected installed or web client with client_id and client_secret.');
   }
-  const redirectUri = installed.redirect_uris?.[0] || `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}/oauth2callback`;
-  const oauth2 = new google.auth.OAuth2(installed.client_id, installed.client_secret, redirectUri);
+  const redirectUri = installed.redirect_uris?.[0]
+    || `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}/oauth2callback`;
+  const loopback = resolveLoopbackFromRedirectUri(redirectUri, process.env.GMAIL_OAUTH_PORT);
+  const oauth2 = new google.auth.OAuth2(installed.client_id, installed.client_secret, loopback.redirectUri);
   const tokens = await loadToken();
   if (tokens) oauth2.setCredentials(tokens);
-  return oauth2;
+  return { oauth2, loopback, warnings: loopback.warnings };
 }
 
 async function getGmail() {
@@ -116,48 +134,110 @@ export async function providerStatus() {
 }
 
 export async function providerConnectStart() {
-  const oauth2 = await loadOAuthClient();
+  const { oauth2, loopback, warnings } = await loadOAuthClientBundle();
+  const expectedState = generateOAuthState();
   const authUrl = oauth2.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
     prompt: 'consent',
+    state: expectedState,
   });
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+    let timeoutId = null;
+    let finish;
+
+    finish = (err, result) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      server.close(() => {
+        if (err) reject(err);
+        else resolve(result);
+      });
+    };
+
     const server = http.createServer(async (req, res) => {
       try {
-        const url = new URL(req.url, `http://${LOOPBACK_HOST}:${LOOPBACK_PORT}`);
-        if (url.pathname !== '/oauth2callback') {
-          res.writeHead(404);
-          res.end('Not found');
+        const url = new URL(req.url, `http://${loopback.host}:${loopback.port}`);
+        if (url.pathname !== loopback.pathname) {
+          if (!res.headersSent) {
+            res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end('<p>OAuth callback path mismatch. Check redirect URI in Google Cloud Console.</p>');
+          }
+          finish(new Error('OAuth callback path mismatch.'));
           return;
         }
+
+        const oauthError = url.searchParams.get('error');
+        if (oauthError) {
+          if (!res.headersSent) {
+            res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(`<p>OAuth denied: ${oauthError}. Restart connect after fixing consent or redirect URI.</p>`);
+          }
+          finish(new Error(`OAuth denied: ${oauthError}`));
+          return;
+        }
+
+        const stateCheck = validateOAuthState(url.searchParams.get('state'), expectedState);
+        if (!stateCheck.ok) {
+          if (!res.headersSent) {
+            res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(`<p>${stateCheck.reason}</p>`);
+          }
+          finish(new Error(stateCheck.reason));
+          return;
+        }
+
         const code = url.searchParams.get('code');
         if (!code) {
-          res.writeHead(400);
-          res.end('Missing code');
+          if (!res.headersSent) {
+            res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end('<p>OAuth callback missing authorization code. Complete browser approval and retry connect.</p>');
+          }
+          finish(new Error('OAuth callback missing authorization code.'));
           return;
         }
+
         const { tokens } = await oauth2.getToken(code);
         await saveToken(tokens);
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end('<p>Gmail metadata connect complete. You may close this window.</p>');
-        server.close();
-        resolve(envelope({
+        finish(null, envelope({
           success: true,
           method: 'provider.connect.callback',
-          payload: { connected: true, scopes: SCOPES },
+          payload: {
+            connected: true,
+            scopes: SCOPES,
+            callback: loopback.redirectUri,
+            warnings,
+          },
         }));
       } catch (err) {
-        server.close();
-        reject(err);
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end('<p>OAuth token exchange failed. Check client JSON, redirect URI, and callback port, then retry connect.</p>');
+        }
+        finish(err);
       }
     });
 
-    server.on('error', reject);
-    server.listen(LOOPBACK_PORT, LOOPBACK_HOST, () => {
+    server.on('error', (err) => {
+      finish(err);
+    });
+
+    timeoutId = setTimeout(() => {
+      finish(new Error(connectTimeoutMessage(loopback)));
+    }, CONNECT_TIMEOUT_MS);
+
+    server.listen(loopback.port, loopback.host, () => {
+      for (const warning of warnings) {
+        console.error(`warning: ${warning}`);
+      }
       console.error(`Open this URL in your browser:\n${authUrl}`);
-      console.error(`Waiting for OAuth callback on http://${LOOPBACK_HOST}:${LOOPBACK_PORT}/oauth2callback`);
+      console.error(`Waiting for OAuth callback on ${loopback.redirectUri}`);
+      console.error(`Connect timeout: ${Math.round(CONNECT_TIMEOUT_MS / 1000)}s (override with GMAIL_OAUTH_TIMEOUT_MS)`);
     });
   });
 }
@@ -171,12 +251,18 @@ export async function providerDisconnect() {
   });
 }
 
-export async function providerWipeLocalData() {
-  await wipeToken();
+export async function providerWipeLocalData({ dryRun = false } = {}) {
+  const wipeResult = await wipeLocalAdapterData({ dryRun });
   return envelope({
     success: true,
     method: 'provider.wipeLocalData',
-    payload: { wiped: true },
+    payload: {
+      dryRun,
+      wiped: !dryRun,
+      removed: wipeResult.removed,
+      paths: wipeResult.paths,
+      note: 'Wipes token, metadata snapshot, receipts, and other generated files under tools/gmail/data and tools/gmail/receipts only.',
+    },
   });
 }
 
@@ -383,6 +469,11 @@ export async function exportMetadataSnapshot({
     ],
   };
 
+  const validation = validateMetadataSnapshot(snapshot);
+  if (!validation.ok) {
+    throw new Error(`Metadata snapshot validation failed: ${validation.errors.join('; ')}`);
+  }
+
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
 
@@ -402,3 +493,7 @@ export async function exportMetadataSnapshot({
 export async function invokeBlocked(name) {
   return guardMethod(name) || blocked(name, 'unknown blocked method');
 }
+
+export { validateMetadataSnapshot } from './snapshot-schema.js';
+export { validateOAuthState, resolveLoopbackFromRedirectUri } from './oauth-loopback.js';
+export { wipeLocalAdapterData } from './local-data.js';

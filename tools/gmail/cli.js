@@ -22,7 +22,7 @@ Commands:
   status
   connect
   disconnect
-  wipe
+  wipe [--dry-run]
   profile
   labels | list-labels
   labels-counts
@@ -64,7 +64,7 @@ async function main() {
         result = await providerDisconnect();
         break;
       case 'wipe':
-        result = await providerWipeLocalData();
+        result = await providerWipeLocalData({ dryRun: rest.includes('--dry-run') });
         break;
       case 'profile':
         result = await gmailProfileGet();
