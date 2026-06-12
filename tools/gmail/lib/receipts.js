@@ -24,3 +24,7 @@ export function writeReceipt({ method, success, blocked, error }) {
   fs.writeFileSync(path.join(RECEIPTS_DIR, `${id}.json`), `${JSON.stringify(row, null, 2)}\n`, 'utf8');
   return id;
 }
+
+export function wipeReceipts() {
+  fs.rmSync(RECEIPTS_DIR, { recursive: true, force: true });
+}

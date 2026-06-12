@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { envelope, blocked } from './response.js';
 import { loadToken, saveToken, wipeToken } from './token-store.js';
+import { wipeReceipts } from './receipts.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SCOPES = [
@@ -145,6 +146,7 @@ export async function providerDisconnect() {
 
 export async function providerWipeLocalData() {
   await wipeToken();
+  wipeReceipts();
   return envelope({
     success: true,
     method: 'provider.wipeLocalData',
