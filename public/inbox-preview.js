@@ -3627,13 +3627,19 @@ function isMetadataSnapshot(value) {
   return Boolean(value && value.mode === 'metadata-only' && value.source === 'local-gmail-cli');
 }
 
+function gmailSnapshotAccountId(snapshot, fallback = null) {
+  const email = snapshot?.accountEmail;
+  if (!email) return fallback;
+  return `gmail-${email.replace(/[^a-z0-9]+/gi, '-')}`;
+}
+
 function mapMetadataThreadToPreview(thread, index) {
   const head = thread.messages?.[0] || thread;
   const sender = head.from || thread.from || 'Unknown sender';
   const subject = head.subject || thread.subject || thread.snippet || '(no subject)';
   return {
     id: `gmail-metadata:${thread.id || head.threadId || index}`,
-    accountId: selectedAccountFixture()?.accountId || 'gmail-metadata-bridge',
+    accountId: gmailSnapshotAccountId(gmailMetadataSnapshot, 'gmail-metadata-bridge'),
     mailbox: 'inbox',
     unread: Boolean(thread.unread ?? head.unread),
     sender: sender.replace(/<[^>]+>/, '').trim() || sender,
@@ -3672,7 +3678,7 @@ function metadataSnapshotLabels() {
 function applyMetadataSnapshotToAccounts(snapshot) {
   const email = snapshot.accountEmail;
   if (!email) return;
-  const accountId = `gmail-${email.replace(/[^a-z0-9]+/gi, '-')}`;
+  const accountId = gmailSnapshotAccountId(snapshot);
   const unread = (snapshot.labels || []).find((entry) => entry.name === 'INBOX')?.messagesUnread
     ?? snapshot.threads?.filter((thread) => thread.unread).length
     ?? 0;
@@ -3796,7 +3802,7 @@ function mapBodySnapshotThreadToPreview(thread, index) {
   const bodyPreview = head.sanitizedBodyPreview || thread.sanitizedBodyPreview || '';
   return {
     id: `gmail-body:${thread.id || head.threadId || index}`,
-    accountId: selectedAccountFixture()?.accountId || 'gmail-body-bridge',
+    accountId: gmailSnapshotAccountId(gmailBodySnapshot, 'gmail-body-bridge'),
     mailbox: 'inbox',
     unread: Boolean(thread.unread ?? head.unread),
     sender: sender.replace(/<[^>]+>/, '').trim() || sender,
@@ -3876,8 +3882,14 @@ async function importGmailBodySnapshot({ preferLocal = true, recordReceipt = tru
 function clearGmailBodySnapshot() {
   gmailBodySnapshot = null;
   gmailBodySnapshotSource = null;
+  const metadataAccountId = gmailMetadataBridgeActive() ? gmailSnapshotAccountId(gmailMetadataSnapshot) : null;
+  const metadataEmail = gmailMetadataBridgeActive() ? gmailMetadataSnapshot.accountEmail : null;
   allPreviewAccounts().forEach((account) => {
-    if (account.syncState === 'readonly_body_snapshot') account.syncState = 'awaiting_local_connect';
+    if (account.syncState === 'readonly_body_snapshot') {
+      account.syncState = metadataAccountId && (account.accountId === metadataAccountId || account.email === metadataEmail)
+        ? 'metadata_snapshot'
+        : 'awaiting_local_connect';
+    }
   });
   addMetadataBridgeReceipt({
     type: 'readonly_body_bridge',
