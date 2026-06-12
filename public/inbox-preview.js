@@ -1,6 +1,8 @@
 const DATA_URL = './data/inbox-events.preview.json';
 const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
 const GMAIL_METADATA_SAMPLE_URL = './data/gmail-metadata.sample.json';
+const GMAIL_BODY_LOCAL_URL = './data/gmail-body.local.json';
+const GMAIL_BODY_SAMPLE_URL = './data/gmail-body.sample.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
@@ -39,6 +41,8 @@ let activeContextSubNav = null;
 let helpPanelOpen = false;
 let gmailMetadataSnapshot = null;
 let gmailMetadataSnapshotSource = null;
+let gmailBodySnapshot = null;
+let gmailBodySnapshotSource = null;
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -928,6 +932,8 @@ function sectionByType(content, type) {
 }
 
 function inboxThreads() {
+  const bodyThreads = bodySnapshotThreads();
+  if (bodyThreads?.length) return bodyThreads;
   const metadataThreads = metadataSnapshotThreads();
   if (metadataThreads?.length) return metadataThreads;
   const inbox = getPayload().laneContent?.inbox || {};
@@ -3484,7 +3490,7 @@ function applyMetadataSnapshotToAccounts(snapshot) {
     email,
     displayName: email,
     providerId: 'gmail',
-    syncState: 'metadata_snapshot',
+    syncState: snapshot.mode === 'read-only-body' ? 'readonly_body_snapshot' : 'metadata_snapshot',
     privacyProfile: 'private_mail',
     counts: {
       unread,
@@ -3574,10 +3580,121 @@ function gmailMetadataBridgeActive() {
 }
 
 function metadataBridgeStatusLabel() {
+  if (gmailBodyBridgeActive()) {
+    const email = gmailBodySnapshot.accountEmail || 'read-only account';
+    const source = gmailBodySnapshotSource === 'sample-file' ? 'sample snapshot' : 'local snapshot';
+    return `Read-only body · ${email} · ${source}`;
+  }
   if (!gmailMetadataBridgeActive()) return null;
   const email = gmailMetadataSnapshot.accountEmail || 'metadata account';
   const source = gmailMetadataSnapshotSource === 'sample-file' ? 'sample snapshot' : 'local snapshot';
   return `Metadata-only · ${email} · ${source}`;
+}
+
+function isReadonlyBodySnapshot(value) {
+  return Boolean(value && value.mode === 'read-only-body' && value.source === 'local-gmail-cli');
+}
+
+function mapBodySnapshotThreadToPreview(thread, index) {
+  const head = thread.messages?.[0] || thread;
+  const sender = head.from || thread.from || 'Unknown sender';
+  const subject = head.subject || thread.subject || thread.snippet || '(no subject)';
+  const bodyPreview = head.sanitizedBodyPreview || thread.sanitizedBodyPreview || '';
+  return {
+    id: `gmail-body:${thread.id || head.threadId || index}`,
+    accountId: selectedAccountFixture()?.accountId || 'gmail-body-bridge',
+    mailbox: 'inbox',
+    unread: Boolean(thread.unread ?? head.unread),
+    sender: sender.replace(/<[^>]+>/, '').trim() || sender,
+    receivedAt: head.date || thread.date || '',
+    title: subject,
+    summary: bodyPreview || thread.snippet || head.snippet || 'Read-only body snapshot.',
+    sanitizedBodyPreview: bodyPreview,
+    state: thread.unread ? 'needs_review' : 'preview_only',
+    labels: (thread.labelIds || head.labelIds || []).map((id) => String(id).toLowerCase()),
+    tags: ['readonly_body_snapshot', 'provider_readonly_body'],
+    metadataOnly: false,
+    readonlyBody: true,
+    providerSource: 'gmail-readonly',
+    detailFields: [
+      { label: 'Source', value: 'Local read-only body snapshot' },
+      { label: 'Mode', value: 'read-only-body' },
+      { label: 'Scope', value: 'gmail.readonly (CLI only)' },
+      { label: 'Draft write', value: 'blocked' },
+      { label: 'Send', value: 'blocked' },
+      { label: 'Mutation', value: 'blocked' },
+    ],
+  };
+}
+
+function bodySnapshotThreads() {
+  if (!isReadonlyBodySnapshot(gmailBodySnapshot)) return null;
+  return (gmailBodySnapshot.threads || []).map(mapBodySnapshotThreadToPreview);
+}
+
+async function loadGmailBodySnapshotFromUrl(url, sourceLabel) {
+  const snapshot = await fetchJson(url, null);
+  if (!isReadonlyBodySnapshot(snapshot)) return null;
+  gmailBodySnapshot = snapshot;
+  gmailBodySnapshotSource = sourceLabel;
+  applyMetadataSnapshotToAccounts(snapshot);
+  return snapshot;
+}
+
+async function importGmailBodySnapshot({ preferLocal = true, recordReceipt = true } = {}) {
+  const tried = [];
+  if (preferLocal) {
+    const local = await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
+    if (local) {
+      if (recordReceipt) {
+        addMetadataBridgeReceipt({
+          type: 'readonly_body_bridge',
+          title: 'Gmail read-only body snapshot imported',
+          summary: `${local.accountEmail || 'account'} · ${local.messages?.length || 0} messages · local read-only file`,
+        });
+      }
+      return { ok: true, source: 'local-file', snapshot: local };
+    }
+    tried.push(GMAIL_BODY_LOCAL_URL);
+  }
+  const sample = await loadGmailBodySnapshotFromUrl(GMAIL_BODY_SAMPLE_URL, 'sample-file');
+  if (sample) {
+    if (recordReceipt) {
+      addMetadataBridgeReceipt({
+        type: 'readonly_body_bridge',
+        title: 'Gmail read-only body sample loaded',
+        summary: `${sample.accountEmail || 'sample'} · synthetic redacted sample · not live Gmail`,
+      });
+    }
+    return { ok: true, source: 'sample-file', snapshot: sample };
+  }
+  tried.push(GMAIL_BODY_SAMPLE_URL);
+  if (recordReceipt) {
+    addMetadataBridgeReceipt({
+      type: 'readonly_body_bridge_missing',
+      title: 'Gmail read-only body snapshot missing',
+      summary: `No read-only body snapshot at ${tried.join(' or ')}. Export with tools/gmail CLI after GMAIL_ACCESS_MODE=readonly connect.`,
+    });
+  }
+  return { ok: false, source: null, tried };
+}
+
+function clearGmailBodySnapshot() {
+  gmailBodySnapshot = null;
+  gmailBodySnapshotSource = null;
+  allPreviewAccounts().forEach((account) => {
+    if (account.syncState === 'readonly_body_snapshot') account.syncState = 'awaiting_local_connect';
+  });
+  addMetadataBridgeReceipt({
+    type: 'readonly_body_bridge',
+    title: 'Gmail read-only body snapshot cleared',
+    summary: 'Preview returned to metadata/fixture mail. Draft write, send, and mutation remain blocked.',
+  });
+  saveState();
+}
+
+function gmailBodyBridgeActive() {
+  return isReadonlyBodySnapshot(gmailBodySnapshot);
 }
 
 function syncRoute() {
@@ -4453,6 +4570,11 @@ function activeProductWorkspace() {
 }
 
 function environmentStatusBadge() {
+  if (gmailBodyBridgeActive()) {
+    return gmailBodySnapshotSource === 'sample-file'
+      ? 'Preview · Local · Read-only body sample'
+      : 'Preview · Local · Read-only body snapshot';
+  }
   if (gmailMetadataBridgeActive()) {
     return gmailMetadataSnapshotSource === 'sample-file'
       ? 'Preview · Local · Metadata sample'
@@ -5466,6 +5588,12 @@ function renderThreadDetail(section) {
           `).join('')}
         </dl>
         ${renderCompactLabelLine(thread.tags || [])}
+        ${thread.sanitizedBodyPreview ? `
+          <div class="thread-body-preview">
+            <p class="thread-body-preview-label">Read-only body preview (local snapshot)</p>
+            <p>${escapeHtml(thread.sanitizedBodyPreview)}</p>
+          </div>
+        ` : ''}
       </article>
     </section>
   `;
@@ -7359,9 +7487,11 @@ function renderEmailAccountsBlock() {
         <h3>Email accounts (${accounts.length})</h3>
         <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
+        <button class="inbox-action-btn" type="button" data-account-action="import-body-snapshot">Import read-only body snapshot</button>
         ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
+        ${gmailBodyBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-body-snapshot">Clear body snapshot</button>' : ''}
       </div>
-      <p class="form-hint">${escapeHtml(gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Export with `cd tools/gmail && node cli.js export-metadata-snapshot`, copy to public/data/gmail-metadata.local.json (gitignored), then import here. Sample file ships at public/data/gmail-metadata.sample.json.')}</p>
+      <p class="form-hint">${escapeHtml(gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Export metadata with `cd tools/gmail && node cli.js export-metadata-snapshot`. Read-only bodies require `GMAIL_ACCESS_MODE=readonly` connect, then `export-readonly-body-snapshot`. Copy exports to public/data/*.local.json (gitignored) and import here.')}</p>
       ${state.account.accountFormOpen ? `
         <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
           <label for="settings-account-email-input">Gmail address</label>
@@ -8899,6 +9029,22 @@ function handleAccountAction(action, accountId) {
     renderShell();
     return;
   }
+  if (action === 'import-body-snapshot') {
+    importGmailBodySnapshot().then((result) => {
+      saveState();
+      setStatusMessage(result.ok
+        ? `Read-only body snapshot loaded (${result.source}). Draft write, send, and mutation remain blocked.`
+        : 'Read-only body snapshot not found. Export via tools/gmail CLI after readonly connect.');
+      renderShell();
+    });
+    return;
+  }
+  if (action === 'clear-body-snapshot') {
+    clearGmailBodySnapshot();
+    setStatusMessage('Read-only body snapshot cleared.');
+    renderShell();
+    return;
+  }
   if (action === 'cancel-account-form') {
     state.account.editingAccountId = null;
     state.account.accountFormOpen = false;
@@ -10218,6 +10364,7 @@ async function init() {
   state.payload = await fetchJson(DATA_URL, {});
   ensureAccountDefaults();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
+  await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
   saveState();
   state.threadId = selectedInboxThread()?.id || state.threadId;
   state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);

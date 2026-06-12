@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { envelope, blocked } from './response.js';
 import { loadToken, saveToken, wipeToken } from './token-store.js';
-import { wipeLocalAdapterData, SNAPSHOT_PATH } from './local-data.js';
+import { wipeLocalAdapterData, SNAPSHOT_PATH, BODY_SNAPSHOT_PATH } from './local-data.js';
 import {
   CONNECT_TIMEOUT_MS,
   DEFAULT_LOOPBACK_HOST,
@@ -16,19 +16,28 @@ import {
   validateOAuthState,
 } from './oauth-loopback.js';
 import { validateMetadataSnapshot } from './snapshot-schema.js';
+import {
+  ACCESS_MODES,
+  assertBodyReadAllowed,
+  blockedBodyRead,
+  bodyGateStatus,
+  bodyReadBlockedReason,
+  getAccessMode,
+  getRequestedScopes,
+  READONLY_SCOPE,
+} from './body-gate.js';
+import {
+  extractBodyFromPayload,
+  redactBodyContent,
+  redactBodySnapshot,
+} from './body-redaction.js';
+import { validateReadonlyBodySnapshot } from './body-snapshot-schema.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const SCOPES = [
-  'openid',
-  'email',
-  'https://www.googleapis.com/auth/gmail.metadata',
-];
 const LOOPBACK_HOST = DEFAULT_LOOPBACK_HOST;
 const LOOPBACK_PORT = DEFAULT_LOOPBACK_PORT;
 
 const BLOCKED_METHODS = new Set([
-  'gmail.messages.getBody',
-  'gmail.messages.get',
   'gmail.drafts.create',
   'gmail.drafts.update',
   'gmail.drafts.send',
@@ -111,7 +120,18 @@ async function getGmail() {
 
 export function guardMethod(name) {
   if (BLOCKED_METHODS.has(name)) {
-    return blocked(name, `${name} blocked in GMAIL-001C metadata-only adapter`);
+    return blocked(name, `${name} blocked in metadata/read-only adapter (draft write, send, mutation)`);
+  }
+  if (name === 'gmail.messages.getBody' || name === 'gmail.messages.get') {
+    const token = null;
+    const reason = bodyReadBlockedReason({ token, connected: false });
+    return envelope({
+      success: false,
+      blocked: true,
+      providerGate: reason || 'Body read blocked',
+      method: name,
+      error: reason || 'Body read blocked',
+    });
   }
   return null;
 }
@@ -119,16 +139,24 @@ export function guardMethod(name) {
 export async function providerStatus() {
   const secretsPath = await resolveClientSecretsPath();
   const token = await loadToken();
+  const connected = Boolean(token?.access_token || token?.refresh_token);
+  const gate = bodyGateStatus({ token, secretsConfigured: Boolean(secretsPath), connected });
   return envelope({
     success: true,
     method: 'provider.status',
+    token,
     payload: {
-      connected: Boolean(token?.access_token || token?.refresh_token),
+      connected,
       secretsConfigured: Boolean(secretsPath),
       tokenStorage: 'tools/gmail/data/token.json (gitignored)',
-      bodiesBlocked: true,
+      accessMode: gate.accessMode,
+      bodyReadAllowed: gate.bodyReadAllowed,
+      bodyReadBlockedReason: gate.bodyReadBlockedReason,
+      bodiesBlocked: !gate.bodyReadAllowed,
       sendBlocked: true,
       draftWriteBlocked: true,
+      mutationBlocked: true,
+      bodyGate: gate,
     },
   });
 }
@@ -136,9 +164,10 @@ export async function providerStatus() {
 export async function providerConnectStart() {
   const { oauth2, loopback, warnings } = await loadOAuthClientBundle();
   const expectedState = generateOAuthState();
+  const scopes = getRequestedScopes();
   const authUrl = oauth2.generateAuthUrl({
     access_type: 'offline',
-    scope: SCOPES,
+    scope: scopes,
     prompt: 'consent',
     state: expectedState,
   });
@@ -209,7 +238,8 @@ export async function providerConnectStart() {
           method: 'provider.connect.callback',
           payload: {
             connected: true,
-            scopes: SCOPES,
+            scopes,
+            accessMode: getAccessMode(),
             callback: loopback.redirectUri,
             warnings,
           },
@@ -490,10 +520,230 @@ export async function exportMetadataSnapshot({
   });
 }
 
+async function requireBodyReadGate() {
+  const token = await loadToken();
+  const connected = Boolean(token?.access_token || token?.refresh_token);
+  assertBodyReadAllowed({ token, connected });
+  return token;
+}
+
+function messageRowWithRedactedBody(message) {
+  const headers = headersMap(message.payload);
+  const labelIds = message.labelIds || [];
+  const rawBody = extractBodyFromPayload(message.payload);
+  const redacted = redactBodyContent(rawBody);
+  return {
+    id: message.id,
+    threadId: message.threadId,
+    labelIds,
+    subject: headers.Subject || '',
+    from: headers.From || '',
+    to: headers.To || '',
+    date: headers.Date || (message.internalDate ? new Date(Number(message.internalDate)).toISOString() : ''),
+    unread: labelIds.includes('UNREAD'),
+    snippet: message.snippet || '',
+    sanitizedBodyPreview: redacted.sanitizedBodyPreview,
+    sanitizedPlainText: redacted.sanitizedPlainText,
+    bodyAvailable: redacted.bodyAvailable,
+    redactionNotes: redacted.redactionNotes,
+    provider: 'gmail-readonly',
+  };
+}
+
+export async function bodyGateStatusCommand() {
+  const secretsPath = await resolveClientSecretsPath();
+  const token = await loadToken();
+  const connected = Boolean(token?.access_token || token?.refresh_token);
+  const gate = bodyGateStatus({ token, secretsConfigured: Boolean(secretsPath), connected });
+  return envelope({
+    success: true,
+    method: 'gmail.bodyGate.status',
+    token,
+    dataClassification: gate.bodyReadAllowed ? 'body_redacted' : 'metadata_redacted',
+    payload: gate,
+  });
+}
+
+export async function readMessageBody({ messageId } = {}) {
+  if (!messageId) {
+    return blocked('gmail.messages.readBody', 'messageId required');
+  }
+  try {
+    await requireBodyReadGate();
+  } catch (err) {
+    return envelope({
+      success: false,
+      blocked: true,
+      providerGate: err.message,
+      method: 'gmail.messages.readBody',
+      error: err.message,
+    });
+  }
+  const gmail = await getGmail();
+  const message = await gmail.users.messages.get({ userId: 'me', id: messageId, format: 'full' });
+  const row = messageRowWithRedactedBody(message.data);
+  return envelope({
+    success: true,
+    method: 'gmail.messages.readBody',
+    dataClassification: 'body_redacted',
+    payload: { message: row },
+  });
+}
+
+export async function readThreadBodies({ threadId, maxMessages = 5 } = {}) {
+  if (!threadId) {
+    return blocked('gmail.threads.readBodies', 'threadId required');
+  }
+  try {
+    await requireBodyReadGate();
+  } catch (err) {
+    return envelope({
+      success: false,
+      blocked: true,
+      providerGate: err.message,
+      method: 'gmail.threads.readBodies',
+      error: err.message,
+    });
+  }
+  const gmail = await getGmail();
+  const thread = await gmail.users.threads.get({ userId: 'me', id: threadId, format: 'full' });
+  const messages = (thread.data.messages || []).slice(0, maxMessages).map(messageRowWithRedactedBody);
+  return envelope({
+    success: true,
+    method: 'gmail.threads.readBodies',
+    dataClassification: 'body_redacted',
+    payload: {
+      id: thread.data.id,
+      snippet: thread.data.snippet || '',
+      messages,
+    },
+  });
+}
+
+export async function exportReadonlyBodySnapshot({
+  maxThreads = 5,
+  maxMessages = 10,
+  threadQuery = 'in:inbox',
+  outputPath = BODY_SNAPSHOT_PATH,
+} = {}) {
+  await requireBodyReadGate();
+  const profileResult = await gmailProfileGet();
+  const threadsResult = await gmailThreadsListMetadata({ query: threadQuery, maxResults: maxThreads });
+  const messages = [];
+  const threads = [];
+
+  for (const thread of threadsResult.payload?.threads || []) {
+    const bodies = await readThreadBodies({ threadId: thread.id, maxMessages });
+    if (!bodies.success) throw new Error(bodies.error || 'Failed to read thread bodies');
+    threads.push({
+      id: bodies.payload.id,
+      snippet: bodies.payload.snippet || thread.snippet,
+      subject: thread.subject,
+      from: thread.from,
+      date: thread.date,
+      unread: thread.unread,
+      labelIds: thread.labelIds,
+      messageIds: bodies.payload.messages.map((entry) => entry.id),
+      messages: bodies.payload.messages,
+      provider: 'gmail-readonly',
+    });
+    messages.push(...bodies.payload.messages);
+  }
+
+  let snapshot = {
+    accountEmail: profileResult.payload?.emailAddress || null,
+    generatedAt: new Date().toISOString(),
+    source: 'local-gmail-cli',
+    mode: 'read-only-body',
+    scopeRequired: READONLY_SCOPE,
+    threads,
+    messages,
+    warnings: [
+      'Read-only body snapshot with redaction applied. Attachments, raw payloads, OAuth tokens, and remote HTML resources excluded.',
+      'Browser preview does not perform OAuth. Import manually after CLI export.',
+      'gmail.readonly is a restricted scope; production use requires Google verification.',
+    ],
+    blockedCapabilities: ['draft_write', 'send', 'provider_mutation', 'browser_oauth'],
+    redactionStatus: 'applied',
+  };
+
+  snapshot = redactBodySnapshot(snapshot);
+  const validation = validateReadonlyBodySnapshot(snapshot);
+  if (!validation.ok) {
+    throw new Error(`Body snapshot validation failed: ${validation.errors.join('; ')}`);
+  }
+
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+
+  return envelope({
+    success: true,
+    method: 'gmail.exportReadonlyBodySnapshot',
+    dataClassification: 'body_redacted',
+    payload: {
+      outputPath,
+      threadCount: snapshot.threads.length,
+      messageCount: snapshot.messages.length,
+      snapshot,
+    },
+  });
+}
+
+export async function redactBodySnapshotFile({ inputPath, outputPath } = {}) {
+  if (!inputPath) {
+    return blocked('gmail.bodySnapshot.redact', 'inputPath required');
+  }
+  const raw = JSON.parse(await fs.readFile(inputPath, 'utf8'));
+  const snapshot = redactBodySnapshot(raw);
+  const validation = validateReadonlyBodySnapshot(snapshot);
+  if (!validation.ok) {
+    throw new Error(`Body snapshot validation failed: ${validation.errors.join('; ')}`);
+  }
+  if (outputPath) {
+    await fs.writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+  }
+  return envelope({
+    success: true,
+    method: 'gmail.bodySnapshot.redact',
+    dataClassification: 'body_redacted',
+    payload: { outputPath: outputPath || null, snapshot },
+  });
+}
+
 export async function invokeBlocked(name) {
-  return guardMethod(name) || blocked(name, 'unknown blocked method');
+  if (BLOCKED_METHODS.has(name)) {
+    return guardMethod(name);
+  }
+  if (name === 'gmail.messages.getBody' || name === 'gmail.messages.get') {
+    const token = await loadToken();
+    const reason = bodyReadBlockedReason({
+      token,
+      connected: Boolean(token?.access_token || token?.refresh_token),
+    });
+    if (reason) {
+      return envelope({
+        success: false,
+        blocked: true,
+        providerGate: reason,
+        method: name,
+        error: reason,
+        token,
+      });
+    }
+    return envelope({
+      success: false,
+      blocked: false,
+      method: name,
+      error: 'Body read allowed in readonly mode via read-message-body command only.',
+      token,
+    });
+  }
+  return blocked(name, 'unknown blocked method');
 }
 
 export { validateMetadataSnapshot } from './snapshot-schema.js';
+export { validateReadonlyBodySnapshot } from './body-snapshot-schema.js';
 export { validateOAuthState, resolveLoopbackFromRedirectUri } from './oauth-loopback.js';
 export { wipeLocalAdapterData } from './local-data.js';
+export { bodyGateStatus, getAccessMode, READONLY_SCOPE } from './body-gate.js';
+export { redactBodyContent, redactBodySnapshot } from './body-redaction.js';

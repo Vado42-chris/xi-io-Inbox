@@ -1,10 +1,5 @@
 import { writeReceipt } from './receipts.js';
-
-const METADATA_SCOPES = [
-  'openid',
-  'email',
-  'https://www.googleapis.com/auth/gmail.metadata',
-];
+import { getScopeStateForResponse } from './body-gate.js';
 
 export function envelope({
   success,
@@ -15,12 +10,14 @@ export function envelope({
   payload = null,
   error = null,
   method = 'unknown',
+  scopeState = null,
+  token = null,
 }) {
   const receiptId = writeReceipt({ method, success, blocked, error: error?.message || error });
   return {
     success,
     blocked,
-    scopeState: METADATA_SCOPES,
+    scopeState: scopeState || getScopeStateForResponse(token),
     providerGate,
     dataClassification,
     receiptId,

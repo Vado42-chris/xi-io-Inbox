@@ -3164,6 +3164,20 @@ textarea:focus-visible,
   font-size: 1.2rem;
 }
 
+.thread-body-preview {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(105, 210, 255, 0.2);
+}
+
+.thread-body-preview-label {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .thread-metadata-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

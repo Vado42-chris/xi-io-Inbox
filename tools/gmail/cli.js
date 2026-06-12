@@ -13,13 +13,20 @@ import {
   gmailThreadsListMetadata,
   gmailThreadMetadata,
   exportMetadataSnapshot,
+  bodyGateStatusCommand,
+  readMessageBody,
+  readThreadBodies,
+  exportReadonlyBodySnapshot,
+  redactBodySnapshotFile,
   invokeBlocked,
 } from './lib/adapter.js';
 
-const HELP = `Gmail metadata adapter (GMAIL-002A)
-Scope: gmail.metadata only — no body read, draft write, or send.
+const HELP = `Gmail metadata adapter (GMAIL-002B body gate)
+Default mode: metadata-only (gmail.metadata). Body read requires GMAIL_ACCESS_MODE=readonly + reconnect.
+Scope: no draft write, send, mutation, or mail.google.com.
 Commands:
   status
+  body-gate-status
   connect
   disconnect
   wipe [--dry-run]
@@ -32,7 +39,11 @@ Commands:
   thread-metadata <threadId>
   drafts-metadata [--max N]
   export-metadata-snapshot [--max N] [--max-messages N] [--out PATH]
-  blocked <method>   (test blocked escalation: body, draft write, send)
+  read-message-body <messageId>
+  read-thread-bodies <threadId> [--max N]
+  export-readonly-body-snapshot [--max N] [--max-messages N] [--out PATH]
+  redact-body-snapshot --in PATH [--out PATH]
+  blocked <method>   (test blocked escalation: body, draft write, send, mutation)
 `;
 
 async function main() {
@@ -48,6 +59,7 @@ async function main() {
     else if (rest[i] === '--max-messages') flags.maxMessages = Number(rest[++i]);
     else if (rest[i] === '--query') flags.query = rest[++i];
     else if (rest[i] === '--out') flags.out = rest[++i];
+    else if (rest[i] === '--in') flags.in = rest[++i];
     else if (!flags._) flags._ = rest[i];
   }
 
@@ -56,6 +68,10 @@ async function main() {
     switch (cmd) {
       case 'status':
         result = await providerStatus();
+        break;
+      case 'body-gate-status':
+      case 'body-gate':
+        result = await bodyGateStatusCommand();
         break;
       case 'connect':
         result = await providerConnectStart();
@@ -97,6 +113,22 @@ async function main() {
           maxMessages: flags.maxMessages || 50,
           outputPath: flags.out,
         });
+        break;
+      case 'read-message-body':
+        result = await readMessageBody({ messageId: flags._ });
+        break;
+      case 'read-thread-bodies':
+        result = await readThreadBodies({ threadId: flags._, maxMessages: flags.max || 5 });
+        break;
+      case 'export-readonly-body-snapshot':
+        result = await exportReadonlyBodySnapshot({
+          maxThreads: flags.max || 5,
+          maxMessages: flags.maxMessages || 10,
+          outputPath: flags.out,
+        });
+        break;
+      case 'redact-body-snapshot':
+        result = await redactBodySnapshotFile({ inputPath: flags.in, outputPath: flags.out });
         break;
       case 'blocked':
         result = await invokeBlocked(flags._ || 'gmail.messages.getBody');

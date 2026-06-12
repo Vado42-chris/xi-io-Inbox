@@ -77,7 +77,17 @@ Provider doc: `docs/providers/gmail/gmail-002a-metadata-bridge.md`
 
 ---
 
-## GMAIL-002B — Read-only body gate
+## GMAIL-002B — Read-only body gate — **complete** (2026-06-12)
+
+Receipt: `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md`  
+Provider doc: `docs/providers/gmail/gmail-002b-readonly-body-gate.md`
+
+- Operator opt-in via `GMAIL_ACCESS_MODE=readonly` + OAuth reconnect
+- `gmail.readonly` only; restricted scope documented
+- Redacted body read/export CLI + preview import
+- Draft write, send, mutation remain blocked
+
+## GMAIL-002B — Read-only body gate (detail)
 
 **Goal:** Explicit operator/user approval before `gmail.readonly`.
 
@@ -145,6 +155,6 @@ NAV-001 corrected shell placement for account status and Integrations taxonomy s
 | --- | --- | --- |
 | GMAIL-002A | NAV-001 pass | `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md` |
 | GMAIL-002A-HARDEN | GMAIL-002A pass | `docs/ui/reviews/gmail-002a-hardening-receipt.md` |
-| GMAIL-002B | GMAIL-002A-HARDEN pass | TBD |
+| GMAIL-002B | GMAIL-002A-HARDEN pass | `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md` |
 | GMAIL-002C | GMAIL-002B stable | TBD |
 | GMAIL-002D | Approval + UI-003E path | TBD |

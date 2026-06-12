@@ -1,0 +1,63 @@
+{
+  "accountEmail": "sample.user@example.com",
+  "generatedAt": "2026-06-12T12:00:00.000Z",
+  "source": "local-gmail-cli",
+  "mode": "read-only-body",
+  "scopeRequired": "https://www.googleapis.com/auth/gmail.readonly",
+  "threads": [
+    {
+      "id": "sample-thread-body-001",
+      "snippet": "Synthetic read-only body sample for preview import.",
+      "subject": "Synthetic planning thread",
+      "from": "Team Ops <ops@example.com>",
+      "date": "2026-06-11T15:30:00.000Z",
+      "unread": true,
+      "labelIds": ["INBOX", "UNREAD"],
+      "messageIds": ["sample-message-body-001"],
+      "messages": [
+        {
+          "id": "sample-message-body-001",
+          "threadId": "sample-thread-body-001",
+          "labelIds": ["INBOX", "UNREAD"],
+          "subject": "Synthetic planning thread",
+          "from": "Team Ops <ops@example.com>",
+          "to": "sample.user@example.com",
+          "date": "2026-06-11T15:30:00.000Z",
+          "unread": true,
+          "snippet": "Synthetic read-only body sample for preview import.",
+          "sanitizedBodyPreview": "Hi team, this is a synthetic redacted body preview for GMAIL-002B. No real mailbox content.",
+          "sanitizedPlainText": "Hi team, this is a synthetic redacted body preview for GMAIL-002B. No real mailbox content.",
+          "bodyAvailable": true,
+          "redactionNotes": ["synthetic_sample"],
+          "provider": "gmail-readonly"
+        }
+      ],
+      "provider": "gmail-readonly"
+    }
+  ],
+  "messages": [
+    {
+      "id": "sample-message-body-001",
+      "threadId": "sample-thread-body-001",
+      "labelIds": ["INBOX", "UNREAD"],
+      "subject": "Synthetic planning thread",
+      "from": "Team Ops <ops@example.com>",
+      "to": "sample.user@example.com",
+      "date": "2026-06-11T15:30:00.000Z",
+      "unread": true,
+      "snippet": "Synthetic read-only body sample for preview import.",
+      "sanitizedBodyPreview": "Hi team, this is a synthetic redacted body preview for GMAIL-002B. No real mailbox content.",
+      "sanitizedPlainText": "Hi team, this is a synthetic redacted body preview for GMAIL-002B. No real mailbox content.",
+      "bodyAvailable": true,
+      "redactionNotes": ["synthetic_sample"],
+      "provider": "gmail-readonly"
+    }
+  ],
+  "warnings": [
+    "Synthetic read-only body snapshot. No real mailbox content.",
+    "Browser preview does not perform OAuth. Import manually after CLI export.",
+    "gmail.readonly is a restricted scope; production use requires Google verification."
+  ],
+  "blockedCapabilities": ["draft_write", "send", "provider_mutation", "browser_oauth"],
+  "redactionStatus": "applied"
+}

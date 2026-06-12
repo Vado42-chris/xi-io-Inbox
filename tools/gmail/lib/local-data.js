@@ -7,6 +7,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DATA_DIR = path.join(ROOT, 'data');
 const RECEIPTS_DIR = path.join(ROOT, 'receipts');
 export const SNAPSHOT_PATH = path.join(DATA_DIR, 'metadata-snapshot.json');
+export const BODY_SNAPSHOT_PATH = path.join(DATA_DIR, 'readonly-body-snapshot.json');
 
 async function listFiles(dir) {
   try {
@@ -21,6 +22,7 @@ export async function wipeLocalAdapterData({ dryRun = false } = {}) {
   const targets = [
     { path: tokenPath(), kind: 'token' },
     { path: SNAPSHOT_PATH, kind: 'metadata_snapshot' },
+    { path: BODY_SNAPSHOT_PATH, kind: 'readonly_body_snapshot' },
   ];
 
   for (const filePath of await listFiles(RECEIPTS_DIR)) {

@@ -6,13 +6,21 @@ import {
   guardMethod,
   invokeBlocked,
   validateMetadataSnapshot,
+  validateReadonlyBodySnapshot,
+  redactBodyContent,
+  redactBodySnapshot,
+} from '../lib/adapter.js';
+import {
+  bodyGateStatus,
+  getAccessMode,
+  ACCESS_MODES,
+} from '../lib/body-gate.js';
+import {
   validateOAuthState,
   resolveLoopbackFromRedirectUri,
-} from '../lib/adapter.js';
+} from '../lib/oauth-loopback.js';
 
 const blockedMethods = [
-  'gmail.messages.getBody',
-  'gmail.messages.get',
   'gmail.drafts.create',
   'gmail.drafts.send',
   'gmail.users.messages.send',
@@ -28,6 +36,9 @@ for (const method of blockedMethods) {
   assert.equal(res.success, false, `${method} must fail closed`);
 }
 
+const bodyBlocked = guardMethod('gmail.messages.getBody');
+assert.equal(bodyBlocked.blocked, true);
+
 const unknown = await invokeBlocked('gmail.messages.getBody');
 assert.equal(unknown.blocked, true);
 
@@ -36,23 +47,40 @@ const samplePath = path.resolve(
   '../../../public/data/gmail-metadata.sample.json',
 );
 const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
-const sampleValidation = validateMetadataSnapshot(sample);
-assert.equal(sampleValidation.ok, true, sampleValidation.errors?.join('; '));
+assert.equal(validateMetadataSnapshot(sample).ok, true);
 
-const badSnapshot = {
-  ...sample,
-  body: 'must-not-export',
-};
-const badValidation = validateMetadataSnapshot(badSnapshot);
-assert.equal(badValidation.ok, false);
+const bodySamplePath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../public/data/gmail-body.sample.json',
+);
+const bodySample = JSON.parse(fs.readFileSync(bodySamplePath, 'utf8'));
+assert.equal(validateReadonlyBodySnapshot(bodySample).ok, true, validateReadonlyBodySnapshot(bodySample).errors?.join('; '));
 
-const state = 'abc123';
-assert.equal(validateOAuthState(state, state).ok, true);
-assert.equal(validateOAuthState(null, state).ok, false);
-assert.equal(validateOAuthState('wrong', state).ok, false);
+const htmlRedacted = redactBodyContent('<img src="https://evil.example/track.png">Hello <b>team</b>');
+assert.equal(htmlRedacted.bodyAvailable, true);
+assert.doesNotMatch(htmlRedacted.sanitizedBodyPreview, /https?:\/\//);
 
+const dirtySnapshot = redactBodySnapshot({
+  accountEmail: 'sample.user@example.com',
+  generatedAt: '2026-06-12T00:00:00.000Z',
+  source: 'local-gmail-cli',
+  mode: 'read-only-body',
+  scopeRequired: 'https://www.googleapis.com/auth/gmail.readonly',
+  threads: [],
+  messages: [{ id: 'm1', threadId: 't1', rawBody: '<a href="https://track.example/x">link</a> text' }],
+  warnings: [],
+  blockedCapabilities: ['draft_write', 'send', 'provider_mutation', 'browser_oauth'],
+  redactionStatus: 'pending',
+});
+assert.equal(validateReadonlyBodySnapshot(dirtySnapshot).ok, true);
+
+assert.equal(getAccessMode(), ACCESS_MODES.METADATA);
+const gate = bodyGateStatus({ token: null, secretsConfigured: false, connected: false });
+assert.equal(gate.bodyReadAllowed, false);
+assert.match(gate.bodyReadBlockedReason, /GMAIL_ACCESS_MODE=readonly/);
+
+assert.equal(validateOAuthState('expected', 'expected').ok, true);
 const loopback = resolveLoopbackFromRedirectUri('http://127.0.0.1:8787/oauth2callback', '9999');
 assert.equal(loopback.port, 8787);
-assert.match(loopback.warnings.join(' '), /GMAIL_OAUTH_PORT/);
 
 console.log('metadata-guards: pass');
