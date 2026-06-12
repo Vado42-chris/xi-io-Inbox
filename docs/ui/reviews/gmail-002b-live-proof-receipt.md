@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-06-12
+2026-06-12 (pass 3 verification)
 
 ## Branch
 
@@ -10,29 +10,19 @@
 
 ## Commit SHA
 
-`da7607b3b4a9a1a93dba97d8e9ae507ac3a421fb`
+`PENDING`
 
 ## Scope
 
-GMAIL-002B-LIVE-PROOF — operator validation of existing metadata + read-only body gate against real local Gmail OAuth when available. Proof/receipt pass only.
+GMAIL-002B-LIVE-PROOF — operator validation of metadata + read-only body pipeline against real local Gmail OAuth.
 
 ## Excluded scope
 
-- GMAIL-002C draft write
-- GMAIL-002D send
-- UI-012D visual polish
-- Gmail mutation
-- Browser OAuth
-- Committed real mail content
-- Owner UI-003E
+GMAIL-002C draft write · GMAIL-002D send · UI-012D · Gmail mutation · browser OAuth · committed real mail · Owner UI-003E
 
 ## Files changed
 
-- `docs/ui/reviews/gmail-002b-live-proof-receipt.md`
-- `docs/product/gmail-002-real-email-ingress-plan.md`
-- `docs/product/03-sprint-slice-plan.md`
-- `docs/product/06-compliance-validation-index.md`
-- `TODO.md`
+Docs/receipt only (no product UI unless proof-blocking bug found).
 
 ## Product UI code changed
 
@@ -40,88 +30,69 @@ GMAIL-002B-LIVE-PROOF — operator validation of existing metadata + read-only b
 
 ## OAuth client present
 
-**yes** (2026-06-12 follow-up) — `secrets/gmail-oauth-client.json` present and gitignored
+**yes** — `secrets/gmail-oauth-client.json` gitignored
 
 ## OAuth configured
 
-**yes** (2026-06-12 follow-up) — `connected: true`, token at `tools/gmail/data/token.json` (gitignored, not staged)
+**no (pass 3)** — `tools/gmail/data/token.json` **absent**; `node cli.js status` → `connected: false`
+
+Prior transient connect (Antigravity) did not persist token on this workspace.
 
 ## Readonly scope available
 
-**yes on token** — token includes `gmail.readonly` and `gmail.metadata`; body read still requires `GMAIL_ACCESS_MODE=readonly` at runtime (fail-closed opt-in)
+**no (pass 3)** — no token; `GMAIL_ACCESS_MODE=readonly body-gate-status` → *OAuth token missing*
 
 ## Metadata proof result
 
-**blocked (2026-06-12 follow-up)** — OAuth OK; Gmail API disabled in Google Cloud project `273926245217`:
-
-```text
-Gmail API has not been used in project 273926245217 before or it is disabled.
-Enable: https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=273926245217
-```
-
-`profile` and `labels-counts` fail until API enabled (propagation may take a few minutes after Enable).
-
-Prior pass (2026-06-12 initial): **blocked** — OAuth client absent.
+**blocked** — cannot run `profile`, `labels-counts`, or `export-metadata-snapshot` without token. Gmail API enablement (operator confirmed) not verifiable until reconnect.
 
 ## Body-gate proof result
 
-**pass (fail-closed)** — without OAuth:
-
-- Default mode: `bodyReadBlockedReason`: opt-in `GMAIL_ACCESS_MODE=readonly` required
-- With `GMAIL_ACCESS_MODE=readonly`: `bodyReadBlockedReason`: OAuth token missing
-- `readonlyScopeGranted: false`, `broadScopeBlocked: false`
-- Restricted scope notice present for `gmail.readonly`
+**pass (fail-closed)** — default mode blocks body read; readonly env blocks with token missing; no `mail.google.com`
 
 ## Body-read proof result
 
-**blocked** — `node cli.js read-message-body test-message-id` → blocked, no payload, no mail read
-
-No operator-selected safe message (OAuth unavailable; no arbitrary mail read attempted)
+**blocked** — no token; no operator-selected safe message; no arbitrary mail read
 
 ## Preview import proof result
 
-**blocked** — no local redacted body snapshot generated; preview import not exercised
+**blocked** — `public/data/gmail-metadata.local.json` and `gmail-body.local.json` absent
 
 ## Selected message policy result
 
-**pass** — no arbitrary real mail read; body proof blocked pending OAuth + operator message selection
+**pass** — no sensitive mail read without operator selection
 
 ## Redaction proof result
 
-**not run** — no live body export; unit tests in `tools/gmail/test/body-gate.mjs` remain passing via `npm run check`
+**not run (live)** — unit tests pass via `npm run check`; live redaction unproven until readonly export
 
 ## Generated files ignore result
 
-**pass**
-
-- `secrets/` → `.gitignore:2:secrets/`
-- `tools/gmail/data/` → `tools/gmail/.gitignore:10:data/`
-- `tools/gmail/receipts/` → `tools/gmail/.gitignore:11:receipts/`
-- CLI proof generated 12 receipt files under `tools/gmail/receipts/` — all gitignored, unstaged
+**pass** — `secrets/`, `tools/gmail/data`, `tools/gmail/receipts` gitignored; nothing staged
 
 ## Secrets status
 
-**pass** — no secrets staged; OAuth client JSON not in repo
+**pass** — no OAuth client or tokens staged
 
 ## Token status
 
-**pass** — token path gitignored; token file absent
+**pass (security)** / **absent (proof)** — token path gitignored; file missing
 
 ## Broad scope blocked result
 
-**pass** — status scopes limited to metadata/readonly declarations; no `mail.google.com`
+**pass**
 
 ## Draft write blocked result
 
-**pass** — `node cli.js blocked gmail.drafts.create` → `blocked: true`
+**pass** — `blocked gmail.drafts.create` → true
 
 ## Send blocked result
 
-**pass** — `node cli.js blocked gmail.users.messages.send` → `blocked: true`
+**pass** — `blocked gmail.users.messages.send` → true
 
 ## Mutation blocked result
 
-**pass** — `node cli.js blocked gmail.users.messages.modify` → `blocked: true`
+**pass** — `blocked gmail.users.messages.modify` → true
 
 ## Real data committed
 
@@ -129,7 +100,7 @@ No operator-selected safe message (OAuth unavailable; no arbitrary mail read att
 
 ## npm run check result
 
-**pass** (2026-06-12) — includes `check:acc` + gmail adapter tests
+**pass** (2026-06-12 pass 3)
 
 ## git diff --check result
 
@@ -137,43 +108,43 @@ No operator-selected safe message (OAuth unavailable; no arbitrary mail read att
 
 ## Gmail CLI checks result
 
-**pass (fail-closed)** — status, body-gate-status (default + readonly env), profile blocked, body read blocked, blocked method guards
+**pass (fail-closed)** — status, body-gate-status, blocked methods; live API calls blocked on missing token
 
 ## PR draft state
 
-**draft** — PR #12 remains draft
+**draft**
 
 ## Remaining blockers
 
-- **Gmail API not enabled** in Google Cloud project `273926245217` (blocks profile, labels, snapshots)
-- Live metadata/profile/labels export not yet proven (waiting on API enable)
-- Live read-only body export + redaction not yet proven against real mail
-- Preview import of live snapshot not yet proven
-- Dependabot disabled
-- Bugbot triage pending
-- `gmail.readonly` restricted-scope production verification
-- Pass 55 bounded metadata alignment unverified
-- Owner visual proof blocked until UI-012F
+1. **Operator must complete `node cli.js connect`** and persist token locally
+2. Metadata export + copy to `public/data/gmail-metadata.local.json`
+3. Optional readonly body export with `GMAIL_ACCESS_MODE=readonly` + low-risk message selection
+4. Preview refresh / Settings → Import metadata snapshot
+5. Dependabot disabled · Bugbot triage · Pass 55 unverified · Owner proof blocked until UI-012F
 
-## Operator steps to unblock (local only)
+## Operator unblock sequence
 
-0. **Enable Gmail API** for project `273926245217`: https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=273926245217 — wait 2–5 minutes after Enable
-1. OAuth client already at `secrets/gmail-oauth-client.json` ✓
-2. Token already at `tools/gmail/data/token.json` ✓
-3. Metadata proof: `node cli.js profile` → `labels-counts` → `export-metadata-snapshot --max 5`
-4. Copy export to `public/data/gmail-metadata.local.json` (gitignored) and import in preview Settings → Accounts
-5. Read-only proof: `GMAIL_ACCESS_MODE=readonly node cli.js body-gate-status` → `export-readonly-body-snapshot --max 1 --max-messages 1`
-6. Copy redacted body snapshot to `public/data/gmail-body.local.json` (gitignored) and import in Settings
-7. Never commit tokens, client JSON, or private body content
+```bash
+cd tools/gmail
+node cli.js connect                    # approve in browser → token saved
+node cli.js profile
+node cli.js labels-counts
+node cli.js export-metadata-snapshot --max 25
+cp data/metadata-snapshot.json ../public/data/gmail-metadata.local.json
+# reload preview (auto-loads local file on init)
 
-Official references:
+# Optional readonly (after metadata proof):
+GMAIL_ACCESS_MODE=readonly node cli.js connect   # if token lacks readonly
+GMAIL_ACCESS_MODE=readonly node cli.js body-gate-status
+GMAIL_ACCESS_MODE=readonly node cli.js export-readonly-body-snapshot --max 1 --max-messages 1
+cp data/body-snapshot.json ../public/data/gmail-body.local.json
+```
 
-- [Choose Gmail API scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
-- [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy)
+Never commit tokens, client JSON, or snapshot files.
 
 ## Next recommended pass
 
-Re-run **GMAIL-002B-LIVE-PROOF** after operator OAuth setup and safe message selection. **UI-012D** may proceed only after owner accepts explicit partial live-proof blocker or live proof passes.
+Re-run **GMAIL-002B-LIVE-PROOF** immediately after OAuth connect + metadata export. **UI-012D** only after live proof pass or explicit owner deferral.
 
 ## Decision value
 
@@ -181,10 +152,8 @@ Re-run **GMAIL-002B-LIVE-PROOF** after operator OAuth setup and safe message sel
 
 ## Verification log
 
-| When | Check | Result |
-| --- | --- | --- |
-| 2026-06-12 initial | OAuth client | absent |
-| 2026-06-12 follow-up | OAuth client + token | present, gitignored |
-| 2026-06-12 follow-up | `node cli.js status` | `connected: true`, metadata+readonly scopes on token |
-| 2026-06-12 follow-up | `node cli.js profile` | blocked — Gmail API disabled in GCP project 273926245217 |
-| 2026-06-12 follow-up | `node cli.js labels-counts` | same Gmail API disabled error |
+| Pass | OAuth client | Token | Gmail API | Metadata export | Decision |
+| --- | --- | --- | --- | --- | --- |
+| 2026-06-12 initial | no | no | n/a | blocked | partial |
+| 2026-06-12 follow-up | yes | yes (transient) | disabled | blocked | partial |
+| 2026-06-12 pass 3 | yes | **no** | operator says enabled | blocked | partial |

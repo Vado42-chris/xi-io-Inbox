@@ -204,7 +204,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] GMAIL-002A-HARDEN metadata adapter hardening — `docs/ui/reviews/gmail-002a-hardening-receipt.md`.
 - [x] GMAIL-002B read-only body gate — `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md`.
 - [x] ACC-001 account/mail organization UX — `docs/ui/reviews/acc-001-account-mail-organization-ux-receipt.md`.
-- [ ] GMAIL-002B-LIVE-PROOF operator live proof — **partial** · `docs/ui/reviews/gmail-002b-live-proof-receipt.md` · OAuth connected ✓ · **blocker: enable Gmail API in GCP project 273926245217**.
+- [ ] GMAIL-002B-LIVE-PROOF operator live proof — **partial** · `docs/ui/reviews/gmail-002b-live-proof-receipt.md` · **blocker: OAuth token missing — run `tools/gmail` → `node cli.js connect`**, then metadata export + preview import.
 - [ ] UI-012D interaction / state polish — **after live proof pass or owner accepts partial blocker**.
 - [ ] UI-012E accessibility / contrast / focus polish.
 - [ ] UI-012F final visual readiness gate.
@@ -227,4 +227,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-12): GMAIL-002B-LIVE-PROOF partial (OAuth missing). **Re-run live proof or UI-012D** (~1 pass). **UI-012E–F** (~2 passes). Owner UI-003E blocked until UI-012F. xi-io.net backfeed (~1 pass). PR #12 draft. **~4 passes** to merge-ready after owner PASS + live Gmail proof.
+Current estimated work (2026-06-12): GMAIL-002B-LIVE-PROOF partial (token missing). **1 pass** to finish live proof after OAuth connect. Then **UI-012D** (~1) · **UI-012E–F** (~2) · xi-io.net backfeed (~1). Owner UI-003E blocked until UI-012F. PR #12 draft. **~5 passes** to merge-ready after owner PASS + live proof pass.
