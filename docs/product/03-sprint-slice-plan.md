@@ -51,7 +51,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 1. SLICE-UI-011A — Product Capability Gap Matrix — **complete**
 2. SLICE-UI-011B–I — capability repairs per `docs/product/ui-011a-product-capability-gap-matrix.md`
 3. SLICE-UI-012A — Ibal/Rabbit visual parity brief (docs) — **complete** (`ui-012a-ibal-rabbit-visual-parity-brief.md`)
-4. SLICE-UI-012B–F — visual polish implementation — **next (UI-012B)**
+4. SLICE-UI-012B — visual token/component alignment — **complete**
+5. SLICE-UI-012C — layout/composition polish — **complete** (`ui-012c-layout-composition-polish-receipt.md`)
+6. SLICE-UI-012D–F — visual polish — **next (UI-012D)**
 5. UI-003E owner visual proof re-run (after UI-011I + UI-012F)
 6. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
 5. GMAIL-001C smoke (optional parallel; local CLI only)

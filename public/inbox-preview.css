@@ -4595,3 +4595,186 @@ textarea:focus-visible,
   border-style: dashed;
   opacity: var(--disabled-opacity);
 }
+
+/* UI-012C — layout and composition polish (see ui-012a-ibal-rabbit-visual-parity-brief.md) */
+
+:root {
+  --layout-shell-nav: 14rem;
+  --layout-shell-rail: minmax(16rem, 19rem);
+  --layout-shell-gap: var(--space-3);
+  --layout-workspace-gap: var(--space-3);
+  --layout-list-col: minmax(13rem, 0.42fr);
+  --layout-detail-col: minmax(0, 1.58fr);
+  --layout-pane-max-height: calc(100vh - 7.75rem);
+  --layout-scroll-max: calc(100vh - 14.5rem);
+}
+
+.app-frame {
+  grid-template-columns: var(--layout-shell-nav) minmax(0, 1fr) var(--layout-shell-rail);
+  gap: var(--layout-shell-gap);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  height: var(--layout-pane-max-height);
+}
+
+.right-inspector.context-command-rail {
+  max-width: 19rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overscroll-behavior: contain;
+}
+
+.is-inbox-lane .lane-surface,
+.is-calendar-lane .lane-surface,
+.is-tasks-lane .lane-surface,
+.is-automations-lane .lane-surface,
+.is-extensions-lane .lane-surface,
+.is-settings-lane .lane-surface,
+.is-receipts-lane .lane-surface,
+.is-home-lane .lane-surface {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.is-inbox-lane .lane-surface {
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
+}
+
+.lane-header.is-compact,
+.settings-page-head,
+.activity-page-head {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.lane-header.is-compact h2,
+.settings-page-title,
+.activity-page-title {
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.lane-workspace,
+.inbox-workspace,
+.calendar-workspace,
+.activity-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-workspace-gap);
+  min-height: 0;
+  flex: 1;
+}
+
+.inbox-workspace-grid,
+.mail-workbench-center,
+.tasks-workspace-grid,
+.calendar-workspace-grid,
+.automations-workspace-grid,
+.extensions-workspace-grid,
+.settings-workspace-grid,
+.activity-workspace-grid {
+  grid-template-columns: var(--layout-list-col) var(--layout-detail-col);
+  gap: var(--layout-workspace-gap);
+  min-height: 0;
+  flex: 1;
+  align-items: stretch;
+}
+
+.automations-workspace-grid-three {
+  grid-template-columns: minmax(11rem, 0.8fr) minmax(0, 1.2fr) minmax(10rem, 0.7fr);
+  gap: var(--layout-workspace-gap);
+  min-height: 0;
+}
+
+.extensions-workspace-layout {
+  min-height: 0;
+  align-items: stretch;
+}
+
+.lane-nav,
+.mail-list-pane,
+.mail-reading-pane,
+.inbox-reading-pane,
+.lane-reading-pane,
+.activity-feed-pane,
+.settings-item-list,
+.tasks-item-list,
+.automations-item-list {
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+
+.inbox-reading-pane,
+.lane-reading-pane {
+  max-height: none;
+  overflow-y: auto;
+}
+
+.settings-item-list,
+.tasks-item-list,
+.automations-item-list,
+.activity-feed-pane {
+  max-height: var(--layout-scroll-max);
+}
+
+.thread-list-panel.mail-list-pane {
+  flex: 1;
+  min-height: 12rem;
+}
+
+.mail-reading-pane {
+  flex: 1.35;
+}
+
+.lane-toolbar,
+.inbox-toolbar {
+  flex-shrink: 0;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.lane-empty-state,
+.inbox-empty-state {
+  padding: var(--space-5) var(--space-3);
+}
+
+.right-inspector .inspector-block + .inspector-block {
+  margin-top: var(--space-2);
+}
+
+.context-command-rail .inspector-title h2 {
+  font-size: 0.95rem;
+}
+
+.inspector-section {
+  padding: var(--space-3);
+}
+
+@media (max-width: 1180px) {
+  .app-frame {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: var(--layout-pane-max-height);
+  }
+
+  .right-inspector.context-command-rail {
+    max-width: none;
+  }
+
+  .inbox-workspace-grid,
+  .mail-workbench-center,
+  .tasks-workspace-grid,
+  .calendar-workspace-grid,
+  .automations-workspace-grid,
+  .extensions-workspace-grid,
+  .settings-workspace-grid,
+  .activity-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}

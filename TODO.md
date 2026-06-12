@@ -198,8 +198,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-012 visual polish governance locked — `docs/ui/polish/ui-012-visual-polish-governance.md`.
 - [x] UI-012A Ibal/Rabbit visual parity brief — `docs/ui/polish/ui-012a-ibal-rabbit-visual-parity-brief.md`.
 - [x] UI-012B visual token / component alignment — `docs/ui/reviews/ui-012b-visual-token-component-alignment-receipt.md`.
-- [ ] UI-012C layout / composition polish — **next**.
-- [ ] UI-012D interaction / state polish.
+- [x] UI-012C layout / composition polish — `docs/ui/reviews/ui-012c-layout-composition-polish-receipt.md`.
+- [ ] UI-012D interaction / state polish — **next**.
 - [ ] UI-012E accessibility / contrast / focus polish.
 - [ ] UI-012F final visual readiness gate.
 - [ ] UI-003E owner visual proof — **blocked until UI-012F**.
@@ -221,4 +221,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-12): UI-012B complete. **UI-012C–F** (~3–4 passes). Owner UI-003E blocked until UI-012F. xi-io.net framework backfeed (~1 pass). PR #12 draft. **~4–5 passes** to merge-ready after owner PASS.
+Current estimated work (2026-06-12): UI-012C complete. **UI-012D–F** (~2–3 passes). Owner UI-003E blocked until UI-012F. xi-io.net framework backfeed (~1 pass). PR #12 draft. **~3–4 passes** to merge-ready after owner PASS.

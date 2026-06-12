@@ -49,6 +49,24 @@ Rabbit_mod structure (for auditors): `public/style.css`, `public/pages/`, `publi
 
 Exact boundaries follow the canonical brief — **update, do not duplicate** `00-xi-io-visual-product-standard.md`.
 
+## Best-practice evaluation (UI-012C–F receipts)
+
+Each polish receipt must answer:
+
+- Does this preserve UI-011A–I capability repairs?
+- Does this make the product easier to understand, or only prettier?
+- Does Mail remain the primary mental model?
+- Does Ibal support the workspace without taking over it?
+- Are selected, blocked, preview-only, metadata-only, and provider-gated states visually distinct?
+- Are disabled actions explained in visible text?
+- Are we relying on color alone?
+- Are scroll regions predictable?
+- Are screenshots/artifacts stored outside the repo?
+- Did we avoid schema/localStorage/fixture changes?
+- Did we avoid provider/runtime behavior changes?
+- Did we avoid duplicating prior polish pass work?
+- Is all evidence persisted in repo docs, TODO, receipt, and PR body?
+
 ## Parallel work (allowed)
 
 While Inbox agent runs **UI-011C–I**, external reviewers (e.g. ChatGPT) may fill UI-012A sections in:
