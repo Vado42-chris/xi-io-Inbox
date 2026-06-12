@@ -5,6 +5,7 @@ on:
     paths:
       - "package.json"
       - "public/**"
+      - "tools/gmail/**"
       - ".github/workflows/static-preview-check.yml"
   workflow_dispatch:
 
@@ -25,6 +26,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: tools/gmail/package-lock.json
+
+      - name: Install Gmail adapter dependencies
+        working-directory: tools/gmail
+        run: npm ci
 
       - name: Run static preview checks
         run: npm run check
