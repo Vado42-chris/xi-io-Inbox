@@ -1,18 +1,81 @@
 :root {
   color-scheme: dark;
+
+  /* UI-012B spacing / density */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --density-row: 2.45rem;
+  --density-row-compact: 2rem;
+  --density-chip: 1.55rem;
+
+  /* Surfaces */
   --bg: #0b0c0e;
+  --surface-canvas: var(--bg);
   --surface: #14161a;
   --surface-strong: #1c2026;
   --surface-soft: #20252b;
+  --surface-elevated: rgba(20, 22, 26, 0.72);
+  --surface-overlay: rgba(12, 14, 18, 0.55);
+
+  /* Borders */
   --line: #343b43;
   --line-strong: #4d5965;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-input: rgba(255, 255, 255, 0.12);
+
+  /* Text */
   --text: #eef2f6;
+  --text-secondary: #c5cdd6;
   --muted: #aab4bf;
-  --cyan: #69d2ff;
+
+  /* Accent + legacy aliases */
+  --accent: #69d2ff;
+  --accent-soft: rgba(105, 210, 255, 0.1);
+  --accent-border: rgba(105, 210, 255, 0.45);
+  --cyan: var(--accent);
   --green: #85d99b;
   --amber: #e7c761;
   --red: #ff877d;
   --violet: #c6a4ff;
+
+  /* Semantic status */
+  --status-success: var(--green);
+  --status-warning: var(--amber);
+  --status-danger: var(--red);
+  --status-blocked: var(--red);
+  --status-preview: var(--amber);
+  --status-metadata: var(--accent);
+  --status-internal: var(--accent);
+  --status-local: #8fd48f;
+  --status-developer: var(--violet);
+
+  /* Marker semantics (Extensions / Settings providers) */
+  --marker-internal: var(--status-internal);
+  --marker-external: var(--status-warning);
+  --marker-local: var(--status-local);
+  --marker-developer: var(--status-developer);
+
+  /* Interaction */
+  --focus-ring-color: var(--accent);
+  --focus-ring-width: 2px;
+  --focus-offset: 2px;
+  --selected-border: rgba(105, 210, 255, 0.55);
+  --selected-bg: rgba(105, 210, 255, 0.08);
+  --selected-indicator-width: 3px;
+  --hover-bg: rgba(255, 255, 255, 0.03);
+  --disabled-opacity: 0.72;
+
+  /* Elevation */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.22);
   --shadow: rgba(0, 0, 0, 0.35);
 }
 
@@ -39,9 +102,12 @@ input {
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 2px;
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-offset);
 }
 
 .app-shell-mount,
@@ -4177,4 +4243,355 @@ input:focus-visible {
 
 .mail-activity-hint {
   margin-top: 0.75rem;
+}
+
+/* UI-012B — visual token / component alignment (see ui-012a-ibal-rabbit-visual-parity-brief.md) */
+
+.lane-nav,
+.right-inspector,
+.lane-surface,
+.lane-reading-pane,
+.local-receipt-row,
+.rule-flow-step {
+  border-radius: var(--radius-md);
+}
+
+.lane-nav,
+.right-inspector {
+  background: var(--surface-elevated);
+}
+
+.lane-surface {
+  box-shadow: var(--shadow-md);
+}
+
+/* Shared selected/active row grammar — text + left indicator, not color alone */
+.lane-link.is-active,
+.mail-nav-item.is-active,
+.thread-row.is-selected,
+.draft-row.is-selected,
+.settings-list-row.is-selected,
+.extensions-provider-card.is-selected,
+.extensions-market-card.is-selected,
+.extensions-list-row.is-selected,
+.extensions-filter-chip.is-active,
+.activity-filter-btn.is-active,
+.automations-list-row.is-selected,
+.tasks-list-row.is-selected,
+.tasks-epic-row.is-selected,
+.tasks-story-row.is-selected,
+.tasks-kanban-card.is-selected,
+.calendar-week-day.is-selected,
+.calendar-day-cell.is-selected,
+.calendar-agenda-row.is-selected,
+.calendar-proposal-row.is-selected,
+.receipt-ledger-row-wrap.is-inspector-focused,
+.mail-list-pane .thread-row.is-selected {
+  border-color: var(--selected-border);
+  background: var(--selected-bg);
+  box-shadow: inset var(--selected-indicator-width) 0 0 0 var(--accent);
+}
+
+.lane-link.is-active strong,
+.mail-nav-item.is-active strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.thread-row.is-unread .thread-sender,
+.thread-row.is-unread .thread-subject {
+  font-weight: 700;
+}
+
+/* Focus vs selection: ring on keyboard focus; selection uses inset bar */
+.is-inspector-focusable:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-offset);
+}
+
+.is-inspector-focused:not(:focus-visible) {
+  outline: none;
+}
+
+/* Pills / chips / badges */
+.pill {
+  min-height: var(--density-chip);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.pill-neutral {
+  border-color: var(--border-subtle);
+  color: var(--muted);
+}
+
+.pill-ok {
+  border-color: color-mix(in srgb, var(--status-success) 45%, transparent);
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+}
+
+.pill-warning {
+  border-color: color-mix(in srgb, var(--status-preview) 45%, transparent);
+  color: var(--status-preview);
+  background: color-mix(in srgb, var(--status-preview) 10%, transparent);
+}
+
+.pill-danger {
+  border-color: color-mix(in srgb, var(--status-blocked) 50%, transparent);
+  color: var(--status-blocked);
+  background: color-mix(in srgb, var(--status-blocked) 10%, transparent);
+}
+
+.thread-status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(var(--density-chip) - 0.15rem);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.thread-status-chip.is-safe,
+.thread-status-chip.is-urgent,
+.thread-status-chip.is-warn,
+.thread-status-chip.is-neutral {
+  border-width: 1px;
+}
+
+.thread-status-chip.is-safe {
+  border-color: color-mix(in srgb, var(--status-success) 45%, transparent);
+  color: var(--status-success);
+}
+
+.thread-status-chip.is-warn,
+.thread-status-chip.is-urgent {
+  border-color: color-mix(in srgb, var(--status-preview) 45%, transparent);
+  color: var(--status-preview);
+}
+
+.thread-status-chip.is-neutral {
+  border-color: var(--border-subtle);
+  color: var(--muted);
+}
+
+/* Provider / scope markers */
+.extensions-marker {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(var(--density-chip) - 0.35rem);
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.extensions-marker-internal {
+  border-color: color-mix(in srgb, var(--marker-internal) 40%, transparent);
+  color: var(--marker-internal);
+  background: color-mix(in srgb, var(--marker-internal) 8%, transparent);
+}
+
+.extensions-marker-external {
+  border-color: color-mix(in srgb, var(--marker-external) 40%, transparent);
+  color: var(--marker-external);
+  background: color-mix(in srgb, var(--marker-external) 8%, transparent);
+}
+
+.extensions-marker-local {
+  border-color: color-mix(in srgb, var(--marker-local) 40%, transparent);
+  color: var(--marker-local);
+  background: color-mix(in srgb, var(--marker-local) 8%, transparent);
+}
+
+.extensions-marker-developer {
+  border-color: color-mix(in srgb, var(--marker-developer) 40%, transparent);
+  color: var(--marker-developer);
+  background: color-mix(in srgb, var(--marker-developer) 8%, transparent);
+}
+
+/* Cards / panels */
+.home-stat-card,
+.extensions-market-card,
+.extensions-provider-card,
+.extensions-provider-row,
+.settings-provider-row,
+.task-kanban-card,
+.automation-rule-row,
+.ibal-recommendation,
+.receipt-class-row,
+.lane-reading-pane {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+}
+
+.lane-reading-head h3,
+.settings-page-title,
+.activity-page-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.lane-reading-meta,
+.form-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* Buttons / actions */
+.inbox-action-btn {
+  min-height: var(--density-row-compact);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-soft);
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.inbox-action-btn:hover:not(:disabled):not(.is-blocked) {
+  border-color: var(--line-strong);
+  background: var(--hover-bg);
+}
+
+.inbox-action-btn.is-primary {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.inbox-action-btn.is-danger {
+  border-color: color-mix(in srgb, var(--status-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--status-danger) 8%, transparent);
+}
+
+.inbox-action-btn.is-blocked,
+.inbox-action-btn:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.inbox-link-btn {
+  color: var(--accent);
+}
+
+.inbox-link-btn:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-offset);
+}
+
+/* Blocked / preview / metadata banners */
+.trust-token.is-blocked::before,
+.inbox-evidence-block.is-blocked header span {
+  color: var(--status-blocked);
+}
+
+.extensions-taxonomy-banner {
+  border-color: color-mix(in srgb, var(--status-preview) 35%, transparent);
+  background: color-mix(in srgb, var(--status-preview) 6%, transparent);
+}
+
+.settings-advanced-label,
+.settings-advanced-hint summary {
+  color: var(--muted);
+}
+
+/* Ibal / context rail — calm conductor, proposal-only */
+.inspector-rail-mode {
+  color: var(--marker-internal);
+}
+
+.ibal-concierge-btn {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.ibal-concierge-btn.is-open {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.ibal-concierge-drawer {
+  border-left-color: var(--line-strong);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.ibal-concierge-head h3::after {
+  content: " · proposal-only";
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.ibal-message,
+.ibal-recommendation {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.ibal-recommendation-state {
+  color: var(--status-preview);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Activity / receipt rows */
+.receipt-ledger-table {
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+}
+
+.receipt-kind {
+  color: var(--accent);
+}
+
+.receipt-ledger-row:hover {
+  background: var(--hover-bg);
+}
+
+.activity-filter-btn,
+.extensions-filter-chip {
+  min-height: calc(var(--density-row-compact) - 0.35rem);
+  border-radius: var(--radius-pill);
+}
+
+.activity-filter-btn.is-active,
+.extensions-filter-chip.is-active {
+  font-weight: 700;
+}
+
+/* Forms */
+.inbox-draft-form input,
+.inbox-draft-form textarea,
+.mail-search-input {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-input);
+  background: var(--surface-overlay);
+}
+
+.inbox-draft-form input:focus-visible,
+.inbox-draft-form textarea:focus-visible,
+.inbox-action-btn:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-offset);
+}
+
+.local-receipt-row {
+  background: var(--surface-overlay);
+}
+
+.disabled-action {
+  border-style: dashed;
+  opacity: var(--disabled-opacity);
 }
