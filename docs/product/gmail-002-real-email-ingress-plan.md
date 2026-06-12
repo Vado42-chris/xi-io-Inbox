@@ -28,9 +28,12 @@ Prior art: `docs/providers/gmail/gmail-001b-local-oauth-adapter-plan.md`, `gmail
 
 ---
 
-## GMAIL-002A — Metadata bridge (next pass)
+## GMAIL-002A — Metadata bridge — **complete** (2026-06-10)
 
 **Goal:** Expose real account metadata to the app via existing local Gmail CLI/OAuth adapter.
+
+Receipt: `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md`
+Provider doc: `docs/providers/gmail/gmail-002a-metadata-bridge.md`
 
 ### Allowed
 
@@ -128,7 +131,7 @@ NAV-001 corrected shell placement for account status and Integrations taxonomy s
 
 | Stage | Depends on | Receipt target |
 | --- | --- | --- |
-| GMAIL-002A | NAV-001 pass | `docs/providers/gmail/gmail-002a-metadata-bridge-receipt.md` (future) |
+| GMAIL-002A | NAV-001 pass | `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md` |
 | GMAIL-002B | GMAIL-002A stable | TBD |
 | GMAIL-002C | GMAIL-002B stable | TBD |
 | GMAIL-002D | Approval + UI-003E path | TBD |

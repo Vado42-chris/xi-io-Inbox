@@ -5,10 +5,11 @@
   "type": "module",
   "description": "Local Gmail metadata-only adapter (GMAIL-001C). No send, no bodies, no localStorage tokens.",
   "scripts": {
-    "check": "node --check lib/response.js && node --check lib/token-store.js && node --check lib/receipts.js && node --check lib/adapter.js && node --check cli.js",
+    "check": "node --check lib/response.js && node --check lib/token-store.js && node --check lib/receipts.js && node --check lib/adapter.js && node --check cli.js && node test/metadata-guards.mjs",
     "status": "node cli.js status",
     "connect": "node cli.js connect",
-    "wipe": "node cli.js wipe"
+    "wipe": "node cli.js wipe",
+    "export-metadata-snapshot": "node cli.js export-metadata-snapshot"
   },
   "dependencies": {
     "googleapis": "^144.0.0"

@@ -1,4 +1,6 @@
 const DATA_URL = './data/inbox-events.preview.json';
+const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
+const GMAIL_METADATA_SAMPLE_URL = './data/gmail-metadata.sample.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
@@ -35,6 +37,8 @@ const INTEGRATIONS_NAV_CATEGORIES = [
 
 let activeContextSubNav = null;
 let helpPanelOpen = false;
+let gmailMetadataSnapshot = null;
+let gmailMetadataSnapshotSource = null;
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -924,6 +928,8 @@ function sectionByType(content, type) {
 }
 
 function inboxThreads() {
+  const metadataThreads = metadataSnapshotThreads();
+  if (metadataThreads?.length) return metadataThreads;
   const inbox = getPayload().laneContent?.inbox || {};
   return sectionByType(inbox, 'inbox-layout')?.threads || [];
 }
@@ -940,9 +946,10 @@ const MAIL_SYSTEM_VIEWS = ['inbox', 'drafts', 'approval-queue', 'sent', 'archive
 
 function mailLayoutMeta() {
   const section = inboxLayoutSection();
+  const snapshotLabels = metadataSnapshotLabels();
   return {
     folders: section.folders || [],
-    labels: section.labels || [],
+    labels: snapshotLabels.length ? snapshotLabels : (section.labels || []),
   };
 }
 
@@ -963,6 +970,7 @@ function accountSyncStatusLabel(syncState) {
   if (normalized === 'connected') return 'Connected';
   if (normalized === 'awaiting_local_connect') return 'Queued';
   if (normalized === 'metadata_only') return 'Metadata only';
+  if (normalized === 'metadata_snapshot') return 'Metadata snapshot';
   if (normalized === 'provider_blocked' || normalized === 'demo_fixture') return 'Demo';
   return label(syncState || 'not connected');
 }
@@ -972,6 +980,7 @@ function accountSyncStatusClass(syncState) {
   if (normalized === 'connected') return 'is-connected';
   if (normalized === 'awaiting_local_connect') return 'is-queued';
   if (normalized === 'metadata_only') return 'is-metadata';
+  if (normalized === 'metadata_snapshot') return 'is-metadata-snapshot';
   return 'is-demo';
 }
 
@@ -2642,7 +2651,7 @@ function ensureAccountDefaults() {
 }
 
 function gmailConnectInstructions() {
-  return '1) Place OAuth client at secrets/gmail-oauth-client.json\n2) cd tools/gmail && npm install\n3) node cli.js connect\n4) node cli.js profile && node cli.js labels-counts\nMetadata only — no send, no bodies in repo.';
+  return '1) Place OAuth client at secrets/gmail-oauth-client.json\n2) cd tools/gmail && npm install\n3) node cli.js connect\n4) node cli.js profile && node cli.js labels-counts\n5) node cli.js export-metadata-snapshot\n6) Copy tools/gmail/data/metadata-snapshot.json to public/data/gmail-metadata.local.json\n7) In preview Settings → Accounts, Import metadata snapshot\nMetadata only — no send, no bodies in repo.';
 }
 
 function selectedIbalProposal() {
@@ -3416,6 +3425,161 @@ async function fetchJson(url, fallback) {
   }
 }
 
+function isMetadataSnapshot(value) {
+  return Boolean(value && value.mode === 'metadata-only' && value.source === 'local-gmail-cli');
+}
+
+function mapMetadataThreadToPreview(thread, index) {
+  const head = thread.messages?.[0] || thread;
+  const sender = head.from || thread.from || 'Unknown sender';
+  const subject = head.subject || thread.subject || thread.snippet || '(no subject)';
+  return {
+    id: `gmail-metadata:${thread.id || head.threadId || index}`,
+    accountId: selectedAccountFixture()?.accountId || 'gmail-metadata-bridge',
+    mailbox: 'inbox',
+    unread: Boolean(thread.unread ?? head.unread),
+    sender: sender.replace(/<[^>]+>/, '').trim() || sender,
+    receivedAt: head.date || thread.date || '',
+    title: subject,
+    summary: thread.snippet || head.snippet || 'Metadata-only thread snapshot. Body read blocked.',
+    state: thread.unread ? 'needs_review' : 'preview_only',
+    labels: (thread.labelIds || head.labelIds || []).map((id) => String(id).toLowerCase()),
+    tags: ['metadata_snapshot', 'provider_metadata_only'],
+    metadataOnly: true,
+    providerSource: 'gmail-metadata',
+    detailFields: [
+      { label: 'Source', value: 'Local metadata snapshot' },
+      { label: 'Mode', value: 'metadata-only' },
+      { label: 'Body', value: 'blocked' },
+      { label: 'Draft write', value: 'blocked' },
+      { label: 'Send', value: 'blocked' },
+    ],
+  };
+}
+
+function metadataSnapshotThreads() {
+  if (!isMetadataSnapshot(gmailMetadataSnapshot)) return null;
+  return (gmailMetadataSnapshot.threads || []).map(mapMetadataThreadToPreview);
+}
+
+function metadataSnapshotLabels() {
+  if (!isMetadataSnapshot(gmailMetadataSnapshot)) return [];
+  return (gmailMetadataSnapshot.labels || []).map((entry) => ({
+    id: entry.id || mailboxViewId(entry.name),
+    label: entry.name || entry.id,
+    count: entry.messagesUnread ?? entry.messagesTotal ?? 0,
+  }));
+}
+
+function applyMetadataSnapshotToAccounts(snapshot) {
+  const email = snapshot.accountEmail;
+  if (!email) return;
+  const accountId = `gmail-${email.replace(/[^a-z0-9]+/gi, '-')}`;
+  const unread = (snapshot.labels || []).find((entry) => entry.name === 'INBOX')?.messagesUnread
+    ?? snapshot.threads?.filter((thread) => thread.unread).length
+    ?? 0;
+  const existing = allPreviewAccounts().find((entry) => entry.email === email || entry.accountId === accountId);
+  const row = {
+    accountId,
+    email,
+    displayName: email,
+    providerId: 'gmail',
+    syncState: 'metadata_snapshot',
+    privacyProfile: 'private_mail',
+    counts: {
+      unread,
+      needsReply: 0,
+      drafts: snapshot.counts?.DRAFT?.messagesTotal ?? 0,
+      blocked: 0,
+    },
+  };
+  if (existing) {
+    state.account.previewAccounts = allPreviewAccounts().map((entry) => (
+      entry.accountId === existing.accountId ? { ...entry, ...row } : entry
+    ));
+  } else {
+    state.account.previewAccounts = [...allPreviewAccounts(), row];
+  }
+  state.account.activeAccountId = accountId;
+}
+
+function addMetadataBridgeReceipt({ type, title, summary, limitations }) {
+  return addAccountReceipt({
+    type: type || 'metadata_bridge',
+    title,
+    summary,
+  });
+}
+
+async function loadGmailMetadataSnapshotFromUrl(url, sourceLabel) {
+  const snapshot = await fetchJson(url, null);
+  if (!isMetadataSnapshot(snapshot)) return null;
+  gmailMetadataSnapshot = snapshot;
+  gmailMetadataSnapshotSource = sourceLabel;
+  applyMetadataSnapshotToAccounts(snapshot);
+  return snapshot;
+}
+
+async function importGmailMetadataSnapshot({ preferLocal = true, recordReceipt = true } = {}) {
+  const tried = [];
+  if (preferLocal) {
+    const local = await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
+    if (local) {
+      if (recordReceipt) {
+        addMetadataBridgeReceipt({
+          title: 'Gmail metadata snapshot imported',
+          summary: `${local.accountEmail || 'account'} · ${local.threads?.length || 0} threads · metadata-only local file`,
+        });
+      }
+      return { ok: true, source: 'local-file', snapshot: local };
+    }
+    tried.push(GMAIL_METADATA_LOCAL_URL);
+  }
+  const sample = await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_SAMPLE_URL, 'sample-file');
+  if (sample) {
+    if (recordReceipt) {
+      addMetadataBridgeReceipt({
+        title: 'Gmail metadata sample snapshot loaded',
+        summary: `${sample.accountEmail || 'sample'} · sanitized sample · not live Gmail`,
+      });
+    }
+    return { ok: true, source: 'sample-file', snapshot: sample };
+  }
+  tried.push(GMAIL_METADATA_SAMPLE_URL);
+  if (recordReceipt) {
+    addMetadataBridgeReceipt({
+      type: 'metadata_bridge_missing',
+      title: 'Gmail metadata snapshot missing',
+      summary: `No metadata-only snapshot at ${tried.join(' or ')}. Export with tools/gmail CLI first.`,
+    });
+  }
+  return { ok: false, source: null, tried };
+}
+
+function clearGmailMetadataSnapshot() {
+  gmailMetadataSnapshot = null;
+  gmailMetadataSnapshotSource = null;
+  allPreviewAccounts().forEach((account) => {
+    if (account.syncState === 'metadata_snapshot') account.syncState = 'awaiting_local_connect';
+  });
+  addMetadataBridgeReceipt({
+    title: 'Gmail metadata snapshot cleared',
+    summary: 'Preview returned to fixture mail threads. Body read, draft write, and send remain blocked.',
+  });
+  saveState();
+}
+
+function gmailMetadataBridgeActive() {
+  return isMetadataSnapshot(gmailMetadataSnapshot);
+}
+
+function metadataBridgeStatusLabel() {
+  if (!gmailMetadataBridgeActive()) return null;
+  const email = gmailMetadataSnapshot.accountEmail || 'metadata account';
+  const source = gmailMetadataSnapshotSource === 'sample-file' ? 'sample snapshot' : 'local snapshot';
+  return `Metadata-only · ${email} · ${source}`;
+}
+
 function syncRoute() {
   const raw = routeIdFromHash();
   if (raw === IBAL_LEGACY_LANE) {
@@ -3652,6 +3816,17 @@ function collectUnifiedActivityEntries() {
     sourceLink: r.key ? { lane: 'settings', settingsKey: r.key, label: 'Open settings gate' } : null,
     sourceObject: r.key || 'Settings',
     relatedGate: 'Runtime gate apply blocked',
+  })));
+  (state.account.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'account', {
+    activityType: r.type === 'metadata_bridge_missing' ? 'provider_gate_viewed' : (r.type === 'metadata_bridge' ? 'build_evidence' : 'local_state_changed'),
+    capabilityArea: 'Mail',
+    scope: 'external',
+    relatedGate: 'Gmail metadata bridge (metadata-only)',
+    blockedReason: r.type === 'metadata_bridge_missing'
+      ? 'No local metadata snapshot file found. OAuth and live sync remain outside browser preview.'
+      : 'Body read, draft write, send, and provider mutation remain blocked.',
+    outcome: r.type === 'metadata_bridge_missing' ? 'blocked' : 'recorded',
+    sourceLink: { lane: 'settings', settingsKey: 'user:accounts', label: 'Open Accounts' },
   })));
   (state.sentEvents.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'sentEvents', {
     activityType: 'send_simulated',
@@ -4278,14 +4453,22 @@ function activeProductWorkspace() {
 }
 
 function environmentStatusBadge() {
+  if (gmailMetadataBridgeActive()) {
+    return gmailMetadataSnapshotSource === 'sample-file'
+      ? 'Preview · Local · Metadata sample'
+      : 'Preview · Local · Metadata snapshot';
+  }
   return 'Preview · Local · Metadata-only';
 }
 
 function providerAccountStatusSummary() {
+  const bridge = metadataBridgeStatusLabel();
+  if (bridge) return bridge;
   const account = selectedAccountFixture();
   const sync = String(account?.syncState || 'provider_blocked').toLowerCase();
   if (sync === 'connected') return 'Connected · verify via CLI';
   if (sync === 'metadata_only') return 'Metadata-only · CLI path';
+  if (sync === 'metadata_snapshot') return 'Metadata snapshot · re-import after reload';
   if (sync === 'awaiting_local_connect') return 'Queued · not connected';
   return PRODUCT_GATE_COPY.browserNotConnected;
 }
@@ -7175,7 +7358,10 @@ function renderEmailAccountsBlock() {
       <div class="inbox-form-actions">
         <h3>Email accounts (${accounts.length})</h3>
         <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+        <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
+        ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
       </div>
+      <p class="form-hint">${escapeHtml(gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Export with `cd tools/gmail && node cli.js export-metadata-snapshot`, copy to public/data/gmail-metadata.local.json (gitignored), then import here. Sample file ships at public/data/gmail-metadata.sample.json.')}</p>
       ${state.account.accountFormOpen ? `
         <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
           <label for="settings-account-email-input">Gmail address</label>
@@ -8697,6 +8883,22 @@ function handleAccountAction(action, accountId) {
     renderShell();
     return;
   }
+  if (action === 'import-metadata-snapshot') {
+    importGmailMetadataSnapshot().then((result) => {
+      saveState();
+      setStatusMessage(result.ok
+        ? `Metadata snapshot loaded (${result.source}). Body read, draft write, and send remain blocked.`
+        : 'Metadata snapshot not found. Export via tools/gmail CLI first.');
+      renderShell();
+    });
+    return;
+  }
+  if (action === 'clear-metadata-snapshot') {
+    clearGmailMetadataSnapshot();
+    setStatusMessage('Metadata snapshot cleared. Fixture mail restored.');
+    renderShell();
+    return;
+  }
   if (action === 'cancel-account-form') {
     state.account.editingAccountId = null;
     state.account.accountFormOpen = false;
@@ -10015,6 +10217,7 @@ async function init() {
   loadState();
   state.payload = await fetchJson(DATA_URL, {});
   ensureAccountDefaults();
+  await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   saveState();
   state.threadId = selectedInboxThread()?.id || state.threadId;
   state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);

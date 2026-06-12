@@ -54,8 +54,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 4. SLICE-UI-012B — visual token/component alignment — **complete**
 5. SLICE-UI-012C — layout/composition polish — **complete**
 6. SLICE-NAV-001 — app shell / navigation correction — **complete** (`nav-001-app-shell-navigation-correction-receipt.md`)
-7. SLICE-GMAIL-002A — real Gmail metadata bridge — **next recommended** (`gmail-002-real-email-ingress-plan.md`)
-8. SLICE-UI-012D–F — visual polish — **paused** (resume after GMAIL-002A or owner choice)
+7. SLICE-GMAIL-002A — real Gmail metadata bridge — **complete** (`gmail-002a-real-gmail-metadata-ingress-receipt.md`)
+8. SLICE-GMAIL-002B or SLICE-UI-012D — **next recommended**
+9. SLICE-UI-012E–F — visual polish — **paused**
 9. UI-003E owner visual proof re-run (after UI-012F)
 10. Merge-prep final + PR #12 ready-for-review consideration (still not merge without explicit approval)
 11. GMAIL-001C smoke (optional parallel; local CLI only)

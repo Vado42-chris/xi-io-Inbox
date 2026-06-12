@@ -11,6 +11,7 @@
     "check:files": "node -e \"const fs=require('fs'); const files=['public/index.html','public/inbox-preview.css','public/inbox-preview.js','public/data/inbox-events.preview.json']; for (const f of files) { if (!fs.existsSync(f)) { console.error('missing '+f); process.exit(1); } } console.log('xi-io Inbox static preview files present');\"",
     "check:json": "node -e \"const fs=require('fs'); JSON.parse(fs.readFileSync('public/data/inbox-events.preview.json','utf8')); console.log('xi-io Inbox preview JSON valid');\"",
     "check:js": "node --check public/inbox-preview.js",
-    "check": "npm run check:files && npm run check:json && npm run check:js"
+    "check:gmail": "cd tools/gmail && npm run check",
+    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:gmail"
   }
 }

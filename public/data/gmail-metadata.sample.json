@@ -1,0 +1,113 @@
+{
+  "accountEmail": "sample.user@example.com",
+  "generatedAt": "2026-06-10T12:00:00.000Z",
+  "source": "local-gmail-cli",
+  "mode": "metadata-only",
+  "labels": [
+    {
+      "id": "INBOX",
+      "name": "INBOX",
+      "type": "system",
+      "messagesTotal": 3,
+      "messagesUnread": 2,
+      "threadsTotal": 3,
+      "threadsUnread": 2
+    },
+    {
+      "id": "DRAFT",
+      "name": "DRAFT",
+      "type": "system",
+      "messagesTotal": 1,
+      "messagesUnread": 0,
+      "threadsTotal": 1,
+      "threadsUnread": 0
+    }
+  ],
+  "counts": {
+    "INBOX": {
+      "id": "INBOX",
+      "type": "system",
+      "messagesTotal": 3,
+      "messagesUnread": 2,
+      "threadsTotal": 3,
+      "threadsUnread": 2
+    }
+  },
+  "threads": [
+    {
+      "id": "sample-thread-001",
+      "snippet": "Metadata-only sample thread about project planning.",
+      "subject": "Project planning check-in",
+      "from": "Team Ops <ops@example.com>",
+      "date": "2026-06-09T15:30:00.000Z",
+      "unread": true,
+      "labelIds": ["INBOX", "UNREAD"],
+      "messageIds": ["sample-message-001"],
+      "messages": [
+        {
+          "id": "sample-message-001",
+          "threadId": "sample-thread-001",
+          "labelIds": ["INBOX", "UNREAD"],
+          "subject": "Project planning check-in",
+          "from": "Team Ops <ops@example.com>",
+          "to": "sample.user@example.com",
+          "date": "2026-06-09T15:30:00.000Z",
+          "unread": true,
+          "snippet": "Metadata-only sample thread about project planning.",
+          "provider": "gmail-metadata"
+        }
+      ],
+      "provider": "gmail-metadata"
+    },
+    {
+      "id": "sample-thread-002",
+      "snippet": "Provider gate reminder — body read blocked in preview.",
+      "subject": "Provider gate reminder",
+      "from": "System Notice <notice@example.com>",
+      "date": "2026-06-08T09:00:00.000Z",
+      "unread": false,
+      "labelIds": ["INBOX"],
+      "messageIds": ["sample-message-002"],
+      "messages": [
+        {
+          "id": "sample-message-002",
+          "threadId": "sample-thread-002",
+          "labelIds": ["INBOX"],
+          "subject": "Provider gate reminder",
+          "from": "System Notice <notice@example.com>",
+          "to": "sample.user@example.com",
+          "date": "2026-06-08T09:00:00.000Z",
+          "unread": false,
+          "snippet": "Provider gate reminder — body read blocked in preview.",
+          "provider": "gmail-metadata"
+        }
+      ],
+      "provider": "gmail-metadata"
+    }
+  ],
+  "messages": [
+    {
+      "id": "sample-message-001",
+      "threadId": "sample-thread-001",
+      "labelIds": ["INBOX", "UNREAD"],
+      "subject": "Project planning check-in",
+      "from": "Team Ops <ops@example.com>",
+      "to": "sample.user@example.com",
+      "date": "2026-06-09T15:30:00.000Z",
+      "unread": true,
+      "snippet": "Metadata-only sample thread about project planning.",
+      "provider": "gmail-metadata"
+    }
+  ],
+  "warnings": [
+    "Sanitized sample snapshot for static preview import testing.",
+    "Not live Gmail data. Message bodies, attachments, OAuth tokens, and raw payloads are excluded."
+  ],
+  "blockedCapabilities": [
+    "body_read",
+    "draft_write",
+    "send",
+    "provider_mutation",
+    "browser_oauth"
+  ]
+}

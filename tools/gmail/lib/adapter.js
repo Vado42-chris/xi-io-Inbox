@@ -17,13 +17,41 @@ const LOOPBACK_PORT = Number(process.env.GMAIL_OAUTH_PORT || 8787);
 
 const BLOCKED_METHODS = new Set([
   'gmail.messages.getBody',
+  'gmail.messages.get',
   'gmail.drafts.create',
   'gmail.drafts.update',
   'gmail.drafts.send',
   'gmail.users.messages.send',
   'gmail.users.messages.modify',
   'gmail.users.messages.trash',
+  'gmail.users.drafts.create',
+  'gmail.users.drafts.update',
+  'gmail.users.drafts.send',
 ]);
+
+const METADATA_HEADERS = ['Subject', 'From', 'To', 'Date'];
+const SNAPSHOT_PATH = path.join(ROOT, 'data', 'metadata-snapshot.json');
+
+function headersMap(payload) {
+  return Object.fromEntries((payload?.headers || []).map((h) => [h.name, h.value]));
+}
+
+function messageMetadataFromApi(message) {
+  const headers = headersMap(message.payload);
+  const labelIds = message.labelIds || [];
+  return {
+    id: message.id,
+    threadId: message.threadId,
+    labelIds,
+    subject: headers.Subject || '',
+    from: headers.From || '',
+    to: headers.To || '',
+    date: headers.Date || (message.internalDate ? new Date(Number(message.internalDate)).toISOString() : ''),
+    unread: labelIds.includes('UNREAD'),
+    snippet: message.snippet || '',
+    provider: 'gmail-metadata',
+  };
+}
 
 function defaultClientSecretsPath() {
   return path.resolve(ROOT, '../../secrets/gmail-oauth-client.json');
@@ -222,8 +250,7 @@ export async function gmailDraftsListMetadata({ maxResults = 10 } = {}) {
   });
 }
 
-export async function gmailMessagesSearchMetadata({ query = 'in:inbox', maxResults = 5 } = {}) {
-  const gmail = await getGmail();
+async function gmailMessagesMetadataRows(gmail, query, maxResults) {
   const res = await gmail.users.messages.list({ userId: 'me', q: query, maxResults });
   const messages = [];
   for (const row of res.data.messages || []) {
@@ -231,25 +258,144 @@ export async function gmailMessagesSearchMetadata({ query = 'in:inbox', maxResul
       userId: 'me',
       id: row.id,
       format: 'metadata',
-      metadataHeaders: ['Subject', 'From', 'Date'],
+      metadataHeaders: METADATA_HEADERS,
     });
-    const headers = Object.fromEntries(
-      (meta.data.payload?.headers || []).map((h) => [h.name, h.value]),
-    );
-    messages.push({
-      id: row.id,
-      threadId: meta.data.threadId,
-      labelIds: meta.data.labelIds || [],
-      snippet: meta.data.snippet || '',
-      subject: headers.Subject || '',
-      from: headers.From || '',
-      date: headers.Date || '',
-    });
+    messages.push(messageMetadataFromApi(meta.data));
   }
+  return messages;
+}
+
+export async function gmailMessagesListMetadata({ query = 'in:inbox', maxResults = 10 } = {}) {
+  const gmail = await getGmail();
+  const messages = await gmailMessagesMetadataRows(gmail, query, maxResults);
+  return envelope({
+    success: true,
+    method: 'gmail.messages.listMetadata',
+    payload: { query, count: messages.length, messages },
+  });
+}
+
+export async function gmailMessagesSearchMetadata({ query = 'in:inbox', maxResults = 5 } = {}) {
+  const gmail = await getGmail();
+  const messages = await gmailMessagesMetadataRows(gmail, query, maxResults);
   return envelope({
     success: true,
     method: 'gmail.messages.searchMetadata',
     payload: { query, count: messages.length, messages },
+  });
+}
+
+export async function gmailThreadsListMetadata({ query = 'in:inbox', maxResults = 10 } = {}) {
+  const gmail = await getGmail();
+  const res = await gmail.users.threads.list({ userId: 'me', q: query, maxResults });
+  const threads = [];
+  for (const row of res.data.threads || []) {
+    const thread = await gmail.users.threads.get({
+      userId: 'me',
+      id: row.id,
+      format: 'metadata',
+      metadataHeaders: METADATA_HEADERS,
+    });
+    const messages = (thread.data.messages || []).map(messageMetadataFromApi);
+    const head = messages[0] || {};
+    threads.push({
+      id: thread.data.id,
+      snippet: thread.data.snippet || head.snippet || '',
+      subject: head.subject || '',
+      from: head.from || '',
+      date: head.date || '',
+      unread: messages.some((entry) => entry.unread),
+      labelIds: [...new Set(messages.flatMap((entry) => entry.labelIds))],
+      messageIds: messages.map((entry) => entry.id),
+      messages,
+      provider: 'gmail-metadata',
+    });
+  }
+  return envelope({
+    success: true,
+    method: 'gmail.threads.listMetadata',
+    payload: { query, count: threads.length, threads },
+  });
+}
+
+export async function gmailThreadMetadata({ threadId } = {}) {
+  if (!threadId) {
+    return blocked('gmail.threads.getMetadata', 'threadId required');
+  }
+  const gmail = await getGmail();
+  const thread = await gmail.users.threads.get({
+    userId: 'me',
+    id: threadId,
+    format: 'metadata',
+    metadataHeaders: METADATA_HEADERS,
+  });
+  const messages = (thread.data.messages || []).map(messageMetadataFromApi);
+  return envelope({
+    success: true,
+    method: 'gmail.threads.getMetadata',
+    payload: {
+      id: thread.data.id,
+      snippet: thread.data.snippet || '',
+      messages,
+    },
+  });
+}
+
+export async function exportMetadataSnapshot({
+  maxThreads = 25,
+  maxMessages = 50,
+  threadQuery = 'in:inbox',
+  messageQuery = 'in:inbox',
+  outputPath = SNAPSHOT_PATH,
+} = {}) {
+  const profileResult = await gmailProfileGet();
+  const labelsResult = await gmailLabelsCounts();
+  const threadsResult = await gmailThreadsListMetadata({ query: threadQuery, maxResults: maxThreads });
+  const messagesResult = await gmailMessagesListMetadata({ query: messageQuery, maxResults: maxMessages });
+
+  const snapshot = {
+    accountEmail: profileResult.payload?.emailAddress || null,
+    generatedAt: new Date().toISOString(),
+    source: 'local-gmail-cli',
+    mode: 'metadata-only',
+    labels: Object.entries(labelsResult.payload?.counts || {}).map(([name, entry]) => ({
+      id: entry.id,
+      name,
+      type: entry.type,
+      messagesTotal: entry.messagesTotal,
+      messagesUnread: entry.messagesUnread,
+      threadsTotal: entry.threadsTotal,
+      threadsUnread: entry.threadsUnread,
+    })),
+    counts: labelsResult.payload?.counts || {},
+    threads: threadsResult.payload?.threads || [],
+    messages: messagesResult.payload?.messages || [],
+    warnings: [
+      'Metadata-only snapshot. Message bodies, attachments, OAuth tokens, and raw payloads are excluded.',
+      'Browser preview does not perform OAuth. Import this file manually after CLI export.',
+    ],
+    blockedCapabilities: [
+      'body_read',
+      'draft_write',
+      'send',
+      'provider_mutation',
+      'browser_oauth',
+    ],
+  };
+
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+
+  return envelope({
+    success: true,
+    method: 'gmail.exportMetadataSnapshot',
+    payload: {
+      outputPath,
+      threadCount: snapshot.threads.length,
+      messageCount: snapshot.messages.length,
+      labelCount: snapshot.labels.length,
+      snapshot,
+    },
   });
 }
 

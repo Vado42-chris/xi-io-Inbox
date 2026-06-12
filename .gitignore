@@ -1,2 +1,3 @@
 # Local operator secrets — never commit (OAuth clients, API keys)
 secrets/
+public/data/gmail-metadata.local.json
