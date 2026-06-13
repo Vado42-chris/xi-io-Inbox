@@ -36,8 +36,8 @@ Track whether `xi-io Inbox` satisfies, partially satisfies, is missing, is block
 | HYDRATE-BACKLOG-001 | product backlog readiness exists | partial | `docs/product/02-epic-story-backlog.md` | PLAN-001B details if needed | none for UI-004A.6 | use for UI-004A.6 |
 | HYDRATE-GATES-001 | build readiness gates exist | partial | `docs/product/04-build-readiness-gates.md` | update after each slice | active work | UI-004B is ready; maintain remaining blocked gates |
 | HYDRATE-COMPLIANCE-001 | compliance validation index exists | partial | `docs/product/06-compliance-validation-index.md` | future tool receipts and exact mappings | runtime/UI implementation | keep mapping pending where dependent |
-| HYDRATE-ROUTE-QUALITY-001 | route quality receipts exist for final UI | missing | none yet | desktop/mobile route receipts after UI polish | UI-004B+ | create route receipts during visual proof |
-| HYDRATE-AGENT-HANDOFF-001 | agent handoff packet exists | missing | none yet | build/pass handoff packet | PLAN-001B or later | defer unless UI-004A.6 reveals need |
+| HYDRATE-ROUTE-QUALITY-001 | route quality receipts exist for final UI | partial | `scripts/route-smoke.mjs`, `npm run check:route` | Playwright hash-route smoke in CI | owner UI-003E | extend scenarios per lane |
+| HYDRATE-AGENT-HANDOFF-001 | agent handoff packet exists | partial | `AGENTS.md`, `.cursor/rules/`, `npm run check:quick` | edit discipline + quick verify | agent session | use after external-storage timeout incidents |
 | HYDRATE-QA-MATRIX-001 | full QA matrix exists | missing | none yet | full QA matrix for implementation/runtime | PLAN-001B or later | defer until gates require |
 
 ## Hydration Rules

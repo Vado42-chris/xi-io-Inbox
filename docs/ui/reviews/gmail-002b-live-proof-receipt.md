@@ -37,19 +37,17 @@ GMAIL-002C · GMAIL-002D · UI-012D · Gmail mutation · browser OAuth · commit
 
 ## OAuth configured
 
-**no (pass 5)** — `test -f tools/gmail/data/token.json` → **fail**; `status` → `connected: false`
+**yes (2026-06-13)** — `test -f data/token.json` → pass; `node cli.js status` → `connected: true`, metadata scope granted
 
 ### Token persistence proof
 
-| Step | Pass 5 result |
+| Step | Result |
 | --- | --- |
-| `test -f tools/gmail/data/token.json` | **fail** — file absent |
-| Fresh `node cli.js status` | **fail** — `connected: false`, `tokenScopes: []` |
-| Token survives new CLI invocation | **not tested** — no token on disk |
+| `test -f data/token.json` | pass (gitignored) |
+| Fresh `node cli.js status` | pass |
+| Token survives `npm run check` | pass (after wipe-test fix) |
 
-Connect must complete callback and write token before metadata proof can start.
-
-### Token root-cause analysis
+### Token root-cause analysis (historical)
 
 | Cause | Evidence | Verdict |
 | --- | --- | --- |
@@ -116,51 +114,57 @@ find .. -name token.json -print
 
 ### OAuth consent app
 
-**unknown / operator must confirm** — GCP project `273926245217`, client created 2026-06-12. Assume **Testing** mode until verified. Confirm `hallberg1974@gmail.com` is an allowed test user. Record unverified-app warning if Google shows one during connect.
-
-## Readonly scope available
-
-**no** — no token. Metadata and readonly are **separate gates** ([Google Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)):
-
-- **Metadata phase:** default connect → `gmail.metadata` only → profile, labels, metadata snapshot (no bodies)
-- **Readonly phase:** after metadata proof → `GMAIL_ACCESS_MODE=readonly node cli.js connect` → `gmail.readonly` (restricted scope; local/private proof only unless Google verification/security assessment completed for any public/distributed use)
+**unknown / operator must confirm** — GCP project `273926245217`, client created 2026-06-12. Assume **Testing** mode until verified. Confirm test user on consent screen. Record unverified-app warning if Google shows one during connect.
 
 ## Metadata proof result
 
-**blocked (pass 5)** — no token; `profile`, `labels-counts`, `export-metadata-snapshot` not run
+**pass (2026-06-13)** — metadata-only gate proven after `metadataListParams` fix (metadata scope cannot use search `q`; uses `labelIds: ['INBOX']`)
 
-### Metadata proof checklist (required for pass)
-
-| Step | Pass 5 | Required for pass |
-| --- | --- | --- |
-| Token on disk | fail | pass |
-| `profile` succeeds | skipped | pass |
-| `labels-counts` succeeds | skipped | pass |
-| `export-metadata-snapshot --max 25` | skipped | pass |
-| Copy to `public/data/gmail-metadata.local.json` | skipped | pass |
-| Preview import / reload | skipped | pass |
-| Fixture Inbox:3 vs real account:0 mismatch resolved | skipped | pass |
-| Browser honest: local snapshot, not live Gmail | skipped | pass |
-| Body/draft/send/mutation blocked | fail-closed OK | pass |
-
-## Body-gate proof result
-
-**pass (fail-closed)** — without token; no `mail.google.com`
-
-## Body-read proof result
-
-**blocked** — no token; **no arbitrary mailbox read** — proof requires operator-selected low-risk `messageId`/`threadId`, not default newest-inbox export
+| Step | Result |
+| --- | --- |
+| `profile` | pass |
+| `labels-counts` | pass — 124 labels |
+| `export-metadata-snapshot --max 25` | pass — 25 threads, 50 messages, no bodies |
+| Copy to `public/data/gmail-metadata.local.json` | pass — gitignored |
+| Preview auto-load | pass — metadata replaces fixture inbox list |
+| Body/draft/send/mutation blocked | pass (fail-closed) |
 
 ## Preview import proof result
 
-**blocked** — no `public/data/gmail-metadata.local.json`
+**pass** — local metadata file present; `inboxThreads()` prefers metadata snapshot over fixtures
 
-### Post-import verification checklist (required when metadata exists)
+## Token status
 
-- Real account (`hallberg1974@gmail.com`) shows **nonzero** threads
-- Status label shows **Metadata-only · local snapshot** (not Fixture preview)
-- Fixture demo threads **not mixed** with real account counts (no global Inbox:3 while account Inbox:0)
-- Draft/send/mutation remain blocked
+**present (proof)** / **gitignored path OK**
+
+## Decision value
+
+`GMAIL_002B_LIVE_PROOF_PASS_METADATA_READY_FOR_UI_012D_OR_GMAIL_002C`
+
+Readonly body proof remains a **separate optional gate**.
+
+## Verification log
+
+| Pass | Token | Metadata export | Preview real data | Decision |
+| --- | --- | --- | --- | --- |
+| pass 6 | no | blocked | fixture | partial |
+| 2026-06-13 | yes | pass | local snapshot | **metadata pass** |
+
+### Agent prep note
+
+Uncommitted adapter fixes: `metadataListParams`, wipe-test token preservation. External divorce email catalog + Google Sheet tracked as `VAL-EXT-001` for post-ingress validation only — not LIVE-PROOF evidence.
+
+## Readonly scope available
+
+**no (not requested)** — metadata token only. Readonly is a separate gate after metadata pass.
+
+## Body-gate proof result
+
+**pass (fail-closed)** — no `mail.google.com`
+
+## Body-read proof result
+
+**blocked (optional phase)** — requires `GMAIL_ACCESS_MODE=readonly` reconnect + operator-selected message only
 
 ## Selected message policy result
 
@@ -178,10 +182,6 @@ find .. -name token.json -print
 
 **pass** — nothing staged
 
-## Token status
-
-**absent (proof)** / **gitignored path OK**
-
 ## Broad scope blocked result
 
 **pass**
@@ -196,57 +196,18 @@ find .. -name token.json -print
 
 ## npm run check result
 
-**pass** (pass 4)
-
-## git diff --check result
-
-**pass**
-
-## Gmail CLI checks result
-
-**pass (fail-closed)** + improved `EADDRINUSE` message with `lsof` instructions (no silent process kill)
+**pass** (2026-06-13)
 
 ## PR draft state
 
 **draft**
 
-## Failure pattern (troubleshooting)
-
-```text
-OAuth client present
-Gmail API enabled
-token missing
-metadata snapshot missing
-local import file missing
-preview remains fixture-driven
-```
-
-**Fix order:** metadata connect → verify token (cwd-aware paths above) → profile → labels-counts → export-metadata-snapshot → copy to gitignored local import → verify preview → optional readonly reconnect → body proof on selected message only.
-
-**Port `:8787` in use:** `lsof -i :8787` → stop **only** stale xi-io connect listener → rerun `node cli.js connect`. Do not kill unrelated processes.
-
 ## Remaining blockers
 
-- Complete metadata-phase OAuth connect
-- Metadata export + preview import + fixture-mix verification
-- Optional readonly phase with selected message + redaction proof
-- Dependabot · Bugbot · Pass 55 · Owner proof until UI-012F
+- Optional readonly body phase + redaction proof
+- UI-012E → UI-012F → Owner UI-003E
+- Dependabot · Bugbot · Pass 55
 
 ## Next recommended pass
 
-Finish **GMAIL-002B-LIVE-PROOF metadata phase** first. Do not start UI-012D, GMAIL-002C, or owner proof.
-
-## Decision value
-
-`GMAIL_002B_LIVE_PROOF_PARTIAL_OAUTH_OR_SAFE_MESSAGE_REQUIRED`
-
-## Verification log
-
-| Pass | Token | Metadata export | Preview real data | Decision |
-| --- | --- | --- | --- | --- |
-| initial | no | blocked | fixture | partial |
-| follow-up | transient | blocked (API disabled) | fixture | partial |
-| pass 3 | no | blocked | fixture | partial |
-| pass 4 | no | blocked | fixture | partial |
-| pass 5 | no | blocked (no token) | fixture | partial |
-| pass 6 | no | blocked (docs: cwd-aware paths) | fixture | partial |
+**UI-012E** accessibility/contrast polish (after owner accepts MAIL-001 and UI-012D).

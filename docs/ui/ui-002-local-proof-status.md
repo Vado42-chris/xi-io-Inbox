@@ -8,22 +8,18 @@ Track the local browser smoke proof and owner/framework UX review status for PR 
 
 ```text
 Technical render smoke proof: PASSED
-UI-005 human-operable shell: COMPLETE (UI-005A–I)
-UI-006 progressive disclosure IA: COMPLETE (UI-006A–F)
-UI-007 draft workbench Tier 1: COMPLETE (UI-007A–C, UI-007B-R1/R2/R3)
-Framework freshness backfeed: UI-007 COMPLETE (`xi-io.net#239` comment + framework note); UI-009 candidates documented locally (optional #239 comment on push)
-UI-009 product UX shell: COMPLETE (UI-009A–F)
-UI-010 product UX pass: COMPLETE (UI-010A–K)
-Merge-prep (owner re-review ready): COMPLETE — `docs/ui/reviews/ui-011-merge-prep-receipt.md`
-Agent structural re-verification (UI-003E packet): PASSED 2026-06-10
-Owner/framework UX review (preliminary): FAILED 2026-06-10
-Owner Inbox workbench review: FAIL 2026-06-10 (scaffold pass only; significant polish required)
-Owner visual proof (full UI-003E): FAIL
+UI-005–UI-011 capability + polish chain: COMPLETE locally
+NAV-001 + MAIL-001 + GMAIL-002B metadata live proof: COMPLETE (code)
+UI-012B–F visual polish: COMPLETE (code)
+Framework backfeed UI-012: COMPLETE (inbox + xi-io.net freshness note)
+Agent edit guardrails: COMPLETE (AGENTS.md, check:quick, .cursor/rules)
+Merge-prep packet: ui-012-merge-prep-receipt.md (pending owner PASS)
+Owner visual proof (UI-003E): PENDING — checklist in ui-003e-owner-visual-proof-packet.md
 Local visual proof complete: NO
-PR #12 merge readiness: BLOCKED
+PR #12 merge readiness: BLOCKED (draft)
 ```
 
-UI-009/010 address owner `UI_003E_FAIL_PRODUCT_UX_NOT_USER_FACING` themes (product shells, demoted jargon, real account wizard). **Owner re-review required** — do not mark visual proof complete until checklist in `ui-003e-owner-visual-proof-packet.md` passes.
+UI-012F addresses post–UI-009 polish gaps. **Owner UI-003E re-review required** — checklist in `ui-003e-owner-visual-proof-packet.md` (UI-012F + MAIL-001 section). Do not mark visual proof complete until owner signs PASS.
 
 ## Scope correction
 

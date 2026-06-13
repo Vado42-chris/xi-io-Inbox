@@ -86,4 +86,19 @@ UI_007A_DRAFT_WORKBENCH_ARCHITECTURE_COMPLETE
 
 ## Next Pass
 
-Operator push UI-006 (6 commits); owner visual checklist; UI-007B draft workbench; `xi-io.net#239` framework freshness.
+Owner **UI-003E** visual proof (human). Then operator push per `ui-012-merge-prep-receipt.md`.
+
+## UI-012F Addendum (2026-06-10)
+
+Agent structural verification after UI-012B–F + MAIL-001 + framework backfeed:
+
+| Check | Result |
+| --- | --- |
+| `npm run check` | pass |
+| `npm run check:quick` | pass |
+| `npm run check:route` | pass |
+| Model guards (acc, mail, ui012d, ui012e) | pass |
+| schemaVersion | 11 |
+| Owner UI-003E PASS | **not claimed** |
+
+Receipt chain: `ui-012f-final-visual-readiness-gate-receipt.md`. Owner checklist: UI-012F section in `ui-003e-owner-visual-proof-packet.md`.

@@ -38,7 +38,7 @@ Re-run UI-003E after UI-005A–I human-operable shell. This packet maps prelimin
 | Ibal wrong model | Concierge drawer; lane removed | `ui-005h-ibal-concierge-receipt.md` |
 | Account/session missing | Workspace/account preview shell | `ui-005i-account-session-receipt.md` |
 
-Storage: single key `xiioInbox.preview.state` schemaVersion `2`.
+Storage: single key `xiioInbox.preview.state` schemaVersion **11** (`shell`, `inbox.accountFilter`, drafts, sentEvents).
 
 ## Agent Structural Verification (2026-06-10)
 
@@ -96,7 +96,7 @@ Open `npm run dev` → `http://localhost:4488`. Sign each item PASS/FAIL.
 
 ### Persistence
 
-- [ ] Reload preserves `xiioInbox.preview.state` v3 (`drafts`, `sentEvents` namespaces)
+- [ ] Reload preserves `xiioInbox.preview.state` v**11** (namespaces include `shell`, drafts, sentEvents)
 - [ ] Clear per-lane does not wipe unrelated namespaces
 
 ### Still forbidden (must remain blocked)
@@ -173,6 +173,20 @@ See `docs/ui/reviews/ui-009-product-ux-gap-audit.md`.
 | Home/automations/extensions audit shell | Dashboard, rule flow, marketplace cards | `ui-010-product-ux-pass-receipt.md` |
 
 **Agent status:** UI-009A–F and UI-010A–K complete locally (uncommitted + prior commits). `npm run check` pass. **Not UI-003E PASS.**
+
+## Owner Re-Review Checklist (post UI-012F + MAIL-001)
+
+After `npm run dev` with optional local metadata snapshot:
+
+- [ ] Product-level header nav (Mail, Calendar, Tasks, …); account not in title bar
+- [ ] Mail account accordion: Inbox, smart views, Sent/Archive/Trash/Spam, labels
+- [ ] Thread list readable; metadata reading pane shows headers + body-unavailable banner
+- [ ] Fixture vs snapshot source chips visible
+- [ ] Skip link (Tab from load) → main lane; focus rings on nav + thread rows
+- [ ] Ibal proposal cards: proposed/blocked/saved borders distinct
+- [ ] Send/connect/mutation still blocked
+
+Receipt: `ui-012f-final-visual-readiness-gate-receipt.md`. Schema **11** (`xiioInbox.preview.state`).
 
 ## Owner Re-Review Checklist (post UI-009/010)
 

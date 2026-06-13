@@ -24,10 +24,11 @@ assert.match(js, /function integrationAccountCards\(/);
 assert.match(js, /draftWriteState: 'blocked'/);
 assert.match(js, /sendState: 'blocked'/);
 assert.match(js, /mutationState: 'blocked'/);
-assert.match(js, /data-mailbox-view="sent"/);
-assert.match(js, /data-mailbox-view="archive"/);
-assert.match(js, /data-mailbox-view="trash"/);
-assert.match(js, /data-mailbox-view="spam"/);
+assert.match(js, /function renderAccountMailboxButton\(/);
+assert.match(js, /view: 'sent'/);
+assert.match(js, /view: 'archive'/);
+assert.match(js, /view: 'trash'/);
+assert.match(js, /view: 'spam'/);
 assert.match(js, /function ibalMailContextLabel\(/);
 assert.match(js, /wipe-gmail-local-hint/);
 

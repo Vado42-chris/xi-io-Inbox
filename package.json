@@ -13,7 +13,15 @@
     "check:js": "node --check public/inbox-preview.js",
     "check:gmail": "npm run check --prefix tools/gmail",
     "check:acc": "node scripts/acc-001-model-check.mjs",
+    "check:mail": "node scripts/mail-001-model-check.mjs",
+    "check:ui012d": "node scripts/ui-012d-model-check.mjs",
+    "check:ui012e": "node scripts/ui-012e-model-check.mjs",
+    "check:quick": "node scripts/check-quick.mjs",
+    "check:route": "node scripts/route-smoke.mjs",
     "setup:gmail": "npm ci --prefix tools/gmail",
-    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:gmail"
+    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:mail && npm run check:ui012d && npm run check:ui012e && npm run check:route && npm run check:gmail"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
   }
 }

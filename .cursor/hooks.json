@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/post-edit-reminder.sh",
+        "timeout": 5
+      }
+    ]
+  }
+}

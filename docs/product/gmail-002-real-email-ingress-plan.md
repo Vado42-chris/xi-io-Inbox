@@ -87,11 +87,11 @@ Provider doc: `docs/providers/gmail/gmail-002b-readonly-body-gate.md`
 - Redacted body read/export CLI + preview import
 - Draft write, send, mutation remain blocked
 
-## GMAIL-002B-LIVE-PROOF — Operator live proof — **partial** (2026-06-12)
+## GMAIL-002B-LIVE-PROOF — Operator live proof — **metadata pass** (2026-06-13)
 
 Receipt: `docs/ui/reviews/gmail-002b-live-proof-receipt.md`
 
-Decision: `GMAIL_002B_LIVE_PROOF_PARTIAL_OAUTH_OR_SAFE_MESSAGE_REQUIRED`
+Decision: `GMAIL_002B_LIVE_PROOF_PASS_METADATA_READY_FOR_UI_012D_OR_GMAIL_002C`
 
 ### Two separate proof gates
 
@@ -149,6 +149,22 @@ OAuth client present → Gmail API enabled → token missing → snapshot missin
 Port conflict: `lsof -i :8787` — stop **only** stale xi-io connect listener; do not kill unrelated processes.
 
 - Live metadata/body/preview proof **not complete**
+
+### Future validation fixture — divorce email catalog (blocked)
+
+**ID:** `VAL-EXT-001` · **Status:** blocked until GMAIL-002B-LIVE-PROOF metadata phase passes
+
+A separate operator project (outside this repo) is cataloguing Gmail metadata into a **Google Sheet** for divorce/legal workflow. That work is **not** part of LIVE-PROOF and must not block or replace the canonical connect → export → preview sequence above.
+
+**After data ingress is complete**, capture from that external project for xi-io validation:
+
+| Artifact | Use in xi-io |
+| --- | --- |
+| Gmail metadata fields / labels used in catalog | Compare against `export-metadata-snapshot` schema and preview thread mapping |
+| Google Sheet column schema and row shape | Future render/import test case — ensure UI can represent cataloged dimensions honestly |
+| Sample redacted rows (never commit live mail) | Regression fixture for metadata-only display and label counts |
+
+**Rules:** same Gmail account may be in use elsewhere — keep OAuth tokens, exports, and scopes scoped per project; do not treat external catalog output as LIVE-PROOF evidence until peer-reviewed through the canonical operator path; optional post-ingress validation only.
 
 ## GMAIL-002B — Read-only body gate (detail)
 

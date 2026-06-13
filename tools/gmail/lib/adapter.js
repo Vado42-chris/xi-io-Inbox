@@ -54,6 +54,35 @@ const BLOCKED_METHODS = new Set([
 
 const METADATA_HEADERS = ['Subject', 'From', 'To', 'Date'];
 
+const METADATA_QUERY_LABELS = {
+  inbox: 'INBOX',
+  sent: 'SENT',
+  trash: 'TRASH',
+  spam: 'SPAM',
+  draft: 'DRAFT',
+  drafts: 'DRAFT',
+  starred: 'STARRED',
+  important: 'IMPORTANT',
+};
+
+/** Gmail metadata scope rejects search `q`; map inbox-style queries to labelIds. */
+export function metadataListParams({ query = 'in:inbox', maxResults = 10, labelIds } = {}) {
+  const params = { userId: 'me', maxResults };
+  if (labelIds?.length) {
+    params.labelIds = labelIds;
+    return params;
+  }
+  const normalized = String(query || '').trim().toLowerCase();
+  const inMatch = /^in:([a-z_]+)$/.exec(normalized);
+  if (inMatch) {
+    const label = METADATA_QUERY_LABELS[inMatch[1]] || inMatch[1].toUpperCase();
+    params.labelIds = [label];
+    return params;
+  }
+  params.labelIds = ['INBOX'];
+  return params;
+}
+
 function headersMap(payload) {
   return Object.fromEntries((payload?.headers || []).map((h) => [h.name, h.value]));
 }
@@ -380,7 +409,8 @@ export async function gmailDraftsListMetadata({ maxResults = 10 } = {}) {
 }
 
 async function gmailMessagesMetadataRows(gmail, query, maxResults) {
-  const res = await gmail.users.messages.list({ userId: 'me', q: query, maxResults });
+  const listParams = metadataListParams({ query, maxResults });
+  const res = await gmail.users.messages.list(listParams);
   const messages = [];
   for (const row of res.data.messages || []) {
     const meta = await gmail.users.messages.get({
@@ -416,7 +446,8 @@ export async function gmailMessagesSearchMetadata({ query = 'in:inbox', maxResul
 
 export async function gmailThreadsListMetadata({ query = 'in:inbox', maxResults = 10 } = {}) {
   const gmail = await getGmail();
-  const res = await gmail.users.threads.list({ userId: 'me', q: query, maxResults });
+  const listParams = metadataListParams({ query, maxResults });
+  const res = await gmail.users.threads.list(listParams);
   const threads = [];
   for (const row of res.data.threads || []) {
     const thread = await gmail.users.threads.get({

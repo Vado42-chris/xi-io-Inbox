@@ -176,7 +176,7 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] UI-010J–K: week strip, Ibal/compose polish, mail density, JSON lane demotion (`docs/ui/reviews/ui-010-product-ux-pass-receipt.md`).
 - [x] GMAIL-001B: real account metadata spike plan + adapter contract (`docs/providers/gmail/gmail-001b-receipt.md`).
 - [x] GMAIL-001C: local metadata-only adapter CLI (`docs/providers/gmail/gmail-001c-metadata-adapter-receipt.md`).
-- [ ] GMAIL-001C smoke: owner OAuth client in `secrets/` + `node cli.js connect` + labels-counts (metadata only).
+- [ ] GMAIL-001C smoke: owner OAuth + metadata CLI — **partial** · live proof metadata export verified locally; formal GMAIL-001C receipt smoke still optional
 - [ ] GMAIL-001D: draft create/update spike (throwaway account preferred; send still blocked).
 - [ ] Owner approval before primary-account metadata API smoke.
 - [ ] UI-010+ product UI provider connect — after GMAIL-001C + UI-009A wizard shell.
@@ -204,12 +204,17 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] GMAIL-002A-HARDEN metadata adapter hardening — `docs/ui/reviews/gmail-002a-hardening-receipt.md`.
 - [x] GMAIL-002B read-only body gate — `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md`.
 - [x] ACC-001 account/mail organization UX — `docs/ui/reviews/acc-001-account-mail-organization-ux-receipt.md`.
-- [ ] GMAIL-002B-LIVE-PROOF — **partial** · metadata phase first · `node cli.js connect` only (no auth URLs in docs) · token missing (timeout/port conflict likely) · see receipt troubleshooting
-- [ ] UI-012D interaction / state polish — **after live proof pass or owner accepts partial blocker**.
-- [ ] UI-012E accessibility / contrast / focus polish.
-- [ ] UI-012F final visual readiness gate.
-- [ ] UI-003E owner visual proof — **blocked until UI-012F**.
-- [ ] Merge-prep final after owner UI-003E PASS.
+- [x] GMAIL-002B-LIVE-PROOF metadata phase — `docs/ui/reviews/gmail-002b-live-proof-receipt.md` · decision `GMAIL_002B_LIVE_PROOF_PASS_METADATA_READY_FOR_UI_012D_OR_GMAIL_002C`
+- [x] MAIL-001 mail workspace IA/template repair — `docs/ui/reviews/mail-001-mail-workspace-ia-template-repair-receipt.md` · **owner visual review pending**
+- [ ] VAL-EXT-001 — **blocked** · post-ingress divorce catalog + Google Sheet validation fixture
+- [x] UI-012D interaction / state polish — `docs/ui/reviews/ui-012d-interaction-state-polish-receipt.md` · code pass
+- [x] UI-012E accessibility / contrast / focus polish — `docs/ui/reviews/ui-012e-accessibility-contrast-focus-receipt.md` · code pass
+- [x] UI-012F final visual readiness gate — `docs/ui/reviews/ui-012f-final-visual-readiness-gate-receipt.md`
+- [x] Agent edit guardrails — `AGENTS.md`, `.cursor/rules/`, `.cursor/hooks.json`, `npm run check:quick`
+- [x] `xi-io.net#239` UI-012/NAV/MAIL framework backfeed — `docs/ui/reviews/ui-012-framework-freshness-239-receipt.md`
+- [x] Route smoke automation — `scripts/route-smoke.mjs` · `npm run check:route` · CI
+- [ ] UI-003E owner visual proof — **ready for human** (PR #12 draft)
+- [ ] Merge-prep final after owner UI-003E PASS — `docs/ui/reviews/ui-012-merge-prep-receipt.md` prepared
 
 ## Pass 4: runtime skeleton
 
@@ -227,4 +232,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-12): GMAIL-002B-LIVE-PROOF partial (token missing). **1 pass** to finish live proof after OAuth connect. Then **UI-012D** (~1) · **UI-012E–F** (~2) · xi-io.net backfeed (~1). Owner UI-003E blocked until UI-012F. PR #12 draft. **~5 passes** to merge-ready after owner PASS + live proof pass.
+Current estimated work (2026-06-10): UI-012B–F **pass** · route smoke **pass** · framework backfeed **pass**. Next: **UI-003E** owner proof (human) → merge prep (~1 pass after PASS). PR #12 draft.

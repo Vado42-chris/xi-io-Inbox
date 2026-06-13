@@ -148,6 +148,7 @@ const state = {
   drafts: defaultDraftsOps(),
   sentEvents: defaultSentEventsOps(),
   activity: defaultActivityOps(),
+  shell: defaultShellOps(),
 };
 
 const ACTIVITY_FILTERS = [
@@ -387,6 +388,13 @@ function defaultActivityOps() {
   };
 }
 
+function defaultShellOps() {
+  return {
+    contextSubNav: null,
+    contextSubNavByWorkspace: {},
+  };
+}
+
 function migrateActivityOps(activity) {
   return {
     ...defaultActivityOps(),
@@ -428,6 +436,13 @@ function previewStateEnvelope() {
     drafts: state.drafts,
     sentEvents: state.sentEvents,
     activity: state.activity,
+    shell: {
+      contextSubNav: activeContextSubNav,
+      contextSubNavByWorkspace: {
+        ...(state.shell?.contextSubNavByWorkspace || {}),
+        ...(activeProductWorkspace() ? { [activeProductWorkspace()]: activeContextSubNav } : {}),
+      },
+    },
   };
 }
 
@@ -512,6 +527,11 @@ function applyPreviewEnvelope(stored) {
     receipts: stored.sentEvents?.receipts || [],
   };
   state.activity = migrateActivityOps(stored.activity);
+  state.shell = {
+    ...defaultShellOps(),
+    ...(stored.shell || {}),
+    contextSubNavByWorkspace: stored.shell?.contextSubNavByWorkspace || {},
+  };
   if (state.laneId === IBAL_LEGACY_LANE) {
     state.laneId = DEFAULT_LANE;
     state.focusId = defaultFocusIdForLane(DEFAULT_LANE);
@@ -524,6 +544,12 @@ function applyPreviewEnvelope(stored) {
   state.automations.formOpen = false;
   state.extensions.formOpen = false;
   state.settings.formOpen = false;
+  const workspace = activeProductWorkspace();
+  if (workspace && Object.prototype.hasOwnProperty.call(state.shell.contextSubNavByWorkspace, workspace)) {
+    activeContextSubNav = state.shell.contextSubNavByWorkspace[workspace];
+  } else {
+    activeContextSubNav = state.shell.contextSubNav ?? null;
+  }
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
   seedSampleDraftsIfNeeded();
@@ -1030,7 +1056,7 @@ function countMailThreads(options = {}) {
   const { mailboxView, accountFilter, labelFilter, folderId } = options;
   return baseThreadsForFilters().filter((thread) => {
     if (accountFilter && !threadMatchesAccountFilter(thread, accountFilter)) return false;
-    if (labelFilter && !(thread.labels || []).includes(labelFilter)) return false;
+    if (labelFilter && !(thread.labels || []).map((entry) => String(entry).toLowerCase()).includes(String(labelFilter).toLowerCase())) return false;
     if (folderId && thread.folder !== folderId) return false;
     const mailbox = threadMailbox(thread);
     const view = mailboxView || 'inbox';
@@ -1062,7 +1088,7 @@ function threadsForMailboxView() {
   const folderFilter = state.inbox.folderFilter;
   return baseThreadsForFilters().filter((thread) => {
     if (accountFilter && !threadMatchesAccountFilter(thread, accountFilter)) return false;
-    if (labelFilter && !(thread.labels || []).includes(labelFilter)) return false;
+    if (labelFilter && !(thread.labels || []).map((entry) => String(entry).toLowerCase()).includes(String(labelFilter).toLowerCase())) return false;
     if (folderFilter && thread.folder !== folderFilter) return false;
     const mailbox = threadMailbox(thread);
     if (MAIL_SYSTEM_VIEWS.includes(view) && ['sent', 'archive', 'trash', 'spam'].includes(view)) {
@@ -2571,6 +2597,69 @@ function integrationAccountCards() {
     }));
 }
 
+function metadataSnapshotAccountId(snapshot = gmailMetadataSnapshot) {
+  const email = snapshot?.accountEmail;
+  if (!email) return 'gmail-metadata-bridge';
+  return `gmail-${email.replace(/[^a-z0-9]+/gi, '-')}`;
+}
+
+function formatMailDate(value) {
+  if (!value) return '';
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    const text = String(value);
+    return text.length > 18 ? `${text.slice(0, 16)}…` : text;
+  }
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(parsed);
+}
+
+function threadSourceBadge(thread) {
+  if (thread?.metadataOnly || thread?.providerSource === 'gmail-metadata') return 'Local snapshot';
+  if (thread?.tags?.includes('metadata_snapshot')) return 'Local snapshot';
+  return 'Fixture preview';
+}
+
+function mailNavIcon(kind) {
+  const icons = {
+    account: '◎',
+    inbox: '▾',
+    unread: '●',
+    needsReply: '↩',
+    draftLinked: '✎',
+    sent: '→',
+    archive: '▣',
+    trash: '⌫',
+    spam: '!',
+    label: '#',
+    snapshot: '◈',
+  };
+  return icons[kind] || '·';
+}
+
+function mailUserLabelsForAccount(accountId) {
+  if (!gmailMetadataBridgeActive() || metadataSnapshotAccountId() !== accountId) return [];
+  const system = new Set(['CHAT', 'SENT', 'INBOX', 'TRASH', 'DRAFT', 'SPAM', 'UNREAD', 'STARRED', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS']);
+  return metadataSnapshotLabels().filter((entry) => entry.id && !system.has(String(entry.id).toUpperCase()));
+}
+
+function renderAccountMailboxButton({ accountId, view, label, count, icon, smartView = null }) {
+  const mailbox = view || 'inbox';
+  const smartActive = smartView && activeContextSubNav === smartView && state.inbox.accountFilter === accountId;
+  const mailboxActive = !smartView
+    && state.inbox.accountFilter === accountId
+    && (state.inbox.mailboxView || 'inbox') === mailbox
+    && !state.inbox.labelFilter;
+  const active = smartActive || mailboxActive;
+  const action = smartView ? 'select-account-smart' : 'select-account-mailbox';
+  const smartAttr = smartView ? ` data-smart-view="${escapeHtml(smartView)}"` : '';
+  return `
+    <button class="context-nav-item mail-nav-mailbox ${active ? 'is-active' : ''}" type="button" data-inbox-action="${action}" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="${escapeHtml(mailbox)}"${smartAttr} aria-current="${active ? 'page' : 'false'}">
+      <span class="mail-nav-item-label"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon(icon || mailbox)}</span>${escapeHtml(label)}</span>
+      <strong>${count ?? ''}</strong>
+    </button>
+  `;
+}
+
 function groupThreadsByAccount(threads) {
   const groups = new Map();
   for (const thread of threads) {
@@ -2628,20 +2717,42 @@ function renderGroupedMailThreadList(threads, selected) {
 
 function renderMailAccountAccordion(account) {
   const accountId = account.accountId;
-  const open = state.inbox.accountFilter === accountId || !state.inbox.accountFilter;
+  const open = state.inbox.accountFilter === accountId || (gmailMetadataBridgeActive() && metadataSnapshotAccountId() === accountId) || !state.inbox.accountFilter;
   const inboxCount = countMailThreads({ mailboxView: 'inbox', accountFilter: accountId });
+  const unreadCount = baseThreadsForFilters().filter((thread) => thread.accountId === accountId && thread.unread).length;
+  const needsReplyCount = countMailThreads({ mailboxView: 'needs-reply', accountFilter: accountId });
+  const draftLinkedCount = baseThreadsForFilters().filter((thread) => thread.accountId === accountId && draftForThread(thread.id)).length;
+  const userLabels = mailUserLabelsForAccount(accountId);
+  const labelRows = userLabels.slice(0, 40).map((entry) => `
+    <button class="context-nav-item mail-nav-label ${state.inbox.labelFilter === entry.id && state.inbox.accountFilter === accountId ? 'is-active' : ''}" type="button" data-inbox-action="select-account-label" data-account-id="${escapeHtml(accountId)}" data-label-id="${escapeHtml(entry.id)}" aria-current="${state.inbox.labelFilter === entry.id && state.inbox.accountFilter === accountId ? 'page' : 'false'}">
+      <span class="mail-nav-item-label"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('label')}</span>${escapeHtml(entry.label)}</span>
+      <strong>${entry.count ?? ''}</strong>
+    </button>
+  `).join('');
   return `
     <details class="mail-account-accordion" ${open ? 'open' : ''}>
       <summary class="mail-account-accordion-summary">
-        <span>${escapeHtml(account.displayName)}</span>
+        <span class="mail-nav-item-label"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('account')}</span>${escapeHtml(account.displayName || account.email)}</span>
         <span class="mail-account-mode">${escapeHtml(accountModeLabel(account))}</span>
       </summary>
       <div class="mail-account-mailboxes">
-        <button class="context-nav-item ${state.inbox.accountFilter === accountId && (state.inbox.mailboxView || 'inbox') === 'inbox' ? 'is-active' : ''}" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="inbox"><span>Inbox</span><strong>${inboxCount}</strong></button>
-        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="sent"><span>Sent</span><strong>${countMailThreads({ mailboxView: 'sent', accountFilter: accountId })}</strong></button>
-        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="archive"><span>Archive</span><strong>${countMailThreads({ mailboxView: 'archive', accountFilter: accountId })}</strong></button>
-        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="trash"><span>Trash</span><strong>${countMailThreads({ mailboxView: 'trash', accountFilter: accountId })}</strong></button>
-        <button class="context-nav-item" type="button" data-inbox-action="select-account-mailbox" data-account-id="${escapeHtml(accountId)}" data-mailbox-view="spam"><span>Spam</span><strong>${countMailThreads({ mailboxView: 'spam', accountFilter: accountId })}</strong></button>
+        ${renderAccountMailboxButton({ accountId, view: 'inbox', label: 'Inbox', count: inboxCount, icon: 'inbox' })}
+        ${renderAccountMailboxButton({ accountId, view: 'inbox', label: 'Unread', count: unreadCount, icon: 'unread', smartView: 'mail-unread' })}
+        ${renderAccountMailboxButton({ accountId, view: 'needs-reply', label: 'Needs reply', count: needsReplyCount, icon: 'needsReply' })}
+        ${renderAccountMailboxButton({ accountId, view: 'inbox', label: 'Draft-linked', count: draftLinkedCount, icon: 'draftLinked', smartView: 'mail-draft-linked' })}
+        ${renderAccountMailboxButton({ accountId, view: 'sent', label: 'Sent', count: countMailThreads({ mailboxView: 'sent', accountFilter: accountId }), icon: 'sent' })}
+        ${renderAccountMailboxButton({ accountId, view: 'archive', label: 'Archive', count: countMailThreads({ mailboxView: 'archive', accountFilter: accountId }), icon: 'archive' })}
+        ${renderAccountMailboxButton({ accountId, view: 'trash', label: 'Trash', count: countMailThreads({ mailboxView: 'trash', accountFilter: accountId }), icon: 'trash' })}
+        ${renderAccountMailboxButton({ accountId, view: 'spam', label: 'Spam', count: countMailThreads({ mailboxView: 'spam', accountFilter: accountId }), icon: 'spam' })}
+        ${userLabels.length ? `
+          <details class="mail-label-group" ${state.inbox.labelFilter ? 'open' : ''}>
+            <summary class="mail-label-group-summary"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('label')}</span>Labels (${userLabels.length})</summary>
+            <div class="mail-label-group-body">${labelRows}${userLabels.length > 40 ? '<p class="form-hint">Showing first 40 labels from snapshot.</p>' : ''}</div>
+          </details>
+        ` : ''}
+        ${account.syncState === 'metadata_snapshot' || account.syncState === 'readonly_body_snapshot' ? `
+          <p class="form-hint mail-nav-hint"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('snapshot')}</span>${escapeHtml(metadataBridgeStatusLabel() || 'Imported snapshot account')}</p>
+        ` : ''}
       </div>
     </details>
   `;
@@ -3633,7 +3744,7 @@ function mapMetadataThreadToPreview(thread, index) {
   const subject = head.subject || thread.subject || thread.snippet || '(no subject)';
   return {
     id: `gmail-metadata:${thread.id || head.threadId || index}`,
-    accountId: selectedAccountFixture()?.accountId || 'gmail-metadata-bridge',
+    accountId: metadataSnapshotAccountId(),
     mailbox: 'inbox',
     unread: Boolean(thread.unread ?? head.unread),
     sender: sender.replace(/<[^>]+>/, '').trim() || sender,
@@ -3701,6 +3812,7 @@ function applyMetadataSnapshotToAccounts(snapshot) {
     state.account.previewAccounts = [...allPreviewAccounts(), row];
   }
   state.account.activeAccountId = accountId;
+  state.inbox.accountFilter = accountId;
 }
 
 function addMetadataBridgeReceipt({ type, title, summary, limitations }) {
@@ -4855,53 +4967,13 @@ function renderProductLevelNav() {
 }
 
 function renderMailContextNav() {
-  const meta = mailLayoutMeta();
-  const activeView = state.inbox.mailboxView || 'inbox';
   const searchQuery = (state.inbox.mailSearchQuery || '').trim();
-  const unreadCount = baseThreadsForFilters().filter((thread) => threadMailbox(thread) === 'inbox' && thread.unread).length;
-  const draftLinkedCount = baseThreadsForFilters().filter((thread) => threadMailbox(thread) === 'inbox' && draftForThread(thread.id)).length;
-  const inboxActive = activeView === 'inbox' && !state.inbox.labelFilter && !state.inbox.accountFilter && !state.inbox.folderFilter
-    && !['mail-unread', 'mail-draft-linked', 'mail-search-results'].includes(activeContextSubNav);
-  const smartViews = (inboxLayoutSection().views || []).filter((view) => {
-    const viewId = mailboxViewId(view.label);
-    return !['drafts', 'sent', 'archive', 'trash', 'spam', 'approval-queue'].includes(viewId);
-  });
+  const accounts = allMailAccounts();
   return `
-    ${renderContextNavSection('Mail accounts', allMailAccounts().map((account) => renderMailAccountAccordion(account)).join('') || '<p class="form-hint mail-nav-hint">No mail accounts yet. Add Gmail in Settings.</p>')}
-    ${renderContextNavSection('Mail', [
-      contextNavButton('All accounts', 'mail-accounts', allMailAccounts().length, activeContextSubNav === 'mail-accounts'),
-      contextNavButton('Inbox', 'mail-inbox', countMailThreads({ mailboxView: 'inbox' }), inboxActive),
-      contextNavButton('Unread', 'mail-unread', unreadCount, activeContextSubNav === 'mail-unread'),
-      contextNavButton('Needs reply', 'mail-needs-reply', countMailThreads({ mailboxView: 'needs-reply' }), activeView === 'needs-reply'),
-      contextNavButton('Draft-linked', 'mail-draft-linked', draftLinkedCount, activeContextSubNav === 'mail-draft-linked'),
-      contextNavButton('Search results', 'mail-search-results', searchQuery ? threadsForMailboxView().length : null, Boolean(searchQuery) || activeContextSubNav === 'mail-search-results'),
-    ].join(''))}
-    ${smartViews.length ? renderContextNavSection('Views', smartViews.map((view) => {
-    const viewId = mailboxViewId(view.label);
-    return `<button class="context-nav-item ${activeView === viewId && !state.inbox.labelFilter ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="${escapeHtml(viewId)}"><span>${escapeHtml(view.label)}</span><strong>${view.count ?? countMailThreads({ mailboxView: viewId })}</strong></button>`;
-  }).join('')) : ''}
-    ${meta.labels.length ? renderContextNavSection('Labels', meta.labels.map((entry) => `
-      <button class="context-nav-item ${state.inbox.labelFilter === entry.id ? 'is-active' : ''}" type="button" data-inbox-action="select-label-filter" data-label-id="${escapeHtml(entry.id)}">
-        <span>${escapeHtml(entry.label)}</span>
-        <strong>${entry.count ?? countMailThreads({ labelFilter: entry.id, mailboxView: 'inbox' })}</strong>
-      </button>
-    `).join('')) : ''}
-    ${meta.folders.length ? renderContextNavSection('Folders', meta.folders.map((folder) => `
-      <button class="context-nav-item ${state.inbox.folderFilter === folder.id ? 'is-active' : ''}" type="button" data-inbox-action="select-folder-filter" data-folder-id="${escapeHtml(folder.id)}">
-        <span>${escapeHtml(folder.label)}</span>
-        <strong>${folder.count ?? countMailThreads({ folderId: folder.id, mailboxView: 'inbox' })}</strong>
-      </button>
-    `).join('')) : ''}
-    ${renderContextNavSection('System mailboxes (all)', [
-      `<button class="context-nav-item ${activeView === 'sent' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="sent"><span>Sent</span><strong>${countMailThreads({ mailboxView: 'sent' })}</strong></button>`,
-      `<button class="context-nav-item ${activeView === 'archive' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="archive"><span>Archive</span><strong>${countMailThreads({ mailboxView: 'archive' })}</strong></button>`,
-      `<button class="context-nav-item ${activeView === 'trash' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="trash"><span>Trash</span><strong>${countMailThreads({ mailboxView: 'trash' })}</strong></button>`,
-      `<button class="context-nav-item ${activeView === 'spam' ? 'is-active' : ''}" type="button" data-inbox-action="select-mailbox-view" data-mailbox-view="spam"><span>Spam</span><strong>${countMailThreads({ mailboxView: 'spam' })}</strong></button>`,
-    ].join(''))}
-    ${gmailMetadataBridgeActive() || gmailBodyBridgeActive() ? renderContextNavSection('Imported snapshots', [
-      gmailMetadataBridgeActive() ? `<p class="form-hint mail-nav-hint">${escapeHtml(metadataBridgeStatusLabel())}</p>` : '',
-      gmailBodyBridgeActive() ? `<p class="form-hint mail-nav-hint">${escapeHtml(metadataBridgeStatusLabel())}</p>` : '',
-    ].filter(Boolean).join('')) : ''}
+    ${renderContextNavSection('Mail accounts', accounts.map((account) => renderMailAccountAccordion(account)).join('') || '<p class="form-hint mail-nav-hint">No mail accounts yet. Connect Gmail via local CLI, then import a metadata snapshot.</p>')}
+    ${searchQuery ? renderContextNavSection('Search', contextNavButton('Search results', 'mail-search-results', threadsForMailboxView().length, true)) : ''}
+    ${gmailMetadataBridgeActive() ? renderContextNavSection('Imported snapshots', `<p class="form-hint mail-nav-hint"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('snapshot')}</span>${escapeHtml(metadataBridgeStatusLabel())} · not live Gmail</p>`) : ''}
+    ${!gmailMetadataBridgeActive() ? renderContextNavSection('Preview source', '<p class="form-hint mail-nav-hint">Fixture preview mail until a local metadata snapshot is imported.</p>') : ''}
   `;
 }
 
@@ -5481,6 +5553,57 @@ function renderDraftReadingPane(draft) {
   `;
 }
 
+function renderMailWorkspaceHeader() {
+  const account = state.inbox.accountFilter ? mailAccountById(state.inbox.accountFilter) : selectedAccountFixture();
+  const bridge = metadataBridgeStatusLabel();
+  return `
+    <header class="mail-workspace-head">
+      <div>
+        <p class="mail-workspace-eyebrow">✉ Mail workspace</p>
+        <h2 class="mail-workspace-title">${escapeHtml(mailViewTitle())}</h2>
+        <p class="mail-workspace-subtitle">${escapeHtml(account?.displayName || account?.email || 'All accounts')} · ${escapeHtml(bridge || environmentStatusBadge())}</p>
+      </div>
+      <div class="mail-workspace-badges">
+        ${gmailMetadataBridgeActive() ? '<span class="mail-source-badge is-metadata">Metadata-only</span>' : '<span class="mail-source-badge is-fixture">Fixture preview</span>'}
+        ${gmailBodyBridgeActive() ? '<span class="mail-source-badge is-body">Read-only body snapshot</span>' : '<span class="mail-source-badge is-body-blocked">Body not imported</span>'}
+        <span class="mail-source-badge is-blocked">Send blocked</span>
+      </div>
+    </header>
+  `;
+}
+
+function renderMetadataReadingPane(thread) {
+  const threadId = thread?.id || '';
+  return `
+    <section class="inbox-reading-pane mail-reading-pane is-metadata-only" aria-label="Metadata-only message view">
+      <header class="mail-reading-head">
+        <p class="mail-reading-eyebrow">Metadata-only · local snapshot · not live Gmail</p>
+        <h3>${escapeHtml(demoteMailDisplayText(thread.title))}</h3>
+        <p class="inbox-reading-meta">${escapeHtml(demoteMailDisplayText(thread.sender || ''))} · ${escapeHtml(formatMailDate(thread.receivedAt))}</p>
+      </header>
+      <div class="mail-body-status-banner is-metadata" role="status">
+        Body not imported yet. This pane shows headers and snippet from a metadata-only snapshot. Import a read-only body snapshot via local CLI to preview sanitized body text.
+      </div>
+      <dl class="thread-metadata-grid mail-metadata-grid">
+        <div><dt>From</dt><dd>${escapeHtml(demoteMailDisplayText(thread.sender || ''))}</dd></div>
+        <div><dt>Date</dt><dd>${escapeHtml(formatMailDate(thread.receivedAt))}</dd></div>
+        <div><dt>Source</dt><dd>${escapeHtml(threadSourceBadge(thread))}</dd></div>
+        <div><dt>Body status</dt><dd>Metadata-only · body unavailable</dd></div>
+        ${(thread.detailFields || []).map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(demoteMailDisplayText(field.value))}</dd></div>`).join('')}
+      </dl>
+      ${renderMailLabelChips(thread.labels)}
+      <p class="mail-metadata-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
+      <div class="mail-reading-actions" role="toolbar" aria-label="Metadata message actions">
+        <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(threadId)}">Create task</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Requires GMAIL_ACCESS_MODE=readonly connect">Import body snapshot (CLI)</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Draft write blocked">Draft reply blocked</button>
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Send blocked">Send blocked</button>
+      </div>
+    </section>
+  `;
+}
+
 function renderInboxReadingPane(layoutSection, threadOverride) {
   const thread = threadOverride || selectedInboxThread();
   const threadId = thread?.id || '';
@@ -5493,10 +5616,13 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
   }
   if (!thread) {
     return `
-      <section class="inbox-reading-pane is-empty" aria-label="Message reading pane">
-        <p class="inbox-empty-state">Select a conversation to read and reply.</p>
+      <section class="inbox-reading-pane is-empty mail-reading-pane" aria-label="Message reading pane">
+        <p class="inbox-empty-state is-interactive-hint">Select a conversation to preview headers${gmailMetadataBridgeActive() ? ' from the local metadata snapshot' : ''}.</p>
       </section>
     `;
+  }
+  if (thread.metadataOnly && !gmailBodyBridgeActive()) {
+    return renderMetadataReadingPane(thread);
   }
   return `
     <section class="inbox-reading-pane mail-reading-pane" aria-label="Message reading pane">
@@ -5574,24 +5700,23 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
 
 function renderThreadListRow(thread, selected) {
   const unread = thread.unread === true;
-  const accountLabel = accountLabelForThread(thread);
+  const sourceBadge = threadSourceBadge(thread);
+  const bodyState = thread.metadataOnly ? 'Body unavailable' : 'Preview body';
   return `
-    <button class="thread-row ${selected?.id === thread.id ? 'is-selected' : ''} ${unread ? 'is-unread' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
+    <button class="thread-row mail-thread-row ${selected?.id === thread.id ? 'is-selected' : ''} ${unread ? 'is-unread' : ''} ${thread.metadataOnly ? 'is-metadata-only' : 'is-fixture'}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
       <div class="thread-row-main">
         <div class="thread-row-top">
           <strong class="thread-sender">${escapeHtml(demoteMailDisplayText(thread.sender || thread.title))}</strong>
-          <time class="thread-time">${escapeHtml(thread.receivedAt || '')}</time>
+          <time class="thread-time" datetime="${escapeHtml(thread.receivedAt || '')}">${escapeHtml(formatMailDate(thread.receivedAt))}</time>
         </div>
         <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
         <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
-        ${renderMailLabelChips(thread.labels)}
-        ${accountLabel ? `<span class="thread-account-badge">${escapeHtml(accountLabel)}</span>` : ''}
-        ${thread.integrationSource ? `<span class="thread-integration-badge">${escapeHtml(label(thread.integrationSource))} integration</span>` : ''}
       </div>
       <div class="thread-row-meta">
-        ${threadHasAttachmentIndicator(thread) ? '<span class="thread-attachment-indicator" title="Has attachment">Attach</span>' : ''}
-        ${renderLocalTriageChip(thread.id)}
-        ${renderThreadStatusChip(thread.state || 'needs_review')}
+        <span class="thread-source-chip">${escapeHtml(sourceBadge)}</span>
+        ${unread ? '<span class="thread-state-chip is-unread">Unread</span>' : ''}
+        ${thread.metadataOnly ? '<span class="thread-state-chip is-metadata">Meta</span>' : ''}
+        ${renderThreadStatusChip(thread.state || 'preview_only')}
       </div>
     </button>
   `;
@@ -5648,9 +5773,9 @@ function renderInboxWorkspace() {
             : 'No conversations in this view.';
   return `
     <div class="inbox-workspace is-mail-workbench">
+      ${renderMailWorkspaceHeader()}
       ${renderInboxToolbar()}
       ${mailboxView === 'approval-queue' ? renderApprovalQueueToolbar() : ''}
-      <p class="mail-view-heading">${escapeHtml(listLabel)}${state.inbox.mailSearchQuery ? ` · searching “${escapeHtml(state.inbox.mailSearchQuery)}”` : ''}</p>
       <div class="inbox-workspace-grid mail-workbench-center">
         <div class="thread-list-panel mail-list-pane" aria-label="${escapeHtml(listLabel)}">
           ${mailboxView === 'drafts' || mailboxView === 'approval-queue' ? (
@@ -5659,7 +5784,7 @@ function renderInboxWorkspace() {
       : `<p class="lane-empty-state">${mailboxView === 'approval-queue'
         ? 'No drafts in approval queue. Submit a draft from the Drafts view.'
         : 'No drafts yet. Compose or reply to create a local draft object.'}</p>`
-  ) : visibleThreads.length ? renderGroupedMailThreadList(visibleThreads, selected) : `<p class="lane-empty-state">${emptyMessage}</p>`}
+  ) : visibleThreads.length ? renderGroupedMailThreadList(visibleThreads, selected) : `<p class="lane-empty-state is-interactive-hint">${emptyMessage}</p>`}
         </div>
         <div class="mail-reading-stack">
           ${renderInboxReadingPane({ ...layoutSection, threads: visibleThreads }, selected)}
@@ -8057,18 +8182,11 @@ function renderSettingsReadingPane() {
 }
 
 function renderSettingsWorkspace() {
-  const selectedKey = state.settings.selectedKey;
-  const renderNavRow = (section) => `
-    <button class="settings-list-row ${selectedKey === section.id ? 'is-selected' : ''}" type="button" data-settings-action="select-section" data-settings-key="${escapeHtml(section.id)}" data-inspector-focus="${escapeHtml(section.id === 'user:profile' ? 'settings:local:preferences' : `settings:local:${section.id.replace(':', '-')}`)}">
-      <span class="settings-list-badge">${escapeHtml(section.badge)}</span>
-      <div><strong>${escapeHtml(section.label)}</strong><p>${escapeHtml(section.summary)}</p></div>
-    </button>
-  `;
   return `
     <div class="lane-workspace settings-workspace">
       <header class="settings-page-head">
         <h3 class="settings-page-title">Settings</h3>
-        <p class="settings-page-subtitle">User app preferences first. Provider gates and build evidence live under Advanced.</p>
+        <p class="settings-page-subtitle">Choose a section from the left rail. Provider gates and build evidence live under Advanced.</p>
       </header>
       <div class="lane-toolbar" role="toolbar" aria-label="Settings actions">
         <div id="settingsStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'settings' ? state.statusMessage : '')}</div>
@@ -8077,13 +8195,7 @@ function renderSettingsWorkspace() {
           <button class="inbox-action-btn is-danger" type="button" data-settings-action="clear-all">Clear settings overrides</button>
         </details>
       </div>
-      <div class="lane-workspace-grid settings-workspace-grid">
-        <nav class="settings-item-list" aria-label="Settings sections">
-          <p class="settings-section-label">Your settings</p>
-          ${SETTINGS_USER_SECTIONS.map(renderNavRow).join('')}
-          <p class="settings-section-label settings-advanced-label">Advanced</p>
-          ${SETTINGS_ADVANCED_SECTIONS.map(renderNavRow).join('')}
-        </nav>
+      <div class="lane-workspace-grid settings-workspace-grid is-rail-driven">
         ${renderSettingsReadingPane()}
       </div>
       ${renderSettingsEditSheet()}
@@ -8465,7 +8577,7 @@ function renderMainLane() {
   const lane = activeLane();
   const content = activeLaneContent();
   return `
-    <main class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
+    <main id="appMainLane" class="lane-surface" aria-label="${escapeHtml(lane.label)} lane">
       <header class="lane-header${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? ' is-compact' : ''}">
         <div>
           ${['home', 'inbox', 'calendar', 'tasks', 'automations', 'extensions', 'settings', 'receipts'].includes(lane.id) ? '' : `<p class="eyebrow">${escapeHtml(content.eyebrow || lane.id)}</p>`}
@@ -8865,6 +8977,7 @@ function renderInspector() {
   const inspector = activeInspectorModel();
   const railMode = inspector.mode || inboxCommandRailMode() || inspector.kind || 'lane';
   const inboxRail = state.laneId === 'inbox' ? renderInboxCommandRail(railMode, inspector) : '';
+  const mailRailCompact = state.laneId === 'inbox' && !state.threadId && !['drafts', 'approval-queue'].includes(state.inbox.mailboxView || 'inbox');
   const inboxOutcomes = state.laneId === 'inbox' && ['thread', 'draft', 'batch'].includes(railMode)
     ? renderRailOutcomesBlock({
       threadId: railMode === 'thread' ? state.threadId : null,
@@ -8872,12 +8985,17 @@ function renderInspector() {
     })
     : '';
   return `
-    <aside class="right-inspector context-command-rail" aria-label="Contextual command rail" data-rail-mode="${escapeHtml(railMode)}">
+    <aside class="right-inspector context-command-rail ${mailRailCompact ? 'is-rail-compact' : ''}" aria-label="Contextual command rail" data-rail-mode="${escapeHtml(railMode)}">
       <header class="inspector-title">
         <p class="inspector-rail-mode">${escapeHtml(inspectorRailModeLabel(railMode))}</p>
         <h2 class="inspector-selected-title">${escapeHtml(demoteMailDisplayText(inspector.title || lane.label))}</h2>
-        <p class="inspector-command-hint">${escapeHtml(demoteMailDisplayText(inspector.safeNext || 'Choose an action below.'))}</p>
+        <p class="inspector-command-hint">${escapeHtml(demoteMailDisplayText(inspector.safeNext || (mailRailCompact ? 'Select a thread to see actions.' : 'Choose an action below.')))}</p>
       </header>
+      ${mailRailCompact ? `
+        <section class="inspector-block inspector-summary">
+          <p class="form-hint">Context rail stays available but compact until a thread or draft is selected.</p>
+        </section>
+      ` : `
       <section class="inspector-block inspector-commands">
         <h3>Actions</h3>
         ${inboxRail}
@@ -8900,17 +9018,26 @@ function renderInspector() {
         ${renderInspectorBlock('Ibal proposal', inspector.ibalProposal || selectedIbalProposal()?.recommendation || 'Ibal proposes only in this preview and cannot execute actions.')}
         ${renderInspectorBlock('Receipt expectation', inspector.receipts || 'Receipts are first-class audit placeholders. No confirmed runtime action exists.')}
       </details>
+      `}
     </aside>
   `;
 }
 
+function ibalProposalCardStateClass(proposalState) {
+  const normalized = String(proposalState || '').toLowerCase();
+  if (normalized.includes('block') || normalized.includes('denied') || normalized.includes('fail')) return 'is-blocked';
+  if (normalized.includes('save') || normalized.includes('receipt') || normalized.includes('pass')) return 'is-saved';
+  return 'is-proposed';
+}
+
 function renderIbalProposalCard(proposal) {
   if (!proposal) return '';
+  const stateClass = ibalProposalCardStateClass(proposal.state);
   return `
-    <article class="ibal-proposal-card" aria-label="Ibal proposal">
+    <article class="ibal-proposal-card ${stateClass}" aria-label="Ibal proposal">
       <header>
         <strong>${escapeHtml(proposal.title)}</strong>
-        <span>${escapeHtml(label(proposal.state))}</span>
+        ${renderPill(proposal.state || 'preview_only')}
       </header>
       <p>${escapeHtml(demoteMailDisplayText(proposal.recommendation))}</p>
       <dl class="ibal-proposal-meta">
@@ -9052,6 +9179,7 @@ function renderShell() {
   syncMailboxThreadSelection();
 
   mount.innerHTML = `
+    <a class="skip-to-main" href="#appMainLane">Skip to main content</a>
     <section class="app-shell" aria-label="xi-io Inbox unified app shell">
       ${renderTopBar()}
       <section class="app-frame app-density-${escapeHtml(state.settings.userPrefs?.displayDensity || 'comfortable')} ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
@@ -9080,7 +9208,12 @@ function handleHelpAction(action) {
 
 function handleProductNavAction(workspaceId) {
   if (!workspaceId) return;
-  activeContextSubNav = null;
+  if (!state.shell) state.shell = defaultShellOps();
+  const previousWorkspace = activeProductWorkspace();
+  if (previousWorkspace && previousWorkspace !== workspaceId) {
+    state.shell.contextSubNavByWorkspace[previousWorkspace] = activeContextSubNav;
+  }
+  activeContextSubNav = state.shell.contextSubNavByWorkspace[workspaceId] ?? null;
   helpPanelOpen = false;
   if (workspaceId === 'mail') {
     state.laneId = 'inbox';
@@ -10054,7 +10187,7 @@ function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth
   }
 }
 
-function handleInboxAction(action, threadId, mailboxView, draftId, filterId) {
+function handleInboxAction(action, threadId, mailboxView, draftId, filterId, smartView) {
   if (action === 'select-account-mailbox') {
     const accountId = threadId;
     const view = mailboxView || 'inbox';
@@ -10063,11 +10196,40 @@ function handleInboxAction(action, threadId, mailboxView, draftId, filterId) {
     state.inbox.mailboxView = view;
     state.inbox.labelFilter = null;
     state.inbox.folderFilter = null;
+    activeContextSubNav = null;
     addAccountReceipt({
       type: 'account_selected',
       title: 'Mail account mailbox selected',
       summary: `${mailAccountById(accountId)?.displayName || accountId} · ${label(view)} · fixture/snapshot only`,
     });
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-account-smart') {
+    const accountId = threadId;
+    const smart = smartView;
+    if (!accountId || !smart) return;
+    state.inbox.accountFilter = accountId;
+    state.inbox.mailboxView = smart === 'mail-needs-reply' ? 'needs-reply' : 'inbox';
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    activeContextSubNav = smart;
+    syncMailboxThreadSelection();
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'select-account-label') {
+    const accountId = threadId;
+    const labelId = filterId;
+    if (!accountId || !labelId) return;
+    state.inbox.accountFilter = accountId;
+    state.inbox.mailboxView = 'inbox';
+    state.inbox.labelFilter = labelId;
+    state.inbox.folderFilter = null;
+    activeContextSubNav = null;
     syncMailboxThreadSelection();
     saveState();
     renderShell();
@@ -10535,6 +10697,7 @@ function bindEvents() {
         inboxAction.dataset.mailboxView,
         inboxAction.dataset.draftId,
         inboxAction.dataset.labelId || inboxAction.dataset.folderId,
+        inboxAction.dataset.smartView,
       );
       return;
     }

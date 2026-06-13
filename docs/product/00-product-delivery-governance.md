@@ -12,7 +12,7 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 | --- | --- | --- | --- |
 | GATE-UI-WARGAME-001 | UI-004A.6 simulated wargame | complete | `docs/ui/reviews/ui-004a6-wargame-review.md` |
 | GATE-UI-IMPLEMENT-001 | UI-004B shell polish | ready for bounded repair scope | `docs/product/04-build-readiness-gates.md` |
-| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | partial (UI-009/010 ready; owner UI-003E re-review pending) | `docs/ui/ui-002-local-proof-status.md` |
+| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | partial (UI-012F ready; owner UI-003E pending) | `docs/ui/ui-002-local-proof-status.md`, `ui-012f-final-visual-readiness-gate-receipt.md` |
 | GATE-DRAFT-WORKBENCH-001 | Draft workbench Tier 1 | partial (UI-007A–C local; owner proof pending) | `docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md` |
 | GATE-RUNTIME-001 | Pass 4 runtime skeleton | blocked | `docs/architecture/platform-runtime-decision-matrix.md` |
 | GATE-ANDROID-001 | Android mail spine build proof | pending | `docs/operations/cursor-arch-002-build-proof-prompt.md` |
@@ -36,8 +36,9 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 
 ## Agent Reading Order
 
-1. `TODO.md`
-2. `docs/product/00-product-delivery-governance.md`
+1. `AGENTS.md`
+2. `TODO.md`
+3. `docs/product/00-product-delivery-governance.md`
 3. `docs/product/01-product-requirements-register.md`
 4. `docs/product/02-epic-story-backlog.md`
 5. `docs/product/03-sprint-slice-plan.md`

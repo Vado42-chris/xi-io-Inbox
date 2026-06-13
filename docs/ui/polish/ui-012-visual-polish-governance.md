@@ -44,9 +44,9 @@ Rabbit_mod structure (for auditors): `public/style.css`, `public/pages/`, `publi
 | **UI-012B** | code | Visual token + component alignment (shell buttons, chips, pills, nav) |
 | **UI-012C** | code | Layout + composition polish (lane rhythms, mail-first) — **complete** |
 | **NAV-001** | code + docs | App shell / navigation correction (level-1 header nav, contextual left rail) — **complete**; peer-review inserted before UI-012D |
-| **UI-012D** | code | Interaction + state polish (hover/selected/empty/Ibal proposals) — **paused** until GMAIL-002A or explicit owner choice |
-| **UI-012E** | code | Accessibility + contrast + focus polish |
-| **UI-012F** | docs | Final visual readiness gate receipt; owner re-review readiness |
+| **UI-012D** | code | Interaction + state polish — **complete** (code pass; builds on MAIL-001) |
+| **UI-012E** | code | Accessibility + contrast + focus polish — **complete** |
+| **UI-012F** | docs | Final visual readiness gate — **complete** (unblocks UI-003E human proof) |
 
 Exact boundaries follow the canonical brief — **update, do not duplicate** `00-xi-io-visual-product-standard.md`.
 

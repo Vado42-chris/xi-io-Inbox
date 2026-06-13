@@ -58,9 +58,12 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 8. SLICE-GMAIL-002A-HARDEN — adapter/security hardening — **complete** (`gmail-002a-hardening-receipt.md`)
 9. SLICE-GMAIL-002B — read-only body gate — **complete** (`gmail-002b-read-only-body-gate-receipt.md`)
 10. SLICE-ACC-001 — account/mail organization UX — **complete** (`acc-001-account-mail-organization-ux-receipt.md`)
-11. SLICE-GMAIL-002B-LIVE-PROOF — operator live proof — **partial** (`gmail-002b-live-proof-receipt.md`; OAuth client missing locally)
-12. SLICE-GMAIL-002B-LIVE-PROOF re-run or SLICE-UI-012D — **next recommended**
-13. SLICE-UI-012E–F — visual polish — **paused**
+11. SLICE-GMAIL-002B-LIVE-PROOF metadata phase — **complete** (`gmail-002b-live-proof-receipt.md`)
+12. SLICE-MAIL-001 mail workspace IA repair — **complete** (`mail-001-mail-workspace-ia-template-repair-receipt.md`; owner visual review pending)
+13. SLICE-UI-012D interaction/state polish — **complete** (`ui-012d-interaction-state-polish-receipt.md`)
+14. SLICE-UI-012E accessibility/contrast — **complete** (`ui-012e-accessibility-contrast-focus-receipt.md`)
+15. SLICE-UI-012F final visual readiness — **complete** (`ui-012f-final-visual-readiness-gate-receipt.md`)
+16. SLICE-UI-003E owner visual proof — **ready for human**
 
 Prior slices (UI-004 through UI-010, UI-007, operator push) remain complete locally.
 

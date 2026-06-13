@@ -246,6 +246,20 @@ Reference: [`xi-io-Rabbit_mod`](https://github.com/Vado42-chris/xi-io-Rabbit_mod
 | XiIconGrammar | when icon vs text; sizes; a11y labels | UI-012B–C | after UI-012F |
 | XiMailListRow | mail-like density + unread + attachment affordance | UI-012C Mail | after UI-012F |
 | XiNavDensity | folder/label nav rhythm | UI-012C Mail nav | after UI-012F |
+| XiProductLevelNav | level-1 workspace header nav (Mail, Calendar, …) | NAV-001 | after UI-012F |
+| XiContextSubNav | per-workspace contextual left rail + persistence | NAV-001, UI-012D `state.shell` | after UI-012F |
+| XiMailAccountAccordion | account-contained folders/labels/smart views | MAIL-001, ACC-001 | after owner MAIL PASS |
+| XiMetadataHonestyBanner | metadata-only / body-blocked / send-blocked chips | MAIL-001, GMAIL-002B | after live metadata proof |
+| XiInteractionStates | hover/selected/focus/empty/disabled trinity | UI-012D | after UI-012F |
+| XiSkipLink | skip-to-main for keyboard users | UI-012E | after UI-012F |
+| XiIbalProposalState | proposed/blocked/saved card borders | UI-012D | after UI-012F |
+
+Report after UI-012F + NAV-001 + MAIL-001 (2026-06-10, Tier 1 local):
+
+- Candidates above promoted from **local proof** (UI-012B–F receipts, `nav-001`, `mail-001`, `acc-001`, GMAIL metadata live proof).
+- Storage unchanged: `xiioInbox.preview.state` schemaVersion **11**; `state.shell.contextSubNavByWorkspace` for contextual nav persistence.
+- Direct package import still blocked by `xi-io.net#239`.
+- Backfeed: `docs/ui/reviews/ui-012-framework-freshness-239-receipt.md`; framework note `xi-io.net/docs/framework/inbox-ui-consumer-freshness-note.md`.
 
 Do not promote until UI-012A brief scored and UI-012B+ local proof exists.
 

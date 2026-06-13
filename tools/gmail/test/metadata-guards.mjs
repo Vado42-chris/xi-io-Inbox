@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   guardMethod,
   invokeBlocked,
+  metadataListParams,
   validateMetadataSnapshot,
   validateReadonlyBodySnapshot,
   redactBodyContent,
@@ -82,5 +83,27 @@ assert.match(gate.bodyReadBlockedReason, /GMAIL_ACCESS_MODE=readonly/);
 assert.equal(validateOAuthState('expected', 'expected').ok, true);
 const loopback = resolveLoopbackFromRedirectUri('http://127.0.0.1:8787/oauth2callback', '9999');
 assert.equal(loopback.port, 8787);
+
+assert.deepEqual(metadataListParams({ query: 'in:inbox', maxResults: 25 }), {
+  userId: 'me',
+  maxResults: 25,
+  labelIds: ['INBOX'],
+});
+assert.deepEqual(metadataListParams({ query: 'in:sent', maxResults: 5 }), {
+  userId: 'me',
+  maxResults: 5,
+  labelIds: ['SENT'],
+});
+assert.deepEqual(metadataListParams({ labelIds: ['STARRED'], maxResults: 10 }), {
+  userId: 'me',
+  maxResults: 10,
+  labelIds: ['STARRED'],
+});
+assert.deepEqual(metadataListParams({ query: 'from:someone@example.com', maxResults: 10 }), {
+  userId: 'me',
+  maxResults: 10,
+  labelIds: ['INBOX'],
+});
+assert.equal(Object.hasOwn(metadataListParams({ query: 'in:inbox', maxResults: 10 }), 'q'), false);
 
 console.log('metadata-guards: pass');
