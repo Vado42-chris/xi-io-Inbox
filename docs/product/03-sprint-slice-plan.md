@@ -64,7 +64,7 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 14. SLICE-UI-012D–F — interaction, a11y, readiness gate — **complete** (code pass)
 15. SLICE-ROUTE-SMOKE — Playwright hash-route smoke — **complete** (`scripts/route-smoke.mjs`)
 16. SLICE-GMAIL-HARDEN-001 — adapter privacy hardening — **complete** (`gmail-harden-001-privacy-hardening-receipt.md`)
-17. SLICE-NPM-AUDIT-GMAIL-001 — review 4 moderate `tools/gmail` dependency vulnerabilities — **next agent-safe follow-up**
+17. SLICE-NPM-AUDIT-GMAIL-001 — review 4 moderate `tools/gmail` dependency vulnerabilities — **complete** (`npm-audit-gmail-001-dependency-audit-receipt.md`)
 18. SLICE-UI-003E owner visual proof — **ready for human**
 19. SLICE-UI-CONVERGE-001 — ratify north-star + module skeleton — **blocked until UI-003E or explicit ratification**
 

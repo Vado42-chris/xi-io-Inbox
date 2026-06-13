@@ -65,15 +65,15 @@ npm run check:gmail
 npm run check
 ```
 
-Result: pass. `npm ci --prefix tools/gmail` reported 4 moderate dependency vulnerabilities;
-that is tracked as `SLICE-NPM-AUDIT-GMAIL-001` and not treated as silent success. Full
-route smoke passed after the fixture reading-pane honesty copy fix.
+Result: pass. `npm ci --prefix tools/gmail` initially reported 4 moderate dependency
+vulnerabilities; `SLICE-NPM-AUDIT-GMAIL-001` resolved them by updating `googleapis` to
+`^173.0.0`. Full route smoke passed after the fixture reading-pane honesty copy fix.
 
 ## Gate updates
 
 - `GATE-GMAIL-METADATA-001`: pass for local metadata/read-only adapter; provider writes remain blocked.
 - `SLICE-GMAIL-HARDEN-001`: complete.
-- `SLICE-NPM-AUDIT-GMAIL-001`: next agent-safe follow-up.
+- `SLICE-NPM-AUDIT-GMAIL-001`: complete.
 
 ## Remaining work estimate
 
@@ -81,7 +81,6 @@ Working estimate to complete documentation, code comments where needed, complian
 and two-way framework freshness:
 
 ```text
-1 pass  SLICE-NPM-AUDIT-GMAIL-001
 1 pass  UI-003E owner visual-proof packet support (owner decision still human)
 1 pass  north-star ratification packet
 1 pass  module skeleton / route-table contract
@@ -91,7 +90,7 @@ and two-way framework freshness:
 2-4 passes ARCH-004 / ARCH-002 / Pass 4 decision packets, depending on owner runtime choices
 ```
 
-Estimate status: **8 to 11 remaining agent passes plus owner UI-003E/north-star decisions**.
+Estimate status: **7 to 10 remaining agent passes plus owner UI-003E/north-star decisions**.
 
 ## Decision value
 

@@ -78,7 +78,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Decide and document Gmail `snippet` handling in metadata-only mode.
 - [x] Reuse equivalent CLI validation rules before browser preview imports local Gmail snapshots.
 - [x] Add tests for nested schema negatives, stdout snapshot leakage, readonly allow-path, token file mode, and redaction edge cases.
-- [ ] Review npm audit output for 4 moderate `tools/gmail` dependency vulnerabilities before broader provider proof.
+- [x] Review npm audit output for 4 moderate `tools/gmail` dependency vulnerabilities before broader provider proof (`docs/ui/reviews/npm-audit-gmail-001-dependency-audit-receipt.md`).
 - [ ] Ratify or reject draft-centered spine before module skeleton / single-nav shell work.
 
 ## ARCH-004: platform runtime and deployment envelope
