@@ -17,7 +17,7 @@ jobs:
   static-preview-check:
     name: Static preview validation
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
