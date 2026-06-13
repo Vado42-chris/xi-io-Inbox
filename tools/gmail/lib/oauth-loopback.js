@@ -55,3 +55,11 @@ export function connectPortInUseMessage(loopback) {
     'Do not kill unrelated processes. Do not reuse expired OAuth URLs from prior connect attempts.',
   ].join(' ');
 }
+
+/** True when request has no OAuth params — probes must not abort connect. */
+export function isOAuthCallbackProbe(searchParams) {
+  const code = searchParams.get('code');
+  const oauthError = searchParams.get('error');
+  const state = searchParams.get('state');
+  return !code && !oauthError && !state;
+}

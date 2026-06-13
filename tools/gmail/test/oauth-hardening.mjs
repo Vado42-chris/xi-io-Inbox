@@ -3,6 +3,7 @@ import {
   CONNECT_TIMEOUT_MS,
   connectTimeoutMessage,
   connectPortInUseMessage,
+  isOAuthCallbackProbe,
   generateOAuthState,
   resolveLoopbackFromRedirectUri,
   validateOAuthState,
@@ -25,5 +26,10 @@ assert.match(connectTimeoutMessage(loopback), /OAuth connect timed out/);
 assert.match(connectTimeoutMessage(loopback), /redirect URI/i);
 assert.match(connectPortInUseMessage(loopback), /lsof -i :8787/);
 assert.match(connectPortInUseMessage(loopback), /Do not kill unrelated/);
+
+const probe = new URLSearchParams('');
+assert.equal(isOAuthCallbackProbe(probe), true);
+assert.equal(isOAuthCallbackProbe(new URLSearchParams('code=abc&state=xyz')), false);
+assert.equal(isOAuthCallbackProbe(new URLSearchParams('error=access_denied')), false);
 
 console.log('oauth-hardening: pass');

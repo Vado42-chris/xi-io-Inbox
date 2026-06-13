@@ -13,6 +13,7 @@ import {
   connectTimeoutMessage,
   connectPortInUseMessage,
   generateOAuthState,
+  isOAuthCallbackProbe,
   resolveLoopbackFromRedirectUri,
   validateOAuthState,
 } from './oauth-loopback.js';
@@ -193,10 +194,17 @@ export async function providerConnectStart() {
         const url = new URL(req.url, `http://${loopback.host}:${loopback.port}`);
         if (url.pathname !== loopback.pathname) {
           if (!res.headersSent) {
-            res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end('<p>OAuth callback path mismatch. Check redirect URI in Google Cloud Console.</p>');
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('Not found');
           }
-          finish(new Error('OAuth callback path mismatch.'));
+          return;
+        }
+
+        if (isOAuthCallbackProbe(url.searchParams)) {
+          if (!res.headersSent) {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end('<p>Waiting for OAuth callback from Google. Complete approval in the browser tab opened by <code>node cli.js connect</code>. Do not open this URL manually.</p>');
+          }
           return;
         }
 

@@ -57,6 +57,7 @@ Connect must complete callback and write token before metadata proof can start.
 | Wrong workspace path | Same repo path throughout | ruled out |
 | Failed callback / timeout | Multiple `connect` attempts timed out without callback | **likely** |
 | Stale listener on `:8787` | `EADDRINUSE` observed pass 3; **process not identified** | probable, not proven |
+| Spurious callback probe | Bare hit to `/oauth2callback` without OAuth params aborted connect (**fixed pass 7**) | proven for operator session error |
 | Permissions on `data/` | Directory writable; no token file ever created | not primary |
 | Antigravity transient token | Reported success; not present on subsequent checks | **likely** (never persisted or lost before shared workspace) |
 
@@ -111,6 +112,7 @@ find .. -name token.json -print
 
 - If `find` locates `token.json` elsewhere → token-path mismatch bug (record path).
 - If no token exists → callback did not complete or adapter did not write token.
+- **Do not** curl or open `http://localhost:8787/oauth2callback` while `connect` is running — bare requests used to abort connect with *OAuth callback missing state parameter* (fixed in adapter pass 7).
 
 ### OAuth consent app
 
