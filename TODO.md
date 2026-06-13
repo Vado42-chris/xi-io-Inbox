@@ -58,6 +58,28 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 - [ ] Complete detailed license/NOTICE/dependency review before distribution.
 - [ ] Finalize package/application ID, redirect URI, and provider configuration plan.
 
+## APP-PR-2026-06-13: application peer review and plan alignment
+
+Status: complete for review and plan updates. Implementation hardening remains open.
+
+- [x] Peer-review product branch, not `main`.
+- [x] Add product-branch `AGENTS.md`.
+- [x] Add branch-truth operations doc.
+- [x] Add multi-agent orchestration operating model.
+- [x] Add UI north-star and convergence plan.
+- [x] Persist peer-review findings and required plan deltas.
+- [x] Mark UI-003 lane-shell doc as historical/reference.
+- [x] Correct UI-012D/NAV-001 blocker from GMAIL-002A to GMAIL-002B-LIVE-PROOF.
+- [x] Update product governance, sprint order, and build readiness gates.
+- [ ] Persist Pass 55 terminal receipt before marking Pass 55 verified in repo docs.
+- [ ] Harden Gmail CLI export responses so full snapshots are not printed by default.
+- [ ] Enforce restrictive token file permissions for `tools/gmail/data/token.json`.
+- [ ] Apply metadata/body schema allowed-field and URL checks to nested `threads[].messages[]`.
+- [ ] Decide and document Gmail `snippet` handling in metadata-only mode.
+- [ ] Reuse CLI validators or shared schema before browser preview imports local Gmail snapshots.
+- [ ] Add tests for nested schema negatives, stdout secret/snapshot leakage, readonly allow-path, and redaction edge cases.
+- [ ] Ratify or reject draft-centered spine before module skeleton / single-nav shell work.
+
 ## ARCH-004: platform runtime and deployment envelope
 
 Status: platform/runtime decision gate created after review found UI-002 could be mistaken for product-platform testing. End-product runtime is not yet decided. Cross-product framework contract and tracking now exist in `xi-io.net`.

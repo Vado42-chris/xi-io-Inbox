@@ -46,7 +46,7 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 
 ## Near-Term Order
 
-**Corrected 2026-06-10 (peer review after UI-012C):**
+**Corrected 2026-06-13 (app peer review / plan alignment):**
 
 1. SLICE-UI-011A — Product Capability Gap Matrix — **complete**
 2. SLICE-UI-011B–I — capability repairs — **complete**
@@ -58,11 +58,14 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 8. SLICE-GMAIL-002A-HARDEN — adapter/security hardening — **complete** (`gmail-002a-hardening-receipt.md`)
 9. SLICE-GMAIL-002B — read-only body gate — **complete** (`gmail-002b-read-only-body-gate-receipt.md`)
 10. SLICE-ACC-001 — account/mail organization UX — **complete** (`acc-001-account-mail-organization-ux-receipt.md`)
-11. SLICE-GMAIL-002B-LIVE-PROOF — operator live proof — **partial** (`gmail-002b-live-proof-receipt.md`; OAuth client missing locally)
-12. SLICE-GMAIL-002B-LIVE-PROOF re-run or SLICE-UI-012D — **next recommended**
-13. SLICE-UI-012E–F — visual polish — **paused**
+11. SLICE-APP-PR-2026-06-13 — app peer review + plan alignment — **complete** (`app-peer-review-plan-alignment-2026-06-13.md`)
+12. SLICE-GMAIL-002B-LIVE-PROOF — operator live proof — **partial** (`gmail-002b-live-proof-receipt.md`; OAuth client present per receipt, token/live proof missing)
+13. SLICE-GMAIL-HARDEN-001 — harden adapter outputs, nested schema checks, token permissions, snippet policy, browser import validation — **next recommended**
+14. SLICE-GMAIL-002B-LIVE-PROOF re-run or SLICE-UI-012D — **blocked until hardening/live-proof decision**
+15. SLICE-UI-012E–F — visual polish — **paused**
 
-Prior slices (UI-004 through UI-010, UI-007, operator push) remain complete locally.
+Prior slices (UI-004 through UI-012C, NAV-001, GMAIL-002A/B, ACC-001, and operator push)
+remain complete locally.
 
 ## Slice Rules
 
