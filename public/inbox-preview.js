@@ -3759,8 +3759,12 @@ async function importGmailMetadataSnapshot({ preferLocal = true, recordReceipt =
 function clearGmailMetadataSnapshot() {
   gmailMetadataSnapshot = null;
   gmailMetadataSnapshotSource = null;
+  gmailBodySnapshot = null;
+  gmailBodySnapshotSource = null;
   allPreviewAccounts().forEach((account) => {
-    if (account.syncState === 'metadata_snapshot') account.syncState = 'awaiting_local_connect';
+    if (account.syncState === 'metadata_snapshot' || account.syncState === 'readonly_body_snapshot') {
+      account.syncState = 'awaiting_local_connect';
+    }
   });
   addMetadataBridgeReceipt({
     title: 'Gmail metadata snapshot cleared',
