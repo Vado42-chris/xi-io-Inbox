@@ -79,7 +79,9 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Reuse equivalent CLI validation rules before browser preview imports local Gmail snapshots.
 - [x] Add tests for nested schema negatives, stdout snapshot leakage, readonly allow-path, token file mode, and redaction edge cases.
 - [x] Review npm audit output for 4 moderate `tools/gmail` dependency vulnerabilities before broader provider proof (`docs/ui/reviews/npm-audit-gmail-001-dependency-audit-receipt.md`).
-- [ ] Ratify or reject draft-centered spine before module skeleton / single-nav shell work.
+- [x] Ratify draft-centered spine before module skeleton / single-nav shell work (`docs/ui/reviews/ui-north-star-ratification-2026-06-13.md`).
+- [ ] Prepare UI-003E owner visual-proof support packet.
+- [ ] Create module skeleton and route-table contract without deleting working UI.
 
 ## ARCH-004: platform runtime and deployment envelope
 

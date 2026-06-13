@@ -3,8 +3,9 @@
 ## Status
 
 ```text
-Type: RFC for owner ratification + convergence plan.
+Type: operationally ratified convergence plan.
 Review source: docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md.
+Ratification receipt: docs/ui/reviews/ui-north-star-ratification-2026-06-13.md.
 Supersedes as current direction when documents conflict:
   docs/ui/ui-003-unified-app-shell-architecture.md
   docs/ui/ui-005-human-operable-shell-architecture.md
@@ -26,7 +27,7 @@ Companion: docs/operations/multi-agent-orchestration.md
 
 ## Canonical product model
 
-Owner ratification is still required before irreversible IA deletion. The proposed model is:
+The ratified model is:
 
 ```text
 Received message = input.
@@ -88,17 +89,20 @@ fixtures/        preview data with no secrets or private bodies
 Migration must be strangler-style: each pass removes behavior from `public/inbox-preview.js`
 or prepares a module boundary. No big-bang rewrite.
 
+Irreversible route/lane deletion still requires a focused migration receipt and passing
+route smoke. Ratification unlocks module skeleton and route-table contract work; it does
+not authorize unreviewed removal of working UI.
+
 ## Near-term sequence
 
-1. Persist branch truth, orchestration, and this north-star plan.
-2. Complete Gmail adapter hardening items from the peer-review receipt.
-3. Finish or re-run `GMAIL-002B-LIVE-PROOF` only with persisted receipt evidence.
-4. Run UI-012D/E/F only after live-proof blocker is cleared or owner explicitly accepts the
-   partial blocker.
-5. Re-run owner UI-003E only after UI-012F.
-6. Start modular shell/design-system work after owner ratifies this draft-centered spine.
+1. Complete Gmail adapter hardening and dependency audit.
+2. Prepare owner UI-003E visual proof support.
+3. Create module skeleton and route-table contract.
+4. Extract route/nav helpers from `public/inbox-preview.js` as the first strangler slice.
+5. Re-run owner UI-003E after any visual changes.
+6. Backfeed reusable framework candidates to `xi-io.net#239` after convergence proof.
 
 ## Decision value
 
-`UI_NORTH_STAR_DRAFT_CENTERED_HUMAN_FIRST_ONE_NAV_MODULAR_STRANGLER_PENDING_OWNER_RATIFICATION`
+`UI_NORTH_STAR_DRAFT_CENTERED_HUMAN_FIRST_ONE_NAV_MODULAR_STRANGLER_RATIFIED`
 

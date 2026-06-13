@@ -82,7 +82,6 @@ and two-way framework freshness:
 
 ```text
 1 pass  UI-003E owner visual-proof packet support (owner decision still human)
-1 pass  north-star ratification packet
 1 pass  module skeleton / route-table contract
 1 pass  first route/nav strangler extraction
 1 pass  PR #12 merge-prep update after owner PASS
@@ -90,7 +89,7 @@ and two-way framework freshness:
 2-4 passes ARCH-004 / ARCH-002 / Pass 4 decision packets, depending on owner runtime choices
 ```
 
-Estimate status: **7 to 10 remaining agent passes plus owner UI-003E/north-star decisions**.
+Estimate status: **6 to 9 remaining agent passes plus owner UI-003E decision**.
 
 ## Decision value
 
