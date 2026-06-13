@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-06-12 (pass 4 — peer-review corrections)
+2026-06-12 (pass 5 — metadata phase verification attempt)
 
 ## Branch
 
@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-`1ce916e7b952922fcfe9cda778c8c422df300c18`
+`PENDING`
 
 ## Scope
 
@@ -37,7 +37,17 @@ GMAIL-002C · GMAIL-002D · UI-012D · Gmail mutation · browser OAuth · commit
 
 ## OAuth configured
 
-**no** — `tools/gmail/data/token.json` absent; `status` → `connected: false`
+**no (pass 5)** — `test -f tools/gmail/data/token.json` → **fail**; `status` → `connected: false`
+
+### Token persistence proof
+
+| Step | Pass 5 result |
+| --- | --- |
+| `test -f tools/gmail/data/token.json` | **fail** — file absent |
+| Fresh `node cli.js status` | **fail** — `connected: false`, `tokenScopes: []` |
+| Token survives new CLI invocation | **not tested** — no token on disk |
+
+Connect must complete callback and write token before metadata proof can start.
 
 ### Token root-cause analysis
 
@@ -46,7 +56,7 @@ GMAIL-002C · GMAIL-002D · UI-012D · Gmail mutation · browser OAuth · commit
 | Wipe/disconnect | No `wipe`/`disconnect` run in agent sessions | unlikely |
 | Wrong workspace path | Same repo path throughout | ruled out |
 | Failed callback / timeout | Multiple `connect` attempts timed out without callback | **likely** |
-| Stale listener on `:8787` | `EADDRINUSE` observed; blocks new connect saving token | **likely** |
+| Stale listener on `:8787` | `EADDRINUSE` observed pass 3; **process not identified** | probable, not proven |
 | Permissions on `data/` | Directory writable; no token file ever created | not primary |
 | Antigravity transient token | Reported success; not present on subsequent checks | **likely** (never persisted or lost before shared workspace) |
 
@@ -72,7 +82,21 @@ node cli.js connect
 
 ## Metadata proof result
 
-**blocked** — no token. Operator confirmed Gmail API enabled; not re-verified without connect.
+**blocked (pass 5)** — no token; `profile`, `labels-counts`, `export-metadata-snapshot` not run
+
+### Metadata proof checklist (required for pass)
+
+| Step | Pass 5 | Required for pass |
+| --- | --- | --- |
+| Token on disk | fail | pass |
+| `profile` succeeds | skipped | pass |
+| `labels-counts` succeeds | skipped | pass |
+| `export-metadata-snapshot --max 25` | skipped | pass |
+| Copy to `public/data/gmail-metadata.local.json` | skipped | pass |
+| Preview import / reload | skipped | pass |
+| Fixture Inbox:3 vs real account:0 mismatch resolved | skipped | pass |
+| Browser honest: local snapshot, not live Gmail | skipped | pass |
+| Body/draft/send/mutation blocked | fail-closed OK | pass |
 
 ## Body-gate proof result
 
@@ -179,3 +203,4 @@ Finish **GMAIL-002B-LIVE-PROOF metadata phase** first. Do not start UI-012D, GMA
 | follow-up | transient | blocked (API disabled) | fixture | partial |
 | pass 3 | no | blocked | fixture | partial |
 | pass 4 | no | blocked | fixture | partial |
+| pass 5 | no | blocked (no token) | fixture | partial |
