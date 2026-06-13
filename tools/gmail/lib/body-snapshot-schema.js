@@ -42,6 +42,20 @@ const ALLOWED_MESSAGE_FIELDS = new Set([
   'messageIds',
 ]);
 
+const REMOTE_RESOURCE_PATTERN = /\b(?:https?|cid|data|javascript|vbscript):/i;
+
+function validateMessageFields(message, path, errors) {
+  for (const key of Object.keys(message || {})) {
+    if (!ALLOWED_MESSAGE_FIELDS.has(key)) errors.push(`${path} field not allowed: ${key}`);
+  }
+  if (typeof message?.sanitizedBodyPreview === 'string' && REMOTE_RESOURCE_PATTERN.test(message.sanitizedBodyPreview)) {
+    errors.push(`${path}.sanitizedBodyPreview must not contain remote URLs or unsafe URL schemes`);
+  }
+  if (typeof message?.sanitizedPlainText === 'string' && REMOTE_RESOURCE_PATTERN.test(message.sanitizedPlainText)) {
+    errors.push(`${path}.sanitizedPlainText must not contain remote URLs or unsafe URL schemes`);
+  }
+}
+
 function collectForbiddenKeys(value, pathPrefix = '', hits = []) {
   if (!value || typeof value !== 'object') return hits;
   if (Array.isArray(value)) {
@@ -75,14 +89,15 @@ export function validateReadonlyBodySnapshot(snapshot) {
   const forbidden = collectForbiddenKeys(snapshot);
   if (forbidden.length) errors.push(`forbidden fields present: ${forbidden.join(', ')}`);
 
-  for (const message of snapshot.messages || []) {
-    for (const key of Object.keys(message)) {
-      if (!ALLOWED_MESSAGE_FIELDS.has(key)) errors.push(`message field not allowed: ${key}`);
-    }
-    if (typeof message.sanitizedBodyPreview === 'string' && /https?:\/\//i.test(message.sanitizedBodyPreview)) {
-      errors.push('sanitizedBodyPreview must not contain remote URLs');
-    }
-  }
+  (snapshot.messages || []).forEach((message, index) => {
+    validateMessageFields(message, `messages[${index}]`, errors);
+  });
+
+  (snapshot.threads || []).forEach((thread, threadIndex) => {
+    (thread.messages || []).forEach((message, messageIndex) => {
+      validateMessageFields(message, `threads[${threadIndex}].messages[${messageIndex}]`, errors);
+    });
+  });
 
   for (const capability of ['draft_write', 'send', 'provider_mutation', 'browser_oauth']) {
     if (!(snapshot.blockedCapabilities || []).includes(capability)) {

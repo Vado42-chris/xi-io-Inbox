@@ -38,6 +38,14 @@ const ALLOWED_MESSAGE_FIELDS = new Set([
   'messages',
 ]);
 
+function validateMessageFields(message, path, errors) {
+  for (const key of Object.keys(message || {})) {
+    if (!ALLOWED_MESSAGE_FIELDS.has(key)) {
+      errors.push(`${path} field not allowed: ${key}`);
+    }
+  }
+}
+
 function collectForbiddenKeys(value, pathPrefix = '', hits = []) {
   if (!value || typeof value !== 'object') return hits;
   if (Array.isArray(value)) {
@@ -75,13 +83,15 @@ export function validateMetadataSnapshot(snapshot) {
     errors.push(`forbidden fields present: ${forbidden.join(', ')}`);
   }
 
-  for (const message of snapshot.messages || []) {
-    for (const key of Object.keys(message)) {
-      if (!ALLOWED_MESSAGE_FIELDS.has(key)) {
-        errors.push(`message field not allowed: ${key}`);
-      }
-    }
-  }
+  (snapshot.messages || []).forEach((message, index) => {
+    validateMessageFields(message, `messages[${index}]`, errors);
+  });
+
+  (snapshot.threads || []).forEach((thread, threadIndex) => {
+    (thread.messages || []).forEach((message, messageIndex) => {
+      validateMessageFields(message, `threads[${threadIndex}].messages[${messageIndex}]`, errors);
+    });
+  });
 
   const blocked = snapshot.blockedCapabilities || [];
   for (const capability of ['body_read', 'draft_write', 'send', 'provider_mutation']) {

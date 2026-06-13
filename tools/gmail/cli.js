@@ -38,11 +38,11 @@ Commands:
   search-metadata [--query Q] [--max N]
   thread-metadata <threadId>
   drafts-metadata [--max N]
-  export-metadata-snapshot [--max N] [--max-messages N] [--out PATH]
+  export-metadata-snapshot [--max N] [--max-messages N] [--out PATH] [--include-payload]
   read-message-body <messageId>
   read-thread-bodies <threadId> [--max N]
-  export-readonly-body-snapshot [--max N] [--max-messages N] [--out PATH]
-  redact-body-snapshot --in PATH [--out PATH]
+  export-readonly-body-snapshot [--max N] [--max-messages N] [--out PATH] [--include-payload]
+  redact-body-snapshot --in PATH [--out PATH] [--include-payload]
   blocked <method>   (test blocked escalation: body, draft write, send, mutation)
 `;
 
@@ -60,6 +60,7 @@ async function main() {
     else if (rest[i] === '--query') flags.query = rest[++i];
     else if (rest[i] === '--out') flags.out = rest[++i];
     else if (rest[i] === '--in') flags.in = rest[++i];
+    else if (rest[i] === '--include-payload') flags.includePayload = true;
     else if (!flags._) flags._ = rest[i];
   }
 
@@ -112,6 +113,7 @@ async function main() {
           maxThreads: flags.max || 25,
           maxMessages: flags.maxMessages || 50,
           outputPath: flags.out,
+          includePayload: Boolean(flags.includePayload),
         });
         break;
       case 'read-message-body':
@@ -125,10 +127,15 @@ async function main() {
           maxThreads: flags.max || 5,
           maxMessages: flags.maxMessages || 10,
           outputPath: flags.out,
+          includePayload: Boolean(flags.includePayload),
         });
         break;
       case 'redact-body-snapshot':
-        result = await redactBodySnapshotFile({ inputPath: flags.in, outputPath: flags.out });
+        result = await redactBodySnapshotFile({
+          inputPath: flags.in,
+          outputPath: flags.out,
+          includePayload: Boolean(flags.includePayload),
+        });
         break;
       case 'blocked':
         result = await invokeBlocked(flags._ || 'gmail.messages.getBody');

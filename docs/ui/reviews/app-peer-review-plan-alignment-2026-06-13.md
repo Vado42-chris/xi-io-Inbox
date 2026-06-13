@@ -87,9 +87,9 @@ here or to the receipts above.
 ## Required next work
 
 1. ~~Persist Pass 55 terminal receipt~~ — **resolved:** use official slice receipts above.
-2. Harden Gmail adapter output, token permissions, nested schema validation, snippet policy,
-   browser import validation, and tests.
-3. Re-run `GMAIL-002B-LIVE-PROOF` with committed receipt evidence.
+2. ~~Harden Gmail adapter output, token permissions, nested schema validation, snippet policy,
+   browser import validation, and tests.~~ Complete in `gmail-harden-001-privacy-hardening-receipt.md`.
+3. Review npm audit output for the remaining `tools/gmail` dependency warnings.
 4. Ratify or reject the draft-centered spine.
 5. Start design-system/shell skeleton only after the product model is ratified.
 

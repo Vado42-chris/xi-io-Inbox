@@ -3734,8 +3734,54 @@ async function fetchJson(url, fallback) {
   }
 }
 
+const GMAIL_SNAPSHOT_FORBIDDEN_KEYS = new Set(['body', 'raw', 'rawBody', 'rawPayload', 'access_token', 'refresh_token', 'credentials', 'attachment', 'attachments']);
+const GMAIL_METADATA_MESSAGE_FIELDS = new Set(['id', 'threadId', 'labelIds', 'subject', 'from', 'to', 'date', 'internalDate', 'unread', 'snippet', 'provider', 'messageIds', 'messages']);
+const GMAIL_BODY_MESSAGE_FIELDS = new Set(['id', 'threadId', 'labelIds', 'subject', 'from', 'to', 'date', 'internalDate', 'unread', 'snippet', 'sanitizedBodyPreview', 'sanitizedPlainText', 'bodyAvailable', 'redactionNotes', 'provider', 'messages', 'messageIds']);
+const GMAIL_SNAPSHOT_URL_PATTERN = /\b(?:https?|cid|data|javascript|vbscript):/i;
+
+function hasForbiddenSnapshotKey(value) {
+  if (!value || typeof value !== 'object') return false;
+  if (Array.isArray(value)) return value.some((entry) => hasForbiddenSnapshotKey(entry));
+  return Object.entries(value).some(([key, nested]) => GMAIL_SNAPSHOT_FORBIDDEN_KEYS.has(key) || hasForbiddenSnapshotKey(nested));
+}
+
+function snapshotMessagesHaveOnlyAllowedFields(messages = [], allowedFields = GMAIL_METADATA_MESSAGE_FIELDS) {
+  return messages.every((message) => (
+    message && typeof message === 'object' && Object.keys(message).every((key) => allowedFields.has(key))
+  ));
+}
+
+function snapshotThreadMessagesHaveOnlyAllowedFields(threads = [], allowedFields = GMAIL_METADATA_MESSAGE_FIELDS) {
+  return threads.every((thread) => snapshotMessagesHaveOnlyAllowedFields(thread?.messages || [], allowedFields));
+}
+
+function bodySnapshotMessagesAreSafe(messages = []) {
+  return messages.every((message) => (
+    !GMAIL_SNAPSHOT_URL_PATTERN.test(String(message?.sanitizedBodyPreview || ''))
+    && !GMAIL_SNAPSHOT_URL_PATTERN.test(String(message?.sanitizedPlainText || ''))
+  ));
+}
+
+function bodySnapshotThreadMessagesAreSafe(threads = []) {
+  return threads.every((thread) => bodySnapshotMessagesAreSafe(thread?.messages || []));
+}
+
 function isMetadataSnapshot(value) {
-  return Boolean(value && value.mode === 'metadata-only' && value.source === 'local-gmail-cli');
+  return Boolean(
+    value
+    && value.mode === 'metadata-only'
+    && value.source === 'local-gmail-cli'
+    && Array.isArray(value.labels)
+    && value.counts
+    && Array.isArray(value.threads)
+    && Array.isArray(value.messages)
+    && Array.isArray(value.warnings)
+    && Array.isArray(value.blockedCapabilities)
+    && ['body_read', 'draft_write', 'send', 'provider_mutation'].every((capability) => value.blockedCapabilities.includes(capability))
+    && !hasForbiddenSnapshotKey(value)
+    && snapshotMessagesHaveOnlyAllowedFields(value.messages, GMAIL_METADATA_MESSAGE_FIELDS)
+    && snapshotThreadMessagesHaveOnlyAllowedFields(value.threads, GMAIL_METADATA_MESSAGE_FIELDS)
+  );
 }
 
 function mapMetadataThreadToPreview(thread, index) {
@@ -3898,7 +3944,22 @@ function metadataBridgeStatusLabel() {
 }
 
 function isReadonlyBodySnapshot(value) {
-  return Boolean(value && value.mode === 'read-only-body' && value.source === 'local-gmail-cli');
+  return Boolean(
+    value
+    && value.mode === 'read-only-body'
+    && value.source === 'local-gmail-cli'
+    && value.scopeRequired === 'https://www.googleapis.com/auth/gmail.readonly'
+    && Array.isArray(value.threads)
+    && Array.isArray(value.messages)
+    && Array.isArray(value.warnings)
+    && Array.isArray(value.blockedCapabilities)
+    && ['draft_write', 'send', 'provider_mutation', 'browser_oauth'].every((capability) => value.blockedCapabilities.includes(capability))
+    && !hasForbiddenSnapshotKey(value)
+    && snapshotMessagesHaveOnlyAllowedFields(value.messages, GMAIL_BODY_MESSAGE_FIELDS)
+    && snapshotThreadMessagesHaveOnlyAllowedFields(value.threads, GMAIL_BODY_MESSAGE_FIELDS)
+    && bodySnapshotMessagesAreSafe(value.messages)
+    && bodySnapshotThreadMessagesAreSafe(value.threads)
+  );
 }
 
 function mapBodySnapshotThreadToPreview(thread, index) {
@@ -5634,6 +5695,9 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
         ${renderThreadStatusChip(thread.state || 'needs_review')}
       </header>
       ${renderMailLabelChips(thread.labels)}
+      <div class="mail-body-status-banner is-metadata" role="status">
+        Body not imported. This preview shows fixture summaries or provider metadata only; local read-only body snapshots must be imported through the Gmail CLI.
+      </div>
       <div class="mail-reading-actions" role="toolbar" aria-label="Message actions">
         <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
         <button class="inbox-action-btn" type="button" data-inbox-action="toggle-compose">New draft</button>

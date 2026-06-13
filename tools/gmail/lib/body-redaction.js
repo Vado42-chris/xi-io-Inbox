@@ -1,4 +1,5 @@
-const REMOTE_RESOURCE_PATTERN = /\b(?:https?|cid):[^\s"'<>]+/gi;
+const REMOTE_RESOURCE_PATTERN = /\b(?:https?|cid|data|javascript|vbscript):[^\s"'<>]+/gi;
+const REMOTE_RESOURCE_TEST_PATTERN = /\b(?:https?|cid|data|javascript|vbscript):/i;
 const HTML_TAG_PATTERN = /<[^>]+>/g;
 
 export const DEFAULT_BODY_PREVIEW_MAX = 1200;
@@ -29,7 +30,7 @@ export function redactBodyContent(input, { maxLength = DEFAULT_BODY_PREVIEW_MAX 
     raw = stripHtmlToText(raw);
   }
 
-  if (REMOTE_RESOURCE_PATTERN.test(raw)) {
+  if (REMOTE_RESOURCE_TEST_PATTERN.test(raw)) {
     notes.push('remote_resources_removed');
     raw = raw.replace(REMOTE_RESOURCE_PATTERN, '[redacted-resource]');
   }

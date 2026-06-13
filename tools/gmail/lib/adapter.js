@@ -65,6 +65,18 @@ const METADATA_QUERY_LABELS = {
   important: 'IMPORTANT',
 };
 
+function snapshotExportSummary({ outputPath, snapshot, extra = {}, includePayload = false }) {
+  return {
+    outputPath,
+    threadCount: snapshot.threads?.length || 0,
+    messageCount: snapshot.messages?.length || 0,
+    labelCount: snapshot.labels?.length || 0,
+    warnings: snapshot.warnings || [],
+    ...extra,
+    ...(includePayload ? { snapshot } : {}),
+  };
+}
+
 /** Gmail metadata scope rejects search `q`; map inbox-style queries to labelIds. */
 export function metadataListParams({ query = 'in:inbox', maxResults = 10, labelIds } = {}) {
   const params = { userId: 'me', maxResults };
@@ -507,6 +519,7 @@ export async function exportMetadataSnapshot({
   threadQuery = 'in:inbox',
   messageQuery = 'in:inbox',
   outputPath = SNAPSHOT_PATH,
+  includePayload = false,
 } = {}) {
   const profileResult = await gmailProfileGet();
   const labelsResult = await gmailLabelsCounts();
@@ -554,13 +567,7 @@ export async function exportMetadataSnapshot({
   return envelope({
     success: true,
     method: 'gmail.exportMetadataSnapshot',
-    payload: {
-      outputPath,
-      threadCount: snapshot.threads.length,
-      messageCount: snapshot.messages.length,
-      labelCount: snapshot.labels.length,
-      snapshot,
-    },
+    payload: snapshotExportSummary({ outputPath, snapshot, includePayload }),
   });
 }
 
@@ -669,6 +676,7 @@ export async function exportReadonlyBodySnapshot({
   maxMessages = 10,
   threadQuery = 'in:inbox',
   outputPath = BODY_SNAPSHOT_PATH,
+  includePayload = false,
 } = {}) {
   await requireBodyReadGate();
   const profileResult = await gmailProfileGet();
@@ -724,16 +732,11 @@ export async function exportReadonlyBodySnapshot({
     success: true,
     method: 'gmail.exportReadonlyBodySnapshot',
     dataClassification: 'body_redacted',
-    payload: {
-      outputPath,
-      threadCount: snapshot.threads.length,
-      messageCount: snapshot.messages.length,
-      snapshot,
-    },
+    payload: snapshotExportSummary({ outputPath, snapshot, includePayload }),
   });
 }
 
-export async function redactBodySnapshotFile({ inputPath, outputPath } = {}) {
+export async function redactBodySnapshotFile({ inputPath, outputPath, includePayload = false } = {}) {
   if (!inputPath) {
     return blocked('gmail.bodySnapshot.redact', 'inputPath required');
   }
@@ -750,7 +753,11 @@ export async function redactBodySnapshotFile({ inputPath, outputPath } = {}) {
     success: true,
     method: 'gmail.bodySnapshot.redact',
     dataClassification: 'body_redacted',
-    payload: { outputPath: outputPath || null, snapshot },
+    payload: snapshotExportSummary({
+      outputPath: outputPath || null,
+      snapshot,
+      includePayload,
+    }),
   });
 }
 

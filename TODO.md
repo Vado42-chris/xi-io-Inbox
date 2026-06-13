@@ -60,7 +60,7 @@ Status: architecture audit, operator packets, Cursor execution prompt, and docs-
 
 ## APP-PR-2026-06-13: application peer review and plan alignment
 
-Status: complete for review and plan updates. Implementation hardening remains open.
+Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. Runtime/provider write gates remain closed.
 
 - [x] Peer-review product branch, not `main`.
 - [x] Add product-branch `AGENTS.md`.
@@ -72,12 +72,13 @@ Status: complete for review and plan updates. Implementation hardening remains o
 - [x] Correct UI-012D/NAV-001 blocker from GMAIL-002A to GMAIL-002B-LIVE-PROOF.
 - [x] Update product governance, sprint order, and build readiness gates.
 - [x] Pass 55 label resolved — informal alias for NAV-001/GMAIL-002A/MAIL-001; see `app-peer-review-plan-alignment-2026-06-13.md` Pass 55 resolution.
-- [ ] Harden Gmail CLI export responses so full snapshots are not printed by default.
-- [ ] Enforce restrictive token file permissions for `tools/gmail/data/token.json`.
-- [ ] Apply metadata/body schema allowed-field and URL checks to nested `threads[].messages[]`.
-- [ ] Decide and document Gmail `snippet` handling in metadata-only mode.
-- [ ] Reuse CLI validators or shared schema before browser preview imports local Gmail snapshots.
-- [ ] Add tests for nested schema negatives, stdout secret/snapshot leakage, readonly allow-path, and redaction edge cases.
+- [x] Harden Gmail CLI export responses so full snapshots are not printed by default (`docs/ui/reviews/gmail-harden-001-privacy-hardening-receipt.md`).
+- [x] Enforce restrictive token file permissions for `tools/gmail/data/token.json`.
+- [x] Apply metadata/body schema allowed-field and URL checks to nested `threads[].messages[]`.
+- [x] Decide and document Gmail `snippet` handling in metadata-only mode.
+- [x] Reuse equivalent CLI validation rules before browser preview imports local Gmail snapshots.
+- [x] Add tests for nested schema negatives, stdout snapshot leakage, readonly allow-path, token file mode, and redaction edge cases.
+- [ ] Review npm audit output for 4 moderate `tools/gmail` dependency vulnerabilities before broader provider proof.
 - [ ] Ratify or reject draft-centered spine before module skeleton / single-nav shell work.
 
 ## ARCH-004: platform runtime and deployment envelope

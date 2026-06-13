@@ -5,9 +5,12 @@ import { fileURLToPath } from 'url';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DATA_DIR = path.join(ROOT, 'data');
 const TOKEN_PATH = path.join(DATA_DIR, 'token.json');
+const DATA_DIR_MODE = 0o700;
+const TOKEN_FILE_MODE = 0o600;
 
 async function ensureDataDir() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.mkdir(DATA_DIR, { recursive: true, mode: DATA_DIR_MODE });
+  await fs.chmod(DATA_DIR, DATA_DIR_MODE);
 }
 
 export async function loadToken() {
@@ -21,7 +24,11 @@ export async function loadToken() {
 
 export async function saveToken(tokens) {
   await ensureDataDir();
-  await fs.writeFile(TOKEN_PATH, `${JSON.stringify(tokens, null, 2)}\n`, 'utf8');
+  await fs.writeFile(TOKEN_PATH, `${JSON.stringify(tokens, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: TOKEN_FILE_MODE,
+  });
+  await fs.chmod(TOKEN_PATH, TOKEN_FILE_MODE);
 }
 
 export async function wipeToken() {
@@ -35,4 +42,8 @@ export async function wipeToken() {
 
 export function tokenPath() {
   return TOKEN_PATH;
+}
+
+export function tokenFileMode() {
+  return TOKEN_FILE_MODE;
 }
