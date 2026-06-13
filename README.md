@@ -2,6 +2,12 @@
 
 `xi-io Inbox` is a unified ingress, analysis, and controlled-egress command center for email first, later expanding into messages, files, contacts, tasks, bugs, calendars, schedules, and automations.
 
+## Branch truth for agents
+
+`main` is the planning/docs + shared-schema branch. Active static-preview product work lives
+on `ui-002/framework-derived-static-preview`. Before auditing or editing UI/product work,
+read `AGENTS.md` and `docs/operations/branch-truth.md`.
+
 ## Product stance
 
 Email is the first adapter. The product is not limited to email. The long-term target is a private, auditable personal operations layer where Ibal helps the user understand incoming information and prepare safe outgoing actions.
