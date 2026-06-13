@@ -107,7 +107,36 @@ cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox/tools/
 node cli.js connect
 ```
 
-### Token missing root cause (pass 4)
+After browser approval, verify from the **same directory**:
+
+```bash
+test -f data/token.json && echo OK
+node cli.js status
+```
+
+Only when `connected: true`, run metadata export (still from `tools/gmail`):
+
+```bash
+node cli.js profile
+node cli.js labels-counts
+node cli.js export-metadata-snapshot --max 25
+cp data/metadata-snapshot.json ../../public/data/gmail-metadata.local.json
+```
+
+**From repo root** (equivalent):
+
+```bash
+test -f tools/gmail/data/token.json && echo OK
+node tools/gmail/cli.js status
+node tools/gmail/cli.js export-metadata-snapshot --max 25
+cp tools/gmail/data/metadata-snapshot.json public/data/gmail-metadata.local.json
+```
+
+### If OAuth success but token missing
+
+From `tools/gmail`: `pwd` · `ls -la data` · `test -w data` · `node cli.js status` · `find .. -name token.json -print`
+
+### Token missing root cause (pass 4–6)
 
 Likely: connect callback never completed (timeout) and/or stale listener on port `8787` (`EADDRINUSE`). Antigravity transient token not persisted to shared workspace. Wipe/disconnect not observed. Path mismatch ruled out.
 

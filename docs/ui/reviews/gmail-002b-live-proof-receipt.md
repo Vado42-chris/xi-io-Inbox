@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-06-12 (pass 5 — metadata phase verification attempt)
+2026-06-12 (pass 6 — cwd-aware operator paths)
 
 ## Branch
 
@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-`c86018052cfcf06ebd95b652f8c348ce93a72c49`
+`PENDING`
 
 ## Scope
 
@@ -62,12 +62,55 @@ Connect must complete callback and write token before metadata proof can start.
 
 **Overall:** token missing because **connect did not complete successfully** (timeout and/or port conflict). Exact Antigravity wipe unknown.
 
-**Canonical connect (never paste auth URLs in docs — `state` is ephemeral CSRF):**
+**Canonical connect (never paste auth URLs — `state` is ephemeral CSRF):**
 
 ```bash
 cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox/tools/gmail"
 node cli.js connect
 ```
+
+### Operator commands (cwd-aware)
+
+**From repo root:**
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox"
+test -f tools/gmail/data/token.json && echo OK
+node tools/gmail/cli.js status
+node tools/gmail/cli.js profile
+node tools/gmail/cli.js labels-counts
+node tools/gmail/cli.js export-metadata-snapshot --max 25
+cp tools/gmail/data/metadata-snapshot.json public/data/gmail-metadata.local.json
+```
+
+**From `tools/gmail` (same session after connect):**
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox/tools/gmail"
+test -f data/token.json && echo OK
+node cli.js status
+node cli.js profile
+node cli.js labels-counts
+node cli.js export-metadata-snapshot --max 25
+cp data/metadata-snapshot.json ../../public/data/gmail-metadata.local.json
+```
+
+Do **not** run `test -f tools/gmail/data/token.json` while cwd is already `tools/gmail` — that resolves to a non-existent nested path.
+
+### If OAuth browser says success but token is still missing
+
+Run immediately from `tools/gmail`:
+
+```bash
+pwd
+ls -la data
+test -d data && test -w data && echo "data writable"
+node cli.js status
+find .. -name token.json -print
+```
+
+- If `find` locates `token.json` elsewhere → token-path mismatch bug (record path).
+- If no token exists → callback did not complete or adapter did not write token.
 
 ### OAuth consent app
 
@@ -176,7 +219,7 @@ local import file missing
 preview remains fixture-driven
 ```
 
-**Fix order:** metadata connect → profile → labels-counts → export-metadata-snapshot → copy to gitignored local import → verify preview → optional readonly reconnect → body proof on selected message only.
+**Fix order:** metadata connect → verify token (cwd-aware paths above) → profile → labels-counts → export-metadata-snapshot → copy to gitignored local import → verify preview → optional readonly reconnect → body proof on selected message only.
 
 **Port `:8787` in use:** `lsof -i :8787` → stop **only** stale xi-io connect listener → rerun `node cli.js connect`. Do not kill unrelated processes.
 
@@ -204,3 +247,4 @@ Finish **GMAIL-002B-LIVE-PROOF metadata phase** first. Do not start UI-012D, GMA
 | pass 3 | no | blocked | fixture | partial |
 | pass 4 | no | blocked | fixture | partial |
 | pass 5 | no | blocked (no token) | fixture | partial |
+| pass 6 | no | blocked (docs: cwd-aware paths) | fixture | partial |
