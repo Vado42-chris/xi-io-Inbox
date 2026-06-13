@@ -46,7 +46,7 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 
 ## Near-Term Order
 
-**Corrected 2026-06-10 (peer review after UI-012C):**
+**Corrected 2026-06-13 (app peer review / plan alignment):**
 
 1. SLICE-UI-011A — Product Capability Gap Matrix — **complete**
 2. SLICE-UI-011B–I — capability repairs — **complete**
@@ -58,14 +58,16 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 8. SLICE-GMAIL-002A-HARDEN — adapter/security hardening — **complete** (`gmail-002a-hardening-receipt.md`)
 9. SLICE-GMAIL-002B — read-only body gate — **complete** (`gmail-002b-read-only-body-gate-receipt.md`)
 10. SLICE-ACC-001 — account/mail organization UX — **complete** (`acc-001-account-mail-organization-ux-receipt.md`)
-11. SLICE-GMAIL-002B-LIVE-PROOF metadata phase — **complete** (`gmail-002b-live-proof-receipt.md`)
-12. SLICE-MAIL-001 mail workspace IA repair — **complete** (`mail-001-mail-workspace-ia-template-repair-receipt.md`; owner visual review pending)
-13. SLICE-UI-012D interaction/state polish — **complete** (`ui-012d-interaction-state-polish-receipt.md`)
-14. SLICE-UI-012E accessibility/contrast — **complete** (`ui-012e-accessibility-contrast-focus-receipt.md`)
-15. SLICE-UI-012F final visual readiness — **complete** (`ui-012f-final-visual-readiness-gate-receipt.md`)
-16. SLICE-UI-003E owner visual proof — **ready for human**
+11. SLICE-APP-PR-2026-06-13 — app peer review + plan alignment — **complete** (`app-peer-review-plan-alignment-2026-06-13.md`)
+12. SLICE-GMAIL-002B-LIVE-PROOF metadata phase — **complete** (`gmail-002b-live-proof-receipt.md`)
+13. SLICE-MAIL-001 mail workspace IA repair — **complete** (owner visual review pending)
+14. SLICE-UI-012D–F — interaction, a11y, readiness gate — **complete** (code pass)
+15. SLICE-ROUTE-SMOKE — Playwright hash-route smoke — **complete** (`scripts/route-smoke.mjs`)
+16. SLICE-GMAIL-HARDEN-001 — adapter privacy hardening — **next** (APP-PR-007–011)
+17. SLICE-UI-003E owner visual proof — **ready for human**
+18. SLICE-UI-CONVERGE-001 — ratify north-star + module skeleton — **blocked until UI-003E or explicit ratification**
 
-Prior slices (UI-004 through UI-010, UI-007, operator push) remain complete locally.
+Prior slices (UI-004 through UI-011I) remain complete locally.
 
 ## Slice Rules
 

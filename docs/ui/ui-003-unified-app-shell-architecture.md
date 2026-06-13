@@ -12,7 +12,20 @@ UI-002 owner/framework UX review: failed on 2026-06-09
 UI-003 tracker: xi-io-Inbox#14
 Direct framework export blocker: xi-io.net#239
 Implementation status: UI-003D redesigned shell readiness triage complete
+Current reading status: historical/reference only after UI-005, UI-007, NAV-001, and
+2026-06-13 app peer review. Current direction is
+docs/ui/ui-north-star-and-convergence-plan.md.
 ```
+
+## Supersession notice
+
+This document records the UI-003 lane-shell era. Its lane-first navigation and Ibal lane
+model are superseded by:
+
+- `docs/ui/ui-005-ibal-concierge-model.md` for Ibal as concierge, not a lane.
+- `docs/ui/ui-007-draft-workbench-architecture.md` for the draft-centered spine.
+- `docs/product/nav-001-app-shell-navigation-correction.md` for the NAV-001 shell.
+- `docs/ui/ui-north-star-and-convergence-plan.md` for current convergence planning.
 
 ## Decision
 

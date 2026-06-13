@@ -11,9 +11,9 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 | ID | Area | Status | Evidence |
 | --- | --- | --- | --- |
 | GATE-UI-WARGAME-001 | UI-004A.6 simulated wargame | complete | `docs/ui/reviews/ui-004a6-wargame-review.md` |
-| GATE-UI-IMPLEMENT-001 | UI-004B shell polish | ready for bounded repair scope | `docs/product/04-build-readiness-gates.md` |
-| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | partial (UI-012F ready; owner UI-003E pending) | `docs/ui/ui-002-local-proof-status.md`, `ui-012f-final-visual-readiness-gate-receipt.md` |
-| GATE-DRAFT-WORKBENCH-001 | Draft workbench Tier 1 | partial (UI-007A–C local; owner proof pending) | `docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md` |
+| GATE-UI-IMPLEMENT-001 | UI implementation | pass for completed slices; new work follows north-star strangler plan | `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md` |
+| GATE-VISUAL-PROOF-001 | Owner/framework visual proof | partial (UI-012F + route smoke ready; owner UI-003E pending) | `docs/ui/ui-002-local-proof-status.md`, `ui-012f-final-visual-readiness-gate-receipt.md` |
+| GATE-DRAFT-WORKBENCH-001 | Draft workbench Tier 1 | partial (UI-007 shipped; owner proof + convergence open) | `docs/ui/reviews/ui-007c-send-event-dry-run-receipt.md` |
 | GATE-RUNTIME-001 | Pass 4 runtime skeleton | blocked | `docs/architecture/platform-runtime-decision-matrix.md` |
 | GATE-ANDROID-001 | Android mail spine build proof | pending | `docs/operations/cursor-arch-002-build-proof-prompt.md` |
 | GATE-FRAMEWORK-001 | Direct framework UI import | blocked by `xi-io.net#239` | `docs/ui/polish/16-white-label-framework-feedback-plan.md` |
@@ -33,19 +33,25 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 | EVIDENCE-UI-WG-001 | `docs/ui/polish/14-ui-wargame-scenario-matrix.md` | UI wargame scenarios |
 | EVIDENCE-ARCH-001 | `docs/architecture/platform-runtime-decision-matrix.md` | runtime/platform decision constraints |
 | EVIDENCE-SAFETY-001 | `docs/security/draft-only-egress.md` | draft-only egress policy |
+| EVIDENCE-BRANCH-001 | `docs/operations/branch-truth.md` | branch selection and PR reconciliation |
+| EVIDENCE-PEER-001 | `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md` | current app peer-review findings and plan deltas |
+| EVIDENCE-NORTHSTAR-001 | `docs/ui/ui-north-star-and-convergence-plan.md` | current UI convergence target |
 
 ## Agent Reading Order
 
 1. `AGENTS.md`
-2. `TODO.md`
-3. `docs/product/00-product-delivery-governance.md`
-3. `docs/product/01-product-requirements-register.md`
-4. `docs/product/02-epic-story-backlog.md`
-5. `docs/product/03-sprint-slice-plan.md`
-6. `docs/product/04-build-readiness-gates.md`
-7. `docs/product/05-framework-hydration-checklist.md`
-8. `docs/product/06-compliance-validation-index.md`
-9. Relevant UI, architecture, security, schema, and framework docs for the active slice.
+2. `docs/operations/branch-truth.md`
+3. `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md`
+4. `docs/ui/ui-north-star-and-convergence-plan.md`
+5. `TODO.md`
+6. `docs/product/00-product-delivery-governance.md`
+7. `docs/product/01-product-requirements-register.md`
+8. `docs/product/02-epic-story-backlog.md`
+9. `docs/product/03-sprint-slice-plan.md`
+10. `docs/product/04-build-readiness-gates.md`
+11. `docs/product/05-framework-hydration-checklist.md`
+12. `docs/product/06-compliance-validation-index.md`
+13. Relevant UI, architecture, security, schema, and framework docs for the active slice.
 
 ## Waterfall Phase Map
 
@@ -58,9 +64,10 @@ Sprint/slice work executes inside this larger phase map.
 | PHASE-02 | Android mail spine proof plan | establish candidate mail spine and build proof path | partially complete, proof pending |
 | PHASE-03 | Product delivery governance | normalize requirements, stories, gates, compliance, hydration | PLAN-001A complete |
 | PHASE-04 | UI design governance | define visual standards, wargame, and framework hooks | UI-004A.5 complete |
-| PHASE-05 | UI polish implementation | implement shell, then page-specific polish | UI-004B–G, UI-005, UI-006 complete locally |
-| PHASE-05B | Draft workbench spine | re-center on draft lifecycle + approval queue | UI-007A docs complete; UI-007B pending |
-| PHASE-06 | Owner/framework visual proof | record visual proof and merge-readiness decision | partial — owner re-review pending |
+| PHASE-05 | UI polish implementation | implement shell, then page-specific polish | UI-004B–G, UI-005, UI-006, UI-011, UI-012A–C, NAV-001 complete locally |
+| PHASE-05B | Draft workbench spine | re-center on draft lifecycle + approval queue | UI-007A–C complete locally; convergence still pending |
+| PHASE-05C | Product convergence | ratify one model and migrate out of the monolith | north-star RFC added; owner ratification pending |
+| PHASE-06 | Owner/framework visual proof | record visual proof and merge-readiness decision | partial — UI-012D–F and owner re-review pending |
 | PHASE-07 | Runtime/platform decision | decide platform, storage, secret, sync, backup, local-cloud boundaries | blocked by ARCH-004 |
 | PHASE-08 | Runtime skeleton | introduce buildable runtime code | blocked |
 | PHASE-09 | Provider/runtime integrations | connect providers and execution paths | blocked |

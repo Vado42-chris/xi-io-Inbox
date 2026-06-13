@@ -91,14 +91,16 @@ Next product ingress step: `docs/product/gmail-002-real-email-ingress-plan.md`.
 
 ## UI-012D pause
 
-**UI-012D (interaction / state polish) is paused until GMAIL-002A completes** (or product owner explicitly chooses UI-012D first).
+**UI-012D (interaction / state polish) is paused until GMAIL-002B-LIVE-PROOF completes**
+(or product owner explicitly chooses UI-012D first).
 
 NAV-001 status: **complete** (see `docs/ui/reviews/nav-001-self-peer-review.md`).
 
 Sequence after NAV-001:
 
 ```text
-GMAIL-002A → UI-012D → UI-012E → UI-012F → UI-003E → xi-io.net backfeed → merge prep
+GMAIL-002A → GMAIL-002A-HARDEN → GMAIL-002B → GMAIL-002B-LIVE-PROOF
+→ UI-012D → UI-012E → UI-012F → UI-003E → xi-io.net backfeed → merge prep
 ```
 
 ## Scope boundaries (NAV-001)

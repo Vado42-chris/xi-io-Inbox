@@ -18,8 +18,8 @@ Verify branch before auditing. See `docs/operations/branch-truth.md`.
 ## Required reading (UI/product)
 
 1. `docs/operations/branch-truth.md`
-2. `docs/ui/ui-north-star-and-convergence-plan.md`
-3. `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md`
+2. `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md`
+3. `docs/ui/ui-north-star-and-convergence-plan.md`
 4. `docs/operations/multi-agent-orchestration.md`
 5. `TODO.md` · `docs/product/03-sprint-slice-plan.md`
 
@@ -36,13 +36,13 @@ North-star supersedes conflicting UI-003 lane-first docs when they disagree.
 | `git diff --check` | Before commit |
 | `npm run dev` | Owner visual proof → http://localhost:4488 |
 
-Schema metaschema (on `main` or when `schemas/` change):
+Schema metaschema (when `schemas/` change):
 `python3 -m check_jsonschema --check-metaschema schemas/*.json`
 
 ## Anti-stall (external storage)
 
 - One heavy file per edit pass (`inbox-preview.js`, `inbox-preview.css`).
-- On tool timeout: `git status` before retry — partial writes happen.
+- On tool timeout: `git status` before retry.
 - Do not grow the monolith; strangler migrate to `public/src/*` per north-star.
 
 ## Module ownership (parallel agents)
@@ -60,7 +60,7 @@ docs/                     receipts, gates, compliance
 ## Current gate
 
 - UI-012B–F + MAIL-001 + route smoke: **code pass** (owner UI-003E pending).
-- Convergence: ratify draft-centered spine before new features in monolith.
+- Next: Gmail hardening (APP-PR-007–011), then owner UI-003E, then convergence skeleton.
 - Merge prep: `docs/ui/reviews/ui-012-merge-prep-receipt.md` after owner PASS.
 
 ## Cursor Cloud
