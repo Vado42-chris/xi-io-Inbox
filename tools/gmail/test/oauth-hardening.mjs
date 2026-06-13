@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   CONNECT_TIMEOUT_MS,
   connectTimeoutMessage,
+  connectPortInUseMessage,
   generateOAuthState,
   resolveLoopbackFromRedirectUri,
   validateOAuthState,
@@ -22,5 +23,7 @@ assert.equal(validateOAuthState('expected', 'expected').ok, true);
 assert.equal(validateOAuthState('', 'expected').ok, false);
 assert.match(connectTimeoutMessage(loopback), /OAuth connect timed out/);
 assert.match(connectTimeoutMessage(loopback), /redirect URI/i);
+assert.match(connectPortInUseMessage(loopback), /lsof -i :8787/);
+assert.match(connectPortInUseMessage(loopback), /Do not kill unrelated/);
 
 console.log('oauth-hardening: pass');

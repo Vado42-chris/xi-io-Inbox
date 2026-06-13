@@ -43,5 +43,15 @@ export function connectTimeoutMessage(loopback) {
     'Check: secrets/gmail-oauth-client.json (or GMAIL_OAUTH_CLIENT_PATH)',
     `Redirect URI must match callback: ${loopback.redirectUri}`,
     'Complete browser approval and ensure redirect URI is registered in Google Cloud Console.',
+    'Run: cd tools/gmail && node cli.js connect — do not reuse old auth URLs; state is one-time.',
+  ].join(' ');
+}
+
+export function connectPortInUseMessage(loopback) {
+  return [
+    `OAuth loopback port ${loopback.port} is already in use (${loopback.redirectUri}).`,
+    'Identify the process: lsof -i :' + loopback.port,
+    'If it is a stale xi-io Gmail connect listener, stop that process only, then rerun: node cli.js connect',
+    'Do not kill unrelated processes. Do not reuse expired OAuth URLs from prior connect attempts.',
   ].join(' ');
 }

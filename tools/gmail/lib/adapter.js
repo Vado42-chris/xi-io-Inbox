@@ -11,6 +11,7 @@ import {
   DEFAULT_LOOPBACK_HOST,
   DEFAULT_LOOPBACK_PORT,
   connectTimeoutMessage,
+  connectPortInUseMessage,
   generateOAuthState,
   resolveLoopbackFromRedirectUri,
   validateOAuthState,
@@ -254,6 +255,10 @@ export async function providerConnectStart() {
     });
 
     server.on('error', (err) => {
+      if (err?.code === 'EADDRINUSE') {
+        finish(new Error(connectPortInUseMessage(loopback)));
+        return;
+      }
       finish(err);
     });
 

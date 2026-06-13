@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-06-12 (pass 3 verification)
+2026-06-12 (pass 4 — peer-review corrections)
 
 ## Branch
 
@@ -10,19 +10,22 @@
 
 ## Commit SHA
 
-`4632f15b1ec7727a609715ca2acacd18342f7c0d`
+`PENDING`
 
 ## Scope
 
-GMAIL-002B-LIVE-PROOF — operator validation of metadata + read-only body pipeline against real local Gmail OAuth.
+GMAIL-002B-LIVE-PROOF — operator validation of **separate** metadata and read-only body gates against real local Gmail OAuth. Proof/receipt only.
 
 ## Excluded scope
 
-GMAIL-002C draft write · GMAIL-002D send · UI-012D · Gmail mutation · browser OAuth · committed real mail · Owner UI-003E
+GMAIL-002C · GMAIL-002D · UI-012D · Gmail mutation · browser OAuth · committed real mail · Owner UI-003E
 
 ## Files changed
 
-Docs/receipt only (no product UI unless proof-blocking bug found).
+- `docs/ui/reviews/gmail-002b-live-proof-receipt.md`
+- `docs/product/gmail-002-real-email-ingress-plan.md`
+- `tools/gmail/lib/oauth-loopback.js`, `tools/gmail/lib/adapter.js` (port-in-use operator message)
+- `TODO.md`
 
 ## Product UI code changed
 
@@ -34,65 +37,89 @@ Docs/receipt only (no product UI unless proof-blocking bug found).
 
 ## OAuth configured
 
-**no (pass 3)** — `tools/gmail/data/token.json` **absent**; `node cli.js status` → `connected: false`
+**no** — `tools/gmail/data/token.json` absent; `status` → `connected: false`
 
-Prior transient connect (Antigravity) did not persist token on this workspace.
+### Token root-cause analysis
+
+| Cause | Evidence | Verdict |
+| --- | --- | --- |
+| Wipe/disconnect | No `wipe`/`disconnect` run in agent sessions | unlikely |
+| Wrong workspace path | Same repo path throughout | ruled out |
+| Failed callback / timeout | Multiple `connect` attempts timed out without callback | **likely** |
+| Stale listener on `:8787` | `EADDRINUSE` observed; blocks new connect saving token | **likely** |
+| Permissions on `data/` | Directory writable; no token file ever created | not primary |
+| Antigravity transient token | Reported success; not present on subsequent checks | **likely** (never persisted or lost before shared workspace) |
+
+**Overall:** token missing because **connect did not complete successfully** (timeout and/or port conflict). Exact Antigravity wipe unknown.
+
+**Canonical connect (never paste auth URLs in docs — `state` is ephemeral CSRF):**
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox/tools/gmail"
+node cli.js connect
+```
+
+### OAuth consent app
+
+**unknown / operator must confirm** — GCP project `273926245217`, client created 2026-06-12. Assume **Testing** mode until verified. Confirm `hallberg1974@gmail.com` is an allowed test user. Record unverified-app warning if Google shows one during connect.
 
 ## Readonly scope available
 
-**no (pass 3)** — no token; `GMAIL_ACCESS_MODE=readonly body-gate-status` → *OAuth token missing*
+**no** — no token. Metadata and readonly are **separate gates** ([Google Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)):
+
+- **Metadata phase:** default connect → `gmail.metadata` only → profile, labels, metadata snapshot (no bodies)
+- **Readonly phase:** after metadata proof → `GMAIL_ACCESS_MODE=readonly node cli.js connect` → `gmail.readonly` (restricted scope; local/private proof only unless Google verification/security assessment completed for any public/distributed use)
 
 ## Metadata proof result
 
-**blocked** — cannot run `profile`, `labels-counts`, or `export-metadata-snapshot` without token. Gmail API enablement (operator confirmed) not verifiable until reconnect.
+**blocked** — no token. Operator confirmed Gmail API enabled; not re-verified without connect.
 
 ## Body-gate proof result
 
-**pass (fail-closed)** — default mode blocks body read; readonly env blocks with token missing; no `mail.google.com`
+**pass (fail-closed)** — without token; no `mail.google.com`
 
 ## Body-read proof result
 
-**blocked** — no token; no operator-selected safe message; no arbitrary mail read
+**blocked** — no token; **no arbitrary mailbox read** — proof requires operator-selected low-risk `messageId`/`threadId`, not default newest-inbox export
 
 ## Preview import proof result
 
-**blocked** — `public/data/gmail-metadata.local.json` and `gmail-body.local.json` absent
+**blocked** — no `public/data/gmail-metadata.local.json`
+
+### Post-import verification checklist (required when metadata exists)
+
+- Real account (`hallberg1974@gmail.com`) shows **nonzero** threads
+- Status label shows **Metadata-only · local snapshot** (not Fixture preview)
+- Fixture demo threads **not mixed** with real account counts (no global Inbox:3 while account Inbox:0)
+- Draft/send/mutation remain blocked
 
 ## Selected message policy result
 
-**pass** — no sensitive mail read without operator selection
+**pass** — agents must not export body from newest 1–5 messages by default
 
 ## Redaction proof result
 
-**not run (live)** — unit tests pass via `npm run check`; live redaction unproven until readonly export
+**not run (live)** — unit tests pass; live redaction after readonly phase only
 
 ## Generated files ignore result
 
-**pass** — `secrets/`, `tools/gmail/data`, `tools/gmail/receipts` gitignored; nothing staged
+**pass**
 
 ## Secrets status
 
-**pass** — no OAuth client or tokens staged
+**pass** — nothing staged
 
 ## Token status
 
-**pass (security)** / **absent (proof)** — token path gitignored; file missing
+**absent (proof)** / **gitignored path OK**
 
 ## Broad scope blocked result
 
 **pass**
 
-## Draft write blocked result
+## Draft write / send / mutation blocked
 
-**pass** — `blocked gmail.drafts.create` → true
-
-## Send blocked result
-
-**pass** — `blocked gmail.users.messages.send` → true
-
-## Mutation blocked result
-
-**pass** — `blocked gmail.users.messages.modify` → true
+**pass** (fail-closed CLI)
 
 ## Real data committed
 
@@ -100,7 +127,7 @@ Prior transient connect (Antigravity) did not persist token on this workspace.
 
 ## npm run check result
 
-**pass** (2026-06-12 pass 3)
+**pass** (pass 4)
 
 ## git diff --check result
 
@@ -108,43 +135,37 @@ Prior transient connect (Antigravity) did not persist token on this workspace.
 
 ## Gmail CLI checks result
 
-**pass (fail-closed)** — status, body-gate-status, blocked methods; live API calls blocked on missing token
+**pass (fail-closed)** + improved `EADDRINUSE` message with `lsof` instructions (no silent process kill)
 
 ## PR draft state
 
 **draft**
 
-## Remaining blockers
+## Failure pattern (troubleshooting)
 
-1. **Operator must complete `node cli.js connect`** and persist token locally
-2. Metadata export + copy to `public/data/gmail-metadata.local.json`
-3. Optional readonly body export with `GMAIL_ACCESS_MODE=readonly` + low-risk message selection
-4. Preview refresh / Settings → Import metadata snapshot
-5. Dependabot disabled · Bugbot triage · Pass 55 unverified · Owner proof blocked until UI-012F
-
-## Operator unblock sequence
-
-```bash
-cd tools/gmail
-node cli.js connect                    # approve in browser → token saved
-node cli.js profile
-node cli.js labels-counts
-node cli.js export-metadata-snapshot --max 25
-cp data/metadata-snapshot.json ../public/data/gmail-metadata.local.json
-# reload preview (auto-loads local file on init)
-
-# Optional readonly (after metadata proof):
-GMAIL_ACCESS_MODE=readonly node cli.js connect   # if token lacks readonly
-GMAIL_ACCESS_MODE=readonly node cli.js body-gate-status
-GMAIL_ACCESS_MODE=readonly node cli.js export-readonly-body-snapshot --max 1 --max-messages 1
-cp data/body-snapshot.json ../public/data/gmail-body.local.json
+```text
+OAuth client present
+Gmail API enabled
+token missing
+metadata snapshot missing
+local import file missing
+preview remains fixture-driven
 ```
 
-Never commit tokens, client JSON, or snapshot files.
+**Fix order:** metadata connect → profile → labels-counts → export-metadata-snapshot → copy to gitignored local import → verify preview → optional readonly reconnect → body proof on selected message only.
+
+**Port `:8787` in use:** `lsof -i :8787` → stop **only** stale xi-io connect listener → rerun `node cli.js connect`. Do not kill unrelated processes.
+
+## Remaining blockers
+
+- Complete metadata-phase OAuth connect
+- Metadata export + preview import + fixture-mix verification
+- Optional readonly phase with selected message + redaction proof
+- Dependabot · Bugbot · Pass 55 · Owner proof until UI-012F
 
 ## Next recommended pass
 
-Re-run **GMAIL-002B-LIVE-PROOF** immediately after OAuth connect + metadata export. **UI-012D** only after live proof pass or explicit owner deferral.
+Finish **GMAIL-002B-LIVE-PROOF metadata phase** first. Do not start UI-012D, GMAIL-002C, or owner proof.
 
 ## Decision value
 
@@ -152,8 +173,9 @@ Re-run **GMAIL-002B-LIVE-PROOF** immediately after OAuth connect + metadata expo
 
 ## Verification log
 
-| Pass | OAuth client | Token | Gmail API | Metadata export | Decision |
-| --- | --- | --- | --- | --- | --- |
-| 2026-06-12 initial | no | no | n/a | blocked | partial |
-| 2026-06-12 follow-up | yes | yes (transient) | disabled | blocked | partial |
-| 2026-06-12 pass 3 | yes | **no** | operator says enabled | blocked | partial |
+| Pass | Token | Metadata export | Preview real data | Decision |
+| --- | --- | --- | --- | --- |
+| initial | no | blocked | fixture | partial |
+| follow-up | transient | blocked (API disabled) | fixture | partial |
+| pass 3 | no | blocked | fixture | partial |
+| pass 4 | no | blocked | fixture | partial |

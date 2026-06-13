@@ -93,10 +93,33 @@ Receipt: `docs/ui/reviews/gmail-002b-live-proof-receipt.md`
 
 Decision: `GMAIL_002B_LIVE_PROOF_PARTIAL_OAUTH_OR_SAFE_MESSAGE_REQUIRED`
 
-- Initial pass: OAuth client absent locally
-- Follow-up (2026-06-12): OAuth client + token present (Antigravity operator setup); `status` connected with `gmail.metadata` + `gmail.readonly` on token
-- **Current blocker:** Gmail API disabled in Google Cloud project `273926245217` — enable at [Gmail API console](https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=273926245217), wait 2–5 minutes, then re-run profile → labels-counts → export-metadata-snapshot
-- Live metadata export, read-only body read, redaction against real mail, and preview import **not proven yet**
+### Two separate proof gates
+
+1. **Metadata phase (first)** — default `node cli.js connect` requests `gmail.metadata` only ([scope docs](https://developers.google.com/workspace/gmail/api/auth/scopes)). Then: `profile` → `labels-counts` → `export-metadata-snapshot --max 25` → copy to gitignored `public/data/gmail-metadata.local.json` → verify preview (no fixture mixing).
+2. **Readonly body phase (optional, after metadata pass)** — `GMAIL_ACCESS_MODE=readonly node cli.js connect` for `gmail.readonly` (**restricted scope** — local/private proof only unless Google verification/security assessment completed for public use). Body export only for **operator-selected** low-risk message/thread ID — never default newest-inbox batch.
+
+### Canonical operator connect
+
+Never paste OAuth URLs into docs/PR/receipts — `state` is one-time CSRF. Always:
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox/tools/gmail"
+node cli.js connect
+```
+
+### Token missing root cause (pass 4)
+
+Likely: connect callback never completed (timeout) and/or stale listener on port `8787` (`EADDRINUSE`). Antigravity transient token not persisted to shared workspace. Wipe/disconnect not observed. Path mismatch ruled out.
+
+### Troubleshooting: fixture-driven preview
+
+```text
+OAuth client present → Gmail API enabled → token missing → snapshot missing → import missing → preview shows fixtures
+```
+
+Port conflict: `lsof -i :8787` — stop **only** stale xi-io connect listener; do not kill unrelated processes.
+
+- Live metadata/body/preview proof **not complete**
 
 ## GMAIL-002B — Read-only body gate (detail)
 
