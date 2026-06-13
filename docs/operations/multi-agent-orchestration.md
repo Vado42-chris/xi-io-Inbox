@@ -20,8 +20,8 @@ module boundaries, and hard gates are explicit.
 | Orchestrator | north star, branch truth, merge order, plan updates, gate sign-off | feature internals without a receipt |
 | Design-System agent | `public/src/design/` tokens and reusable components | lane business logic |
 | Shell agent | `public/src/shell/` app frame, single nav, router, store, inspector | Gmail adapter |
-| Workbench agent | `public/src/workbench/` Mail -> Drafts -> Approvals -> Sent/Receipts | calendar/tasks/automations internals |
-| Capability agents | one module under `public/src/capabilities/` | shell nav and adapter code |
+| Workbench agent | `public/src/workbench/` Mail -> Drafts -> Approvals -> Sent/Receipts internals | calendar/tasks/automations internals |
+| Capability agents | one primary destination module each: Calendar, Tasks, Automations, Activity, Integrations | shell nav and adapter code |
 | Ibal agent | `public/src/ibal/` concierge drawer and command entry | route ownership or provider mutation |
 | Spine/Adapter agent | `tools/gmail/`, `schemas/`, `public/src/lib/`, fixtures | UI rendering |
 | QA/Security reviewer | receipts, smoke, privacy, no-silent-green, draft-only egress | feature authorship |
@@ -41,11 +41,13 @@ module boundaries, and hard gates are explicit.
 ```text
 1. Ratify draft-centered north star.
 2. Stand up design tokens and component contracts.
-3. Create shell/router/store skeleton with one route table.
-4. Move Mail/Drafts/Approvals/Sent into workbench modules.
-5. Move capabilities into separate modules.
-6. Move Ibal into concierge module only.
-7. Delete dead lane and migration scar tissue from the monolith.
+3. Create shell/router/store skeleton with one route table:
+   `Home | Mail | Calendar | Tasks | Automations | Activity | Integrations`.
+4. Add shared account scope lens contracts for Mail, Calendar, Tasks, and Activity.
+5. Move Mail/Drafts/Approvals/Sent into workbench modules.
+6. Move Calendar/Tasks/Automations/Activity/Integrations into primary destination modules.
+7. Move Ibal into concierge module only.
+8. Delete dead lane and migration scar tissue from the monolith only after focused receipts.
 ```
 
 ## Anti-patterns
@@ -55,6 +57,10 @@ module boundaries, and hard gates are explicit.
 - Claiming owner proof or visual proof before UI-012F and UI-003E pass.
 - Keeping stale architecture docs in the reading path without supersession headers.
 - Printing private snapshots or tokens into terminal logs.
+- Demoting Calendar, Tasks, Home, or another primary product destination through a shell-only
+  cleanup without owner sign-off and capability review.
+- Treating shell/nav receipts as proof that Calendar, Tasks, GitHub, or multi-account scope
+  requirements are complete.
 
 ## Decision value
 

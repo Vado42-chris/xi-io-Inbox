@@ -65,9 +65,11 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 15. SLICE-ROUTE-SMOKE — Playwright hash-route smoke — **complete** (`scripts/route-smoke.mjs`)
 16. SLICE-GMAIL-HARDEN-001 — adapter privacy hardening — **complete** (`gmail-harden-001-privacy-hardening-receipt.md`)
 17. SLICE-NPM-AUDIT-GMAIL-001 — review 4 moderate `tools/gmail` dependency vulnerabilities — **complete** (`npm-audit-gmail-001-dependency-audit-receipt.md`)
-18. SLICE-UI-NORTH-STAR-RATIFY — draft-centered spine ratification — **complete** (`ui-north-star-ratification-2026-06-13.md`)
-19. SLICE-UI-003E owner visual proof — **ready for human**
-20. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after PR #20 merge or stacked branch**
+18. SLICE-UI-NORTH-STAR-AMEND — Option B: Mail spine plus primary Calendar/Tasks/Home — **complete** (`ui-north-star-ratification-2026-06-13.md`)
+19. SLICE-NAV-002 — restore primary Home/Calendar/Tasks and dissolve Plan into Tasks sub-views — **next**
+20. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **next after NAV-002 contract**
+21. SLICE-UI-003E owner visual proof — **ready after NAV-002 or explicit owner choice**
+22. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after NAV-002/scope contract**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

@@ -79,7 +79,10 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Reuse equivalent CLI validation rules before browser preview imports local Gmail snapshots.
 - [x] Add tests for nested schema negatives, stdout snapshot leakage, readonly allow-path, token file mode, and redaction edge cases.
 - [x] Review npm audit output for 4 moderate `tools/gmail` dependency vulnerabilities before broader provider proof (`docs/ui/reviews/npm-audit-gmail-001-dependency-audit-receipt.md`).
-- [x] Ratify draft-centered spine before module skeleton / single-nav shell work (`docs/ui/reviews/ui-north-star-ratification-2026-06-13.md`).
+- [x] Amend north-star to Option B: Mail spine plus primary Home/Calendar/Tasks/Automations/Activity/Integrations (`docs/ui/reviews/ui-north-star-ratification-2026-06-13.md`).
+- [ ] NAV-002: restore Home, Calendar, and Tasks as primary nav destinations; dissolve `Plan` into Tasks sub-views.
+- [ ] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity.
+- [ ] Add `accountId` migration plan for calendar proposals and task/work items before account-scoped implementation.
 - [ ] Prepare UI-003E owner visual-proof support packet.
 - [ ] Create module skeleton and route-table contract without deleting working UI.
 
