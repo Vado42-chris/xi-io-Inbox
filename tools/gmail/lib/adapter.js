@@ -57,6 +57,15 @@ function headersMap(payload) {
   return Object.fromEntries((payload?.headers || []).map((h) => [h.name, h.value]));
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function messageMetadataFromApi(message) {
   const headers = headersMap(message.payload);
   const labelIds = message.labelIds || [];
@@ -204,7 +213,7 @@ export async function providerConnectStart() {
         if (oauthError) {
           if (!res.headersSent) {
             res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(`<p>OAuth denied: ${oauthError}. Restart connect after fixing consent or redirect URI.</p>`);
+            res.end(`<p>OAuth denied: ${escapeHtml(oauthError)}. Restart connect after fixing consent or redirect URI.</p>`);
           }
           finish(new Error(`OAuth denied: ${oauthError}`));
           return;

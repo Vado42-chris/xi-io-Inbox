@@ -936,9 +936,9 @@ function sectionByType(content, type) {
 
 function inboxThreads() {
   const bodyThreads = bodySnapshotThreads();
-  if (bodyThreads?.length) return bodyThreads;
+  if (bodyThreads) return bodyThreads;
   const metadataThreads = metadataSnapshotThreads();
-  if (metadataThreads?.length) return metadataThreads;
+  if (metadataThreads) return metadataThreads;
   const inbox = getPayload().laneContent?.inbox || {};
   return sectionByType(inbox, 'inbox-layout')?.threads || [];
 }
@@ -3885,6 +3885,20 @@ function clearGmailBodySnapshot() {
     summary: 'Preview returned to metadata/fixture mail. Draft write, send, and mutation remain blocked.',
   });
   saveState();
+}
+
+function reconcileSnapshotAccountState() {
+  const metadataActive = gmailMetadataBridgeActive();
+  const bodyActive = gmailBodyBridgeActive();
+  state.account.previewAccounts = allPreviewAccounts().map((account) => {
+    if (account.syncState === 'metadata_snapshot' && !metadataActive) {
+      return { ...account, syncState: 'awaiting_local_connect', mode: 'queued' };
+    }
+    if (account.syncState === 'readonly_body_snapshot' && !bodyActive) {
+      return { ...account, syncState: 'awaiting_local_connect', mode: 'queued' };
+    }
+    return account;
+  });
 }
 
 function gmailBodyBridgeActive() {
@@ -10624,6 +10638,7 @@ async function init() {
   ensureAccountDefaults();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
+  reconcileSnapshotAccountState();
   saveState();
   state.threadId = selectedInboxThread()?.id || state.threadId;
   state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);
