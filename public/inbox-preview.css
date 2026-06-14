@@ -6210,3 +6210,48 @@ body {
     border-radius: var(--radius-chrome);
   }
 }
+
+.gmail-sync-status-panel {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(124, 217, 255, 0.22);
+  border-left: 3px solid rgba(124, 217, 255, 0.55);
+  border-radius: var(--radius-card, 12px);
+  background: rgba(8, 18, 28, 0.55);
+}
+
+.gmail-sync-status-panel.is-compact {
+  margin-top: 0.65rem;
+}
+
+.gmail-sync-status-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(186, 220, 240, 0.82);
+}
+
+.gmail-sync-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.45rem 0.85rem;
+  margin: 0.55rem 0 0;
+}
+
+.gmail-sync-status-grid dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(186, 220, 240, 0.65);
+}
+
+.gmail-sync-status-grid dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.92rem;
+}
+
+.mail-source-badge.is-sync-status {
+  border-color: rgba(124, 217, 255, 0.35);
+  color: #bdefff;
+}

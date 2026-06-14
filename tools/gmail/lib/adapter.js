@@ -35,6 +35,7 @@ import {
 } from './body-redaction.js';
 import { validateReadonlyBodySnapshot } from './body-snapshot-schema.js';
 import { writeSyncReceipt } from './receipts.js';
+import { buildSyncStatus, writeSyncStatusFile } from './sync-status.js';
 import {
   METADATA_SYNC_JOB_PRESETS,
   DEFAULT_SYNC_LIMITS,
@@ -236,6 +237,26 @@ export async function providerStatus() {
       mutationBlocked: true,
       bodyGate: gate,
     },
+  });
+}
+
+export async function providerSyncStatus({ outputPath } = {}) {
+  if (outputPath) {
+    const written = await writeSyncStatusFile(outputPath);
+    return envelope({
+      success: true,
+      method: 'gmail.syncStatus.write',
+      payload: {
+        path: written.path,
+        status: written.status,
+      },
+    });
+  }
+  const status = await buildSyncStatus();
+  return envelope({
+    success: true,
+    method: 'gmail.syncStatus',
+    payload: status,
   });
 }
 

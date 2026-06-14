@@ -24,6 +24,7 @@ import {
   invokeBlocked,
   METADATA_MAILBOX_ALIASES,
   queryMailIndex,
+  providerSyncStatus,
 } from './lib/adapter.js';
 
 const HELP = `Gmail metadata adapter (GMAIL-002B body gate)
@@ -38,6 +39,7 @@ Metadata list filters (gmail.metadata — no general Gmail search, no q paramete
 
 Commands:
   status
+  sync-status [--out PATH]
   body-gate-status
   connect
   disconnect
@@ -127,6 +129,9 @@ async function main() {
     switch (cmd) {
       case 'status':
         result = await providerStatus();
+        break;
+      case 'sync-status':
+        result = await providerSyncStatus({ outputPath: flags.out });
         break;
       case 'body-gate-status':
       case 'body-gate':

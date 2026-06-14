@@ -37,6 +37,8 @@ node cli.js sync-plan --job inbox_recent --max-pages 2 --max 50
 node cli.js sync-metadata --dry-run --mailbox inbox
 node cli.js sync-metadata --job inbox_recent --max-pages 1 --max 25 --out data/metadata-snapshot.json
 node cli.js export-metadata-snapshot --max-pages 2 --max 50
+node cli.js sync-status
+node cli.js sync-status --out ../public/data/gmail-sync-status.local.json
 ```
 
 ## Snapshot compatibility
@@ -45,9 +47,8 @@ Paginated exports keep the existing metadata snapshot schema (`mode: metadata-on
 
 ## Remaining blockers
 
-- EXT-002 repair pass (peer review partial fixes)
-- Sync status UI (EXT-003) — blocked until EXT-002 repair pass
 - historyId incremental sync (EXT-004)
+- Sync status UI (EXT-003) — **complete** (import CLI sync-status JSON into preview)
 - Body read remains gated (GMAIL-002B)
 - Draft/send/mutation blocked (GMAIL-002C/D)
 - Owner UI-003E not passed

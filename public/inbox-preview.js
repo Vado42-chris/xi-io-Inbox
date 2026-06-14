@@ -3,6 +3,8 @@ const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
 const GMAIL_METADATA_SAMPLE_URL = './data/gmail-metadata.sample.json';
 const GMAIL_BODY_LOCAL_URL = './data/gmail-body.local.json';
 const GMAIL_BODY_SAMPLE_URL = './data/gmail-body.sample.json';
+const GMAIL_SYNC_STATUS_LOCAL_URL = './data/gmail-sync-status.local.json';
+const GMAIL_SYNC_STATUS_SAMPLE_URL = './data/gmail-sync-status.sample.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
@@ -46,6 +48,8 @@ let gmailMetadataSnapshot = null;
 let gmailMetadataSnapshotSource = null;
 let gmailBodySnapshot = null;
 let gmailBodySnapshotSource = null;
+let gmailSyncStatus = null;
+let gmailSyncStatusSource = null;
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -4027,6 +4031,163 @@ function clearGmailMetadataSnapshot() {
   saveState();
 }
 
+function isGmailSyncStatusSnapshot(value) {
+  return Boolean(
+    value
+    && value.mode === 'sync-status'
+    && value.source === 'local-gmail-cli'
+    && value.schemaVersion === 1
+    && value.oauth
+    && value.artifacts
+    && value.gates
+    && Array.isArray(value.syncReceipts)
+    && Array.isArray(value.warnings)
+    && Array.isArray(value.blockedCapabilities)
+    && value.browserOAuth === false,
+  );
+}
+
+function gmailSyncReceiptActivityTitle(event) {
+  const labels = {
+    planned: 'Gmail metadata sync planned',
+    started: 'Gmail metadata sync started',
+    pageFetched: 'Gmail sync page fetched',
+    labelComplete: 'Gmail label sync complete',
+    paused: 'Gmail metadata sync paused',
+    completed: 'Gmail metadata sync completed',
+    failed: 'Gmail metadata sync failed',
+    bodyWithheld: 'Gmail body read withheld',
+    draftWriteBlocked: 'Gmail draft write blocked',
+    sendBlocked: 'Gmail send blocked',
+    mutationBlocked: 'Gmail provider mutation blocked',
+  };
+  return labels[event] || `Gmail sync ${event || 'event'}`;
+}
+
+function mapGmailSyncReceiptToActivity(receipt) {
+  const event = receipt.event || 'sync_event';
+  const blocked = Boolean(receipt.blocked) || ['bodyWithheld', 'draftWriteBlocked', 'sendBlocked', 'mutationBlocked'].includes(event);
+  return {
+    id: `gmail-sync:${receipt.id || event}`,
+    activityType: blocked ? 'provider_gate_viewed' : 'build_evidence',
+    title: gmailSyncReceiptActivityTitle(event),
+    summary: receipt.error
+      ? `${event} · ${receipt.error}`
+      : receipt.details?.job
+        ? `${event} · job ${receipt.details.job}${receipt.details.threadCount != null ? ` · ${receipt.details.threadCount} threads` : ''}`
+        : event,
+    status: 'preview_only',
+    outcome: receipt.success === false ? 'blocked' : (blocked ? 'blocked' : 'recorded'),
+    createdAt: receipt.at || new Date().toISOString(),
+    account: gmailSyncStatus?.artifacts?.metadataSnapshot?.accountEmail || 'Gmail CLI',
+    sourceObject: 'Gmail metadata sync',
+    sourceLink: { lane: 'settings', settingsKey: 'user:accounts', label: 'Open Accounts' },
+    blockedReason: blocked ? 'Provider body read, draft write, send, and mutation remain blocked in preview.' : '',
+    receiptId: receipt.id || event,
+    eventType: `gmail_sync_${event}`,
+    riskLevel: event === 'failed' ? 'medium' : 'low',
+    relatedGate: 'Gmail metadata bridge (metadata-only)',
+    capabilityArea: 'Mail / Gmail CLI',
+    safeNext: gmailSyncStatus?.nextOperatorAction || 'Run tools/gmail CLI locally; browser preview is not connected.',
+    scope: 'external',
+    focusId: `activity:gmail-sync:${receipt.id || event}`,
+    isBuildEvidence: !blocked && event === 'completed',
+  };
+}
+
+function applyGmailSyncStatusToAccountReceipts(status, sourceLabel) {
+  if (!isGmailSyncStatusSnapshot(status)) return;
+  addAccountReceipt({
+    type: 'gmail_sync_status',
+    title: 'Gmail sync status imported',
+    summary: `${sourceLabel} · OAuth ${status.oauth?.status || 'unknown'} · index ${status.artifacts?.mailIndex?.present ? 'present' : 'missing'} · snapshot ${status.artifacts?.metadataSnapshot?.present ? 'present' : 'missing'}`,
+  });
+}
+
+async function loadGmailSyncStatusFromUrl(url, sourceLabel) {
+  const status = await fetchJson(url, null);
+  if (!isGmailSyncStatusSnapshot(status)) return null;
+  gmailSyncStatus = status;
+  gmailSyncStatusSource = sourceLabel;
+  return status;
+}
+
+async function importGmailSyncStatus({ preferLocal = true, recordReceipt = true } = {}) {
+  const tried = [];
+  if (preferLocal) {
+    const local = await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_LOCAL_URL, 'local-file');
+    if (local) {
+      if (recordReceipt) applyGmailSyncStatusToAccountReceipts(local, 'local sync status file');
+      return { ok: true, source: 'local-file', status: local };
+    }
+    tried.push(GMAIL_SYNC_STATUS_LOCAL_URL);
+  }
+  const sample = await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_SAMPLE_URL, 'sample-file');
+  if (sample) {
+    if (recordReceipt) applyGmailSyncStatusToAccountReceipts(sample, 'sample sync status fixture');
+    return { ok: true, source: 'sample-file', status: sample };
+  }
+  tried.push(GMAIL_SYNC_STATUS_SAMPLE_URL);
+  if (recordReceipt) {
+    addAccountReceipt({
+      type: 'gmail_sync_status_missing',
+      title: 'Gmail sync status missing',
+      summary: `No sync status at ${tried.join(' or ')}. Export with: cd tools/gmail && node cli.js sync-status --out ../public/data/gmail-sync-status.local.json`,
+    });
+  }
+  return { ok: false, source: null, tried };
+}
+
+function clearGmailSyncStatus() {
+  gmailSyncStatus = null;
+  gmailSyncStatusSource = null;
+  addAccountReceipt({
+    type: 'gmail_sync_status',
+    title: 'Gmail sync status cleared',
+    summary: 'Preview no longer shows imported CLI sync status. Operator CLI artifacts remain on device.',
+  });
+  saveState();
+}
+
+function gmailSyncStatusActive() {
+  return isGmailSyncStatusSnapshot(gmailSyncStatus);
+}
+
+function renderGmailSyncStatusPanel({ compact = false } = {}) {
+  if (!gmailSyncStatusActive()) {
+    return `
+      <aside class="gmail-sync-status-panel trust-affordance trust-affordance-warn" role="note" aria-label="Gmail metadata sync status">
+        <p class="gmail-sync-status-eyebrow">Gmail CLI sync status</p>
+        <p><strong>No sync status imported.</strong> Browser preview is not connected to live Gmail.</p>
+        <p class="form-hint">Export locally: <code>cd tools/gmail && node cli.js sync-status --out ../public/data/gmail-sync-status.local.json</code> then import in Settings → Accounts.</p>
+      </aside>
+    `;
+  }
+  const status = gmailSyncStatus;
+  const source = gmailSyncStatusSource === 'sample-file' ? 'sample fixture' : 'local file';
+  const last = status.lastSync || {};
+  const rows = [
+    ['OAuth (CLI)', `${label(status.oauth?.status || 'unknown')} · browser OAuth: no`],
+    ['Metadata snapshot', status.artifacts?.metadataSnapshot?.present ? `present · ${status.artifacts.metadataSnapshot.threadCount ?? 0} threads` : 'missing'],
+    ['Local mail index', status.artifacts?.mailIndex?.present ? `present · ${status.artifacts.mailIndex.threadCount ?? 0} threads` : 'missing'],
+    ['Last sync', last.at ? `${formatMailDate(last.at)} · ${last.event || 'event'} · ${last.threadCount ?? 0} threads` : 'none recorded'],
+    ['Body read', label(status.gates?.bodyRead || 'blocked')],
+    ['Draft write', label(status.gates?.draftWrite || 'blocked')],
+    ['Send', label(status.gates?.send || 'blocked')],
+    ['Mutation', label(status.gates?.mutation || 'blocked')],
+    ['Live proof', label(status.liveProof?.status || 'deferred')],
+  ];
+  return `
+    <aside class="gmail-sync-status-panel trust-affordance trust-affordance-warn ${compact ? 'is-compact' : ''}" role="note" aria-label="Gmail metadata sync status">
+      <p class="gmail-sync-status-eyebrow">Gmail CLI sync status · ${escapeHtml(source)} · not live browser Gmail</p>
+      ${compact ? '' : `<p class="form-hint">${escapeHtml(status.nextOperatorAction || 'Operator CLI only.')}</p>`}
+      <dl class="gmail-sync-status-grid">
+        ${rows.map(([term, value]) => `<div><dt>${escapeHtml(term)}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}
+      </dl>
+    </aside>
+  `;
+}
+
 function gmailMetadataBridgeActive() {
   return isMetadataSnapshot(gmailMetadataSnapshot);
 }
@@ -4421,7 +4582,8 @@ function collectUnifiedActivityEntries() {
     activityType: r.type === 'account_selected' ? 'account_selected'
       : r.type === 'local_data_wipe' ? 'local_data_wipe'
         : r.type === 'metadata_bridge_missing' ? 'provider_gate_viewed'
-          : (r.type === 'metadata_bridge' ? 'build_evidence' : 'local_state_changed'),
+          : r.type === 'gmail_sync_status_missing' ? 'provider_gate_viewed'
+            : (r.type === 'metadata_bridge' || r.type === 'gmail_sync_status' ? 'build_evidence' : 'local_state_changed'),
     capabilityArea: 'Mail',
     scope: 'external',
     relatedGate: 'Gmail metadata bridge (metadata-only)',
@@ -4431,6 +4593,11 @@ function collectUnifiedActivityEntries() {
     outcome: r.type === 'metadata_bridge_missing' ? 'blocked' : 'recorded',
     sourceLink: { lane: 'settings', settingsKey: 'user:accounts', label: 'Open Accounts' },
   })));
+  if (gmailSyncStatusActive()) {
+    (gmailSyncStatus.syncReceipts || []).forEach((receipt) => {
+      entries.push(mapGmailSyncReceiptToActivity(receipt));
+    });
+  }
   (state.sentEvents.receipts || []).forEach((r) => entries.push(activityEntryFromReceipt(r, 'sentEvents', {
     activityType: 'send_simulated',
     capabilityArea: 'Mail / Approval Queue',
@@ -5783,9 +5950,11 @@ function renderMailWorkspaceHeader() {
       <div class="mail-workspace-badges">
         ${gmailMetadataBridgeActive() ? '<span class="mail-source-badge is-metadata">Metadata-only</span>' : '<span class="mail-source-badge is-fixture">Fixture preview</span>'}
         ${gmailBodyBridgeActive() ? '<span class="mail-source-badge is-body">Read-only body snapshot</span>' : '<span class="mail-source-badge is-body-blocked">Body not imported</span>'}
+        ${gmailSyncStatusActive() ? '<span class="mail-source-badge is-sync-status">CLI sync status</span>' : ''}
         <span class="mail-source-badge is-blocked">Send blocked</span>
       </div>
     </header>
+    ${renderGmailSyncStatusPanel({ compact: true })}
   `;
 }
 
@@ -7808,6 +7977,7 @@ function renderExtensionProviderDetail(provider) {
         <div><dt>Related areas</dt><dd>${escapeHtml((provider.relatedAreas || []).join(' · '))}</dd></div>
       </dl>
       ${provider.adapterNote ? `<p class="form-hint extensions-adapter-note">${escapeHtml(provider.adapterNote)}</p>` : ''}
+      ${provider.id === 'email-gmail' ? renderGmailSyncStatusPanel() : ''}
       ${provider.requiresOAuth ? '<p class="form-hint">Requires OAuth when enabled — tokens never stored in product UI.</p>' : ''}
       <div class="inbox-action-toolbar">
         ${install
@@ -8036,12 +8206,15 @@ function renderEmailAccountsBlock() {
         <h3>Mail accounts (${accounts.length})</h3>
         <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
+        <button class="inbox-action-btn" type="button" data-account-action="import-sync-status">Import sync status</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-body-snapshot">Import read-only body snapshot</button>
         <button class="inbox-action-btn" type="button" data-account-action="wipe-gmail-local-hint">Wipe local Gmail CLI data</button>
         ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
         ${gmailBodyBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-body-snapshot">Clear body snapshot</button>' : ''}
+        ${gmailSyncStatusActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-sync-status">Clear sync status</button>' : ''}
       </div>
       <p class="form-hint">${escapeHtml(gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Mail accounts use the local Gmail CLI outside the browser. GitHub and other integrations live under Integrations — not Mail accounts.')}</p>
+      ${renderGmailSyncStatusPanel()}
       ${state.account.accountFormOpen ? `
         <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
           <label for="settings-account-email-input">Gmail address</label>
@@ -9778,6 +9951,22 @@ function handleAccountAction(action, accountId) {
     });
     return;
   }
+  if (action === 'import-sync-status') {
+    importGmailSyncStatus().then((result) => {
+      saveState();
+      setStatusMessage(result.ok
+        ? `Gmail sync status loaded (${result.source}). Browser OAuth remains disabled.`
+        : 'Sync status not found. Export via tools/gmail CLI first.');
+      renderShell();
+    });
+    return;
+  }
+  if (action === 'clear-sync-status') {
+    clearGmailSyncStatus();
+    setStatusMessage('Gmail sync status cleared from preview.');
+    renderShell();
+    return;
+  }
   if (action === 'clear-body-snapshot') {
     clearGmailBodySnapshot();
     setStatusMessage('Read-only body snapshot cleared.');
@@ -11226,6 +11415,7 @@ async function init() {
   normalizeScopedObjects();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
+  await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_LOCAL_URL, 'local-file');
   saveState();
   state.threadId = selectedInboxThread()?.id || state.threadId;
   state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);

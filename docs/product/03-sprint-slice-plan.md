@@ -84,9 +84,10 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 35. SLICE-GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs — **complete + peer reviewed** (`gmail-002a-ext-001-peer-review-receipt.md`)
 36. SLICE-GMAIL-002A-EXT-002 — local mail index — **complete agent pass** (`gmail-002a-ext-002-local-mail-index-receipt.md`); peer review partial
 37. SLICE-GMAIL-002A-EXT-002-REPAIR — index safety repair — **complete** (`gmail-002a-ext-002-repair-receipt.md`)
-38. SLICE-GMAIL-002A-EXT-003 — sync status UI + Activity receipts — **next**
-39. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
-40. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
+38. SLICE-GMAIL-002A-EXT-003 — sync status UI + Activity receipts — **complete** (`gmail-002a-ext-003-sync-status-activity-receipts-receipt.md`)
+39. SLICE-GMAIL-002A-EXT-004 — historyId incremental sync — **next**
+40. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
+41. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 
