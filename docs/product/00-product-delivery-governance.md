@@ -29,13 +29,20 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 | EVIDENCE-GATE-001 | `docs/product/04-build-readiness-gates.md` | build permission gates and risk register |
 | EVIDENCE-HYDRATE-001 | `docs/product/05-framework-hydration-checklist.md` | framework expectation status |
 | EVIDENCE-COMP-001 | `docs/product/06-compliance-validation-index.md` | compliance and validation index |
+| EVIDENCE-XPROJ-001 | `docs/product/07-cross-project-planning-standard.md` | Level 1-5 planning packet standard for future xi-io products |
 | EVIDENCE-UI-STD-001 | `docs/ui/polish/00-xi-io-visual-product-standard.md` | visual product standard |
 | EVIDENCE-UI-WG-001 | `docs/ui/polish/14-ui-wargame-scenario-matrix.md` | UI wargame scenarios |
+| EVIDENCE-UI-013 | `docs/ui/ui-013-level-2-visual-experience-system.md` | visual thesis, token, lane identity, and no-AI-slop gate |
+| EVIDENCE-UI-014 | `docs/ui/ui-014-level-3-contextual-cross-pollination-map.md` | anti-silo related-object and handoff standard |
+| EVIDENCE-UI-015 | `docs/ui/ui-015-level-4-lane-purpose-journey-index.md` | lane purpose, journeys, and predicted failure index |
+| EVIDENCE-UI-016 | `docs/ui/ui-016-level-5-componentization-consistency-index.md` | componentization audit and ownership index |
+| EVIDENCE-UI-016B | `docs/ui/ui-016b-component-anatomy-and-boundary-checks.md` | component anatomy and boundary check specification |
 | EVIDENCE-ARCH-001 | `docs/architecture/platform-runtime-decision-matrix.md` | runtime/platform decision constraints |
 | EVIDENCE-SAFETY-001 | `docs/security/draft-only-egress.md` | draft-only egress policy |
 | EVIDENCE-BRANCH-001 | `docs/operations/branch-truth.md` | branch selection and PR reconciliation |
 | EVIDENCE-PEER-001 | `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md` | current app peer-review findings and plan deltas |
 | EVIDENCE-NORTHSTAR-001 | `docs/ui/ui-north-star-and-convergence-plan.md` | current UI convergence target |
+| EVIDENCE-FRAMEWORK-STD-001 | `docs/operations/framework-document-standardization-backfeed.md` | framework document/template/check backfeed plan |
 
 ## Agent Reading Order
 
@@ -52,6 +59,7 @@ Define the minimum delivery governance layer for `xi-io Inbox` before broader bu
 11. `docs/product/05-framework-hydration-checklist.md`
 12. `docs/product/06-compliance-validation-index.md`
 13. Relevant UI, architecture, security, schema, and framework docs for the active slice.
+14. For visual/component work: `docs/ui/ui-013-level-2-visual-experience-system.md`, `docs/ui/ui-014-level-3-contextual-cross-pollination-map.md`, `docs/ui/ui-015-level-4-lane-purpose-journey-index.md`, `docs/ui/ui-016-level-5-componentization-consistency-index.md`, `docs/ui/ui-016b-component-anatomy-and-boundary-checks.md`, and `docs/product/07-cross-project-planning-standard.md`.
 
 ## Waterfall Phase Map
 

@@ -82,10 +82,14 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Amend north-star to Option B: Mail spine plus primary Home/Calendar/Tasks/Automations/Activity/Integrations (`docs/ui/reviews/ui-north-star-ratification-2026-06-13.md`).
 - [x] NAV-002: restore Home, Calendar, and Tasks as primary nav destinations; dissolve `Plan` into Tasks sub-views (`docs/ui/reviews/nav-002-primary-operations-nav-receipt.md`).
 - [x] UI-015 Level 4 lane purpose, journey, and failure index (`docs/ui/ui-015-level-4-lane-purpose-journey-index.md`).
-- [ ] UI-013 Level 2 visual experience system before owner proof.
-- [ ] UI-014 Level 3 contextual cross-pollination map.
+- [x] UI-013A Level 2 visual experience system plan (`docs/ui/ui-013-level-2-visual-experience-system.md`).
+- [x] UI-014A Level 3 contextual cross-pollination map (`docs/ui/ui-014-level-3-contextual-cross-pollination-map.md`).
 - [x] UI-016A Level 5 componentization / framework-vs-repo-vs-template audit (`docs/ui/ui-016-level-5-componentization-consistency-index.md`).
-- [ ] UI-016B component anatomy spec and boundary checks before extraction.
+- [x] UI-016B component anatomy spec (`docs/ui/ui-016b-component-anatomy-and-boundary-checks.md`).
+- [x] Cross-project planning and framework document standardization (`docs/product/07-cross-project-planning-standard.md`, `docs/operations/framework-document-standardization-backfeed.md`).
+- [ ] UI-016C component boundary check scripts before extraction.
+- [ ] UI-013B Level 2 visual system implementation / premium redesign before owner proof.
+- [ ] UI-014B Level 3 cross-pollination implementation.
 - [ ] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity.
 - [ ] Add `accountId` migration plan for calendar proposals and task/work items before account-scoped implementation.
 - [ ] Prepare UI-003E owner visual-proof support packet.

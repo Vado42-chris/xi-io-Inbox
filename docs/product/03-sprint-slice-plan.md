@@ -67,14 +67,18 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 17. SLICE-NPM-AUDIT-GMAIL-001 — review 4 moderate `tools/gmail` dependency vulnerabilities — **complete** (`npm-audit-gmail-001-dependency-audit-receipt.md`)
 18. SLICE-UI-NORTH-STAR-AMEND — Option B: Mail spine plus primary Calendar/Tasks/Home — **complete** (`ui-north-star-ratification-2026-06-13.md`)
 19. SLICE-NAV-002 — restore primary Home/Calendar/Tasks and dissolve Plan into Tasks sub-views — **complete** (`nav-002-primary-operations-nav-receipt.md`)
-20. SLICE-UI-013 — Level 2 visual experience system — **next before owner proof**
-21. SLICE-UI-014 — Level 3 contextual cross-pollination map — **planned**
+20. SLICE-UI-013A — Level 2 visual experience system plan — **complete** (`ui-013-level-2-visual-experience-system.md`)
+21. SLICE-UI-014A — Level 3 contextual cross-pollination map — **complete** (`ui-014-level-3-contextual-cross-pollination-map.md`)
 22. SLICE-UI-015 — Level 4 lane purpose / journey / failure index — **complete** (`ui-015-level-4-lane-purpose-journey-index.md`)
 23. SLICE-UI-016A — Level 5 componentization / framework-vs-repo-vs-template audit — **complete** (`ui-016-level-5-componentization-consistency-index.md`)
-24. SLICE-UI-016B — component anatomy spec + boundary checks — **next after UI-013/UI-014**
-25. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after route/scope anatomy decision**
-26. SLICE-UI-003E owner visual proof — **ready after Level 2-5 plan and visible redesign**
-27. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after Level 5 boundary checks**
+24. SLICE-UI-016B — component anatomy spec — **complete** (`ui-016b-component-anatomy-and-boundary-checks.md`)
+25. SLICE-PLAN-STD-001 — cross-project planning/framework document standardization — **complete** (`07-cross-project-planning-standard.md`, `framework-document-standardization-backfeed.md`)
+26. SLICE-UI-016C — component boundary check scripts — **next**
+27. SLICE-UI-013B — visual system implementation / premium redesign — **after UI-016C guardrails**
+28. SLICE-UI-014B — cross-pollination implementation — **after UI-016C guardrails**
+29. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after route/scope anatomy decision**
+30. SLICE-UI-003E owner visual proof — **ready after visible redesign and visual QA evidence**
+31. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after Level 5 boundary checks**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

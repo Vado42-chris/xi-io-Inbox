@@ -27,13 +27,13 @@ AI-generated interfaces.
 
 | Required doc | Purpose | Status |
 | --- | --- | --- |
-| `UI-013 Level 2 Visual Experience System` | Brand thesis, token reset, typography, depth, lane personality, premium visual standard. | Required before owner visual proof. |
-| `UI-014 Level 3 Contextual Cross-Pollination Map` | Page-specific related-object zones and anti-silo rules. | Required before lane polish claims. |
+| `UI-013 Level 2 Visual Experience System` | Brand thesis, token reset, typography, depth, lane personality, premium visual standard. | Planning doc created; implementation required before owner visual proof. |
+| `UI-014 Level 3 Contextual Cross-Pollination Map` | Page-specific related-object zones and anti-silo rules. | Planning doc created; implementation required before lane polish claims. |
 | `UI-015 Level 4 Lane Purpose and Journey Index` | Lane promises, journeys, failure points, Level 5 prep. | Complete. |
 | `UI-016 Level 5 Componentization and Consistency Index` | Component inventory, duplication audit, framework/repo/template ownership. | This doc. |
-| `Component Anatomy Spec` | Standard props/slots/states for shell, scope lens, receipt row, provider gate, related object rail, cards, sheets. | Needed before extraction. |
-| `Visual QA Checklist` | No AI-slop gate: hierarchy, lane identity, contrast, density, copy, motion, empty/error states. | Needed before UI-003E. |
-| `Framework Backfeed Plan` | What moves to `xi-io.net`, what stays here, what becomes reusable template material. | Needed before xi-io.net#239 update. |
+| `Component Anatomy Spec` | Standard props/slots/states for shell, scope lens, receipt row, provider gate, related object rail, cards, sheets. | UI-016B doc created; check scripts pending. |
+| `Visual QA Checklist` | No AI-slop gate: hierarchy, lane identity, contrast, density, copy, motion, empty/error states. | UI-013 defines gate; executable checklist still needed before UI-003E. |
+| `Framework Backfeed Plan` | What moves to `xi-io.net`, what stays here, what becomes reusable template material. | Backfeed standard created; xi-io.net update pending. |
 
 ## Existing component-like patterns
 
@@ -136,9 +136,9 @@ AI-generated interfaces.
 - [x] Consistency/polish risks listed.
 - [x] Framework/repo/split/template ownership assigned.
 - [x] Extraction order defined.
-- [ ] UI-013 visual direction complete.
-- [ ] UI-014 cross-pollination map complete.
-- [ ] Component anatomy spec complete.
+- [x] UI-013 visual direction doc complete.
+- [x] UI-014 cross-pollination map doc complete.
+- [x] Component anatomy spec doc complete.
 - [ ] Component-boundary checks implemented.
 - [ ] First strangler extraction complete.
 
