@@ -70,10 +70,11 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 20. SLICE-UI-013 — Level 2 visual experience system — **next before owner proof**
 21. SLICE-UI-014 — Level 3 contextual cross-pollination map — **planned**
 22. SLICE-UI-015 — Level 4 lane purpose / journey / failure index — **complete** (`ui-015-level-4-lane-purpose-journey-index.md`)
-23. SLICE-UI-016 — Level 5 componentization / framework-vs-repo-vs-template index — **next after UI-015**
-24. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after Level 5 component boundary decision**
-25. SLICE-UI-003E owner visual proof — **ready after Level 2-5 plan and visible redesign**
-26. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after Level 5 component boundary decision**
+23. SLICE-UI-016A — Level 5 componentization / framework-vs-repo-vs-template audit — **complete** (`ui-016-level-5-componentization-consistency-index.md`)
+24. SLICE-UI-016B — component anatomy spec + boundary checks — **next after UI-013/UI-014**
+25. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after route/scope anatomy decision**
+26. SLICE-UI-003E owner visual proof — **ready after Level 2-5 plan and visible redesign**
+27. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after Level 5 boundary checks**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

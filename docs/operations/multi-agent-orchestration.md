@@ -65,6 +65,8 @@ module boundaries, and hard gates are explicit.
   requirements are complete.
 - Extracting components before Level 5 decides whether they belong in the framework, this
   repository, or product templates.
+- Calling the preview "componentized" before UI-016B adds anatomy specs, boundary checks, and
+  at least one real strangler extraction under `public/src/*`.
 
 ## Decision value
 

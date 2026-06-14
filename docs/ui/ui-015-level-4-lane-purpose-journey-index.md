@@ -188,7 +188,8 @@ Failure points:
 - [ ] Every lane lists predicted silent failures.
 - [ ] Every lane has explicit non-claims for runtime/provider capabilities.
 - [ ] Cross-lane object index exists before SCOPE-001 implementation.
-- [ ] Level 5 component candidates are sorted into framework, repo, split, or template.
+- [x] Level 5 component candidates are sorted into framework, repo, split, or template
+  (`ui-016-level-5-componentization-consistency-index.md`).
 
 ## Decision value
 
