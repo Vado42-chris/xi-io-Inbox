@@ -81,7 +81,6 @@ Working estimate to complete documentation, code comments where needed, complian
 and two-way framework freshness:
 
 ```text
-1 pass  NAV-002 route-table contract and primary nav correction
 1 pass  shared account scope lens contract + accountId migration plan
 1 pass  UI-003E owner visual-proof packet support (owner decision still human)
 1 pass  module skeleton / route-table contract
@@ -91,7 +90,7 @@ and two-way framework freshness:
 2-4 passes ARCH-004 / ARCH-002 / Pass 4 decision packets, depending on owner runtime choices
 ```
 
-Estimate status: **8 to 11 remaining agent passes plus owner UI-003E decision**.
+Estimate status: **7 to 10 remaining agent passes plus owner UI-003E decision**.
 
 ## Decision value
 
