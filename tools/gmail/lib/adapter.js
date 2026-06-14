@@ -34,6 +34,15 @@ import {
   redactBodySnapshot,
 } from './body-redaction.js';
 import { validateReadonlyBodySnapshot } from './body-snapshot-schema.js';
+import { writeSyncReceipt } from './receipts.js';
+import {
+  METADATA_SYNC_JOB_PRESETS,
+  DEFAULT_SYNC_LIMITS,
+  buildMetadataSyncPlan,
+  mergeThreadRows,
+  flattenMessagesFromThreads,
+  paginateListParams,
+} from './metadata-sync.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LOOPBACK_HOST = DEFAULT_LOOPBACK_HOST;
@@ -533,20 +542,76 @@ export async function gmailThreadMetadata({ threadId } = {}) {
   });
 }
 
-export async function exportMetadataSnapshot({
-  maxThreads = 25,
-  maxMessages = 50,
-  threadQuery = 'in:inbox',
-  messageQuery = 'in:inbox',
-  outputPath = SNAPSHOT_PATH,
-  includePayload = false,
+async function fetchPaginatedMetadata({
+  labelIds = [],
+  mailbox,
+  mailboxes = [],
+  jobs = [],
+  query,
+  maxPages = DEFAULT_SYNC_LIMITS.maxPages,
+  maxThreads = DEFAULT_SYNC_LIMITS.maxThreads,
+  maxMessages = DEFAULT_SYNC_LIMITS.maxMessages,
+  maxResultsPerPage = DEFAULT_SYNC_LIMITS.maxResultsPerPage,
+  emitReceipts = false,
 } = {}) {
-  const profileResult = await gmailProfileGet();
-  const labelsResult = await gmailLabelsCounts();
-  const threadsResult = await gmailThreadsListMetadata({ query: threadQuery, maxResults: maxThreads });
-  const messagesResult = await gmailMessagesListMetadata({ query: messageQuery, maxResults: maxMessages });
+  const labelJobs = resolveSyncLabelJobs({ labelIds, mailbox, mailboxes, jobs, query });
+  const gmail = await getGmail();
+  let allThreads = [];
+  const jobResults = [];
+  let pagesFetched = 0;
+  let stoppedReason = null;
 
-  const snapshot = {
+  for (const job of labelJobs) {
+    const perJobLimits = {
+      maxPages,
+      maxThreads: Math.max(0, maxThreads - allThreads.length),
+      maxResultsPerPage,
+    };
+    if (perJobLimits.maxThreads <= 0) {
+      stoppedReason = 'maxThreads';
+      if (emitReceipts) writeSyncReceipt({ event: 'paused', details: { stoppedReason, jobName: job.name } });
+      break;
+    }
+
+    const result = await fetchLabelThreadsPaginated(gmail, job, perJobLimits, emitReceipts);
+    pagesFetched += result.pagesFetched;
+    allThreads = mergeThreadRows(allThreads, result.threads, maxThreads);
+    jobResults.push({ ...job, ...result, threadCount: result.threads.length });
+    if (emitReceipts) {
+      writeSyncReceipt({
+        event: 'labelComplete',
+        details: {
+          jobName: job.name,
+          labelIds: job.labelIds,
+          pagesFetched: result.pagesFetched,
+          threadCount: result.threads.length,
+          stoppedReason: result.stoppedReason,
+        },
+      });
+    }
+    if (allThreads.length >= maxThreads) {
+      stoppedReason = 'maxThreads';
+      break;
+    }
+  }
+
+  const messages = flattenMessagesFromThreads(allThreads, maxMessages);
+  return {
+    labelJobs,
+    threads: allThreads,
+    messages,
+    jobResults,
+    summary: {
+      pagesFetched,
+      threadCount: allThreads.length,
+      messageCount: messages.length,
+      stoppedReason: stoppedReason || jobResults.at(-1)?.stoppedReason || 'complete',
+    },
+  };
+}
+
+function buildMetadataSnapshotFile({ profileResult, labelsResult, threads, messages, summary }) {
+  return {
     accountEmail: profileResult.payload?.emailAddress || null,
     generatedAt: new Date().toISOString(),
     source: 'local-gmail-cli',
@@ -561,11 +626,13 @@ export async function exportMetadataSnapshot({
       threadsUnread: entry.threadsUnread,
     })),
     counts: labelsResult.payload?.counts || {},
-    threads: threadsResult.payload?.threads || [],
-    messages: messagesResult.payload?.messages || [],
+    threads,
+    messages,
     warnings: [
       'Metadata-only snapshot. Message bodies, attachments, OAuth tokens, and raw payloads are excluded.',
       'Browser preview does not perform OAuth. Import this file manually after CLI export.',
+      `Paginated metadata sync: ${summary.pagesFetched || 0} page(s), ${threads.length} thread(s), stopped: ${summary.stoppedReason || 'complete'}.`,
+      'No all-mail backfill by default. Use label-scoped sync jobs with explicit page limits.',
     ],
     blockedCapabilities: [
       'body_read',
@@ -575,6 +642,43 @@ export async function exportMetadataSnapshot({
       'browser_oauth',
     ],
   };
+}
+
+export async function exportMetadataSnapshot({
+  maxThreads = 25,
+  maxMessages = 50,
+  maxPages = 1,
+  maxResultsPerPage = 25,
+  threadQuery = 'in:inbox',
+  labelIds,
+  mailbox,
+  mailboxes = [],
+  jobs = [],
+  outputPath = SNAPSHOT_PATH,
+  includePayload = false,
+} = {}) {
+  const profileResult = await gmailProfileGet();
+  const labelsResult = await gmailLabelsCounts();
+  const fetched = await fetchPaginatedMetadata({
+    labelIds,
+    mailbox,
+    mailboxes,
+    jobs,
+    query: labelIds?.length ? undefined : threadQuery,
+    maxPages,
+    maxThreads,
+    maxMessages,
+    maxResultsPerPage,
+    emitReceipts: false,
+  });
+
+  const snapshot = buildMetadataSnapshotFile({
+    profileResult,
+    labelsResult,
+    threads: fetched.threads,
+    messages: fetched.messages,
+    summary: fetched.summary,
+  });
 
   const validation = validateMetadataSnapshot(snapshot);
   if (!validation.ok) {
@@ -587,7 +691,12 @@ export async function exportMetadataSnapshot({
   return envelope({
     success: true,
     method: 'gmail.exportMetadataSnapshot',
-    payload: snapshotExportSummary({ outputPath, snapshot, includePayload }),
+    payload: snapshotExportSummary({
+      outputPath,
+      snapshot,
+      includePayload,
+      extra: { syncSummary: fetched.summary },
+    }),
   });
 }
 
@@ -877,3 +986,263 @@ export { validateOAuthState, resolveLoopbackFromRedirectUri } from './oauth-loop
 export { wipeLocalAdapterData } from './local-data.js';
 export { bodyGateStatus, getAccessMode, READONLY_SCOPE } from './body-gate.js';
 export { redactBodyContent, redactBodySnapshot } from './body-redaction.js';
+export {
+  METADATA_SYNC_JOB_PRESETS,
+  DEFAULT_SYNC_LIMITS,
+  buildMetadataSyncPlan,
+  shouldStopPagination,
+  paginateListParams,
+  mergeThreadRows,
+  flattenMessagesFromThreads,
+} from './metadata-sync.js';
+
+export function resolveSyncLabelJobs({
+  labelIds = [],
+  mailbox,
+  mailboxes = [],
+  jobs = [],
+  query,
+} = {}) {
+  const jobList = [];
+  const seen = new Set();
+
+  const pushJob = (entry) => {
+    const key = entry.labelIds.join('+');
+    if (seen.has(key)) return;
+    seen.add(key);
+    jobList.push(entry);
+  };
+
+  for (const id of labelIds.filter(Boolean)) {
+    pushJob({ name: `label:${id}`, labelIds: [id], source: 'label' });
+  }
+
+  for (const mb of [mailbox, ...mailboxes].filter(Boolean)) {
+    const alias = String(mb).trim().toLowerCase();
+    const mapped = METADATA_QUERY_LABELS[alias];
+    if (!mapped) {
+      throw new MetadataQueryError(
+        `Unsupported mailbox "${mb}". Allowed: ${METADATA_MAILBOX_ALIASES.join(', ')}`,
+      );
+    }
+    pushJob({ name: `mailbox:${alias}`, labelIds: [mapped], source: 'mailbox', mailbox: alias });
+  }
+
+  for (const job of jobs.filter(Boolean)) {
+    const preset = METADATA_SYNC_JOB_PRESETS[job];
+    if (!preset) {
+      throw new Error(`Unknown sync job "${job}". Allowed: ${Object.keys(METADATA_SYNC_JOB_PRESETS).join(', ')}`);
+    }
+    pushJob({ name: `job:${job}`, labelIds: [...preset.labelIds], source: 'job', job });
+  }
+
+  if (query) {
+    const params = metadataListParams({ query });
+    pushJob({ name: `query:${query}`, labelIds: [...params.labelIds], source: 'query', query });
+  }
+
+  if (!jobList.length) {
+    pushJob({ name: 'default:inbox', labelIds: ['INBOX'], source: 'default' });
+  }
+
+  return jobList;
+}
+
+async function threadMetadataRow(gmail, threadId) {
+  const thread = await gmail.users.threads.get({
+    userId: 'me',
+    id: threadId,
+    format: 'metadata',
+    metadataHeaders: METADATA_HEADERS,
+  });
+  const messages = (thread.data.messages || []).map(messageMetadataFromApi);
+  const head = messages[0] || {};
+  return {
+    id: thread.data.id,
+    snippet: thread.data.snippet || head.snippet || '',
+    subject: head.subject || '',
+    from: head.from || '',
+    date: head.date || '',
+    unread: messages.some((entry) => entry.unread),
+    labelIds: [...new Set(messages.flatMap((entry) => entry.labelIds))],
+    messageIds: messages.map((entry) => entry.id),
+    messages,
+    provider: 'gmail-metadata',
+  };
+}
+
+async function fetchLabelThreadsPaginated(gmail, labelJob, limits, emitReceipts = false) {
+  const threads = [];
+  let pageToken;
+  let pagesFetched = 0;
+  let stoppedReason = null;
+
+  while (threads.length < limits.maxThreads && pagesFetched < limits.maxPages) {
+    const listParams = paginateListParams({
+      labelIds: labelJob.labelIds,
+      maxResultsPerPage: limits.maxResultsPerPage,
+      pageToken,
+      remaining: limits.maxThreads - threads.length,
+    });
+    const res = await gmail.users.threads.list(listParams);
+    pagesFetched += 1;
+    if (emitReceipts) {
+      writeSyncReceipt({
+        event: 'pageFetched',
+        details: {
+          jobName: labelJob.name,
+          labelIds: labelJob.labelIds,
+          page: pagesFetched,
+          pagesFetched,
+          nextPageTokenPresent: Boolean(res.data.nextPageToken),
+        },
+      });
+    }
+
+    for (const row of res.data.threads || []) {
+      if (threads.length >= limits.maxThreads) {
+        stoppedReason = 'maxThreads';
+        break;
+      }
+      threads.push(await threadMetadataRow(gmail, row.id));
+    }
+
+    pageToken = res.data.nextPageToken;
+    if (!pageToken) {
+      stoppedReason = stoppedReason || 'noNextPageToken';
+      break;
+    }
+    if (pagesFetched >= limits.maxPages) {
+      stoppedReason = stoppedReason || 'maxPages';
+      break;
+    }
+  }
+
+  return { threads, pagesFetched, stoppedReason, nextPageToken: pageToken || null };
+}
+
+export async function runMetadataSync({
+  labelIds = [],
+  mailbox,
+  mailboxes = [],
+  jobs = [],
+  query,
+  maxPages = DEFAULT_SYNC_LIMITS.maxPages,
+  maxThreads = DEFAULT_SYNC_LIMITS.maxThreads,
+  maxMessages = DEFAULT_SYNC_LIMITS.maxMessages,
+  maxResultsPerPage = DEFAULT_SYNC_LIMITS.maxResultsPerPage,
+  dryRun = false,
+  planOnly = false,
+  outputPath,
+} = {}) {
+  const labelJobs = resolveSyncLabelJobs({ labelIds, mailbox, mailboxes, jobs, query });
+  let accountEmail = null;
+
+  if (!planOnly && !dryRun) {
+    const profileResult = await gmailProfileGet();
+    accountEmail = profileResult.payload?.emailAddress || null;
+  }
+
+  const plan = buildMetadataSyncPlan({
+    accountEmail,
+    labelJobs,
+    maxPages,
+    maxThreads,
+    maxMessages,
+    maxResultsPerPage,
+    dryRun,
+    planOnly,
+  });
+
+  writeSyncReceipt({
+    event: 'planned',
+    details: {
+      dryRun,
+      planOnly,
+      labelIds: labelJobs.flatMap((job) => job.labelIds),
+      job: labelJobs.map((entry) => entry.name).join(','),
+    },
+  });
+  writeSyncReceipt({ event: 'bodyWithheld', blocked: true, success: true });
+  writeSyncReceipt({ event: 'draftWriteBlocked', blocked: true, success: true });
+  writeSyncReceipt({ event: 'sendBlocked', blocked: true, success: true });
+  writeSyncReceipt({ event: 'mutationBlocked', blocked: true, success: true });
+
+  if (planOnly) {
+    return envelope({
+      success: true,
+      method: 'gmail.metadataSync.plan',
+      payload: { plan },
+    });
+  }
+
+  if (dryRun) {
+    writeSyncReceipt({ event: 'completed', details: { dryRun: true, threadCount: 0, messageCount: 0 } });
+    return envelope({
+      success: true,
+      method: 'gmail.metadataSync.dryRun',
+      payload: { plan, progress: 'dry-run only; no Gmail API list calls performed.' },
+    });
+  }
+
+  writeSyncReceipt({ event: 'started', details: { job: labelJobs.map((entry) => entry.name).join(',') } });
+
+  try {
+    const fetched = await fetchPaginatedMetadata({
+      labelIds,
+      mailbox,
+      mailboxes,
+      jobs,
+      query,
+      maxPages,
+      maxThreads,
+      maxMessages,
+      maxResultsPerPage,
+      emitReceipts: true,
+    });
+
+    writeSyncReceipt({
+      event: 'completed',
+      details: {
+        pagesFetched: fetched.summary.pagesFetched,
+        threadCount: fetched.summary.threadCount,
+        messageCount: fetched.summary.messageCount,
+        stoppedReason: fetched.summary.stoppedReason,
+      },
+    });
+
+    if (outputPath) {
+      const profileResult = await gmailProfileGet();
+      const labelsResult = await gmailLabelsCounts();
+      const snapshot = buildMetadataSnapshotFile({
+        profileResult,
+        labelsResult,
+        threads: fetched.threads,
+        messages: fetched.messages,
+        summary: fetched.summary,
+      });
+      const validation = validateMetadataSnapshot(snapshot);
+      if (!validation.ok) {
+        throw new Error(`Metadata snapshot validation failed: ${validation.errors.join('; ')}`);
+      }
+      await fs.mkdir(path.dirname(outputPath), { recursive: true });
+      await fs.writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+    }
+
+    return envelope({
+      success: true,
+      method: 'gmail.metadataSync.run',
+      payload: {
+        plan,
+        summary: fetched.summary,
+        threads: fetched.threads,
+        messages: fetched.messages,
+        jobResults: fetched.jobResults,
+        outputPath: outputPath || null,
+      },
+    });
+  } catch (err) {
+    writeSyncReceipt({ event: 'failed', success: false, error: err.message || String(err) });
+    throw err;
+  }
+}

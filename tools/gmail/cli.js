@@ -18,6 +18,9 @@ import {
   readThreadBodies,
   exportReadonlyBodySnapshot,
   redactBodySnapshotFile,
+  runMetadataSync,
+  METADATA_SYNC_JOB_PRESETS,
+  resolveSyncLabelJobs,
   invokeBlocked,
   METADATA_MAILBOX_ALIASES,
 } from './lib/adapter.js';
@@ -47,7 +50,9 @@ Commands:
   search-metadata           deprecated alias for list-mailbox-metadata
   thread-metadata <threadId>
   drafts-metadata [--max N]
-  export-metadata-snapshot [--max N] [--max-messages N] [--out PATH] [--include-payload]
+  export-metadata-snapshot [--mailbox M | --label ID | --job JOB] [--max N] [--max-pages N] [--max-messages N] [--out PATH]
+  sync-metadata | metadata-sync [--plan | --dry-run] [--job JOB | --jobs a,b] [--mailbox M | --label ID] [--max-pages N] [--max N] [--max-messages N] [--out PATH]
+  sync-plan                 alias: sync-metadata --plan
   read-message-body <messageId>
   read-thread-bodies <threadId> [--max N]
   export-readonly-body-snapshot (--message-id ID | --thread-id ID | --in PATH | --allow-batch-readonly-export) [--max N] [--max-messages N] [--out PATH]
@@ -61,6 +66,26 @@ function metadataListOptions(flags) {
   return { query: flags.query || 'in:inbox', maxResults: flags.max || 10 };
 }
 
+function syncOptions(flags) {
+  const jobs = [];
+  if (flags.job) jobs.push(flags.job);
+  if (flags.jobs) jobs.push(...flags.jobs.split(',').map((entry) => entry.trim()).filter(Boolean));
+  return {
+    labelIds: flags.label ? [flags.label] : [],
+    mailbox: flags.mailbox,
+    mailboxes: flags.mailboxes ? flags.mailboxes.split(',').map((entry) => entry.trim()).filter(Boolean) : [],
+    jobs,
+    query: flags.query,
+    maxPages: flags.maxPages || 1,
+    maxThreads: flags.max || 25,
+    maxMessages: flags.maxMessages || 50,
+    maxResultsPerPage: flags.maxResultsPerPage || 25,
+    dryRun: Boolean(flags.dryRun),
+    planOnly: Boolean(flags.planOnly),
+    outputPath: flags.out,
+  };
+}
+
 async function main() {
   const [,, cmd, ...rest] = process.argv;
   if (!cmd || cmd === 'help' || cmd === '--help') {
@@ -71,10 +96,17 @@ async function main() {
   const flags = { _: null };
   for (let i = 0; i < rest.length; i += 1) {
     if (rest[i] === '--max') flags.max = Number(rest[++i]);
+    else if (rest[i] === '--max-pages') flags.maxPages = Number(rest[++i]);
     else if (rest[i] === '--max-messages') flags.maxMessages = Number(rest[++i]);
+    else if (rest[i] === '--max-results-per-page') flags.maxResultsPerPage = Number(rest[++i]);
     else if (rest[i] === '--query') flags.query = rest[++i];
     else if (rest[i] === '--label') flags.label = rest[++i];
     else if (rest[i] === '--mailbox') flags.mailbox = rest[++i];
+    else if (rest[i] === '--mailboxes') flags.mailboxes = rest[++i];
+    else if (rest[i] === '--job') flags.job = rest[++i];
+    else if (rest[i] === '--jobs') flags.jobs = rest[++i];
+    else if (rest[i] === '--dry-run') flags.dryRun = true;
+    else if (rest[i] === '--plan') flags.planOnly = true;
     else if (rest[i] === '--message-id') flags.messageId = rest[++i];
     else if (rest[i] === '--thread-id') flags.threadId = rest[++i];
     else if (rest[i] === '--allow-batch-readonly-export') flags.allowBatchReadonlyExport = true;
@@ -137,10 +169,16 @@ async function main() {
         break;
       case 'export-metadata-snapshot':
         result = await exportMetadataSnapshot({
-          maxThreads: flags.max || 25,
-          maxMessages: flags.maxMessages || 50,
-          outputPath: flags.out,
+          ...syncOptions(flags),
           includePayload: Boolean(flags.includePayload),
+        });
+        break;
+      case 'sync-metadata':
+      case 'metadata-sync':
+      case 'sync-plan':
+        result = await runMetadataSync({
+          ...syncOptions(flags),
+          planOnly: cmd === 'sync-plan' ? true : Boolean(flags.planOnly),
         });
         break;
       case 'read-message-body':
@@ -174,6 +212,7 @@ async function main() {
       default:
         console.error(`Unknown command: ${cmd}`);
         console.log(HELP);
+        console.error(`Allowed sync jobs: ${Object.keys(METADATA_SYNC_JOB_PRESETS).join(', ')}`);
         console.error(`Allowed metadata mailboxes: ${METADATA_MAILBOX_ALIASES.join(', ')}`);
         process.exit(1);
     }

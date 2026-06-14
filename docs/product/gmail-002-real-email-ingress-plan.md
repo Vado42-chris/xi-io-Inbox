@@ -251,6 +251,7 @@ NAV-001 corrected shell placement for account status and Integrations taxonomy s
 | GMAIL-002A-HARDEN | GMAIL-002A pass | `docs/ui/reviews/gmail-002a-hardening-receipt.md` |
 | GMAIL-002B | GMAIL-002A-HARDEN pass | `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md` |
 | RECON-GMAIL-001 | GMAIL-002B-LIVE-PROOF metadata pass | `docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md` |
-| GMAIL-002A-EXT-001 | RECON-GMAIL-001 pass | TBD |
+| GMAIL-002A-EXT-001 | RECON-GMAIL-001 pass | `docs/ui/reviews/gmail-002a-ext-001-metadata-pagination-receipt.md` |
+| GMAIL-002A-EXT-002 | EXT-001 pass | TBD |
 | GMAIL-002C | GMAIL-002B stable | TBD |
 | GMAIL-002D | Approval + UI-003E path | TBD |

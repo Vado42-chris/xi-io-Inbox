@@ -9,7 +9,7 @@ function ensureDir() {
   if (!fs.existsSync(RECEIPTS_DIR)) fs.mkdirSync(RECEIPTS_DIR, { recursive: true });
 }
 
-export function writeReceipt({ method, success, blocked, error }) {
+export function writeReceipt({ method, success, blocked, error, event = null, details = null }) {
   ensureDir();
   const id = `receipt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const row = {
@@ -21,6 +21,28 @@ export function writeReceipt({ method, success, blocked, error }) {
     error: error || null,
     note: 'Local only. No tokens or private payloads stored in receipt files.',
   };
+  if (event) row.event = event;
+  if (details && typeof details === 'object') row.details = details;
   fs.writeFileSync(path.join(RECEIPTS_DIR, `${id}.json`), `${JSON.stringify(row, null, 2)}\n`, 'utf8');
   return id;
+}
+
+const SYNC_RECEIPT_DETAIL_KEYS = new Set([
+  'labelIds', 'job', 'page', 'pagesFetched', 'threadCount', 'messageCount',
+  'stoppedReason', 'dryRun', 'planOnly', 'nextPageTokenPresent', 'jobName',
+]);
+
+export function writeSyncReceipt({ event, success = true, blocked = false, error = null, details = {} }) {
+  const safeDetails = {};
+  for (const [key, value] of Object.entries(details || {})) {
+    if (SYNC_RECEIPT_DETAIL_KEYS.has(key)) safeDetails[key] = value;
+  }
+  return writeReceipt({
+    method: `gmail.metadataSync.${event}`,
+    event,
+    success,
+    blocked,
+    error,
+    details: safeDetails,
+  });
 }

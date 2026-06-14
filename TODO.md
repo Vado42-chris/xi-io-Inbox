@@ -96,7 +96,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] UI-013C owner-grade visual redesign — agent pass + owner direction PASS 2026-06-10 (`docs/ui/ui-013c-owner-grade-visual-direction.md`); chrome radius tweak applied; **UI-003E proof pending**.
 - [ ] UI-003E owner visual proof — **ready for owner** after chrome tweak review at localhost:4488.
 - [x] RECON-GMAIL-001 — Gmail source-truth + adapter contract repair (`docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md`).
-- [ ] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (blocked until RECON-GMAIL-001 pass).
+- [x] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (`docs/ui/reviews/gmail-002a-ext-001-metadata-pagination-receipt.md`).
 - [ ] GMAIL-002A-EXT-002 — local mail index storage.
 - [ ] GMAIL-002A-EXT-003 — sync status UI + Activity receipts.
 - [ ] GMAIL-002A-EXT-004 — historyId incremental sync + full-sync fallback.
