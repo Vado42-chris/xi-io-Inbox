@@ -126,6 +126,7 @@ const AUTOMATION_GATE_DEFAULT = 'Human approval required before any runtime enab
 const ROUTE_PREFIX = '#/';
 const DEFAULT_LANE = 'home';
 const IBAL_LEGACY_LANE = 'ibal';
+const SCOPE_ALL_ACCOUNTS = 'all';
 
 const state = {
   payload: null,
@@ -199,6 +200,7 @@ function defaultCalendarOps() {
     selectedProposalId: null,
     selectedDay: null,
     viewMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+    scopeFilter: SCOPE_ALL_ACCOUNTS,
     proposals: [],
     receipts: [],
     formOpen: false,
@@ -212,6 +214,7 @@ function defaultTasksOps() {
     selectedEpicId: null,
     selectedBugId: null,
     viewMode: 'planning',
+    scopeFilter: SCOPE_ALL_ACCOUNTS,
     tasks: [],
     receipts: [],
     formOpen: false,
@@ -461,13 +464,13 @@ function applyPreviewEnvelope(stored) {
   state.calendar = {
     ...defaultCalendarOps(),
     ...(stored.calendar || {}),
-    proposals: stored.calendar?.proposals || [],
+    proposals: (stored.calendar?.proposals || []).map(normalizeCalendarProposal),
     receipts: stored.calendar?.receipts || [],
   };
   state.tasks = {
     ...defaultTasksOps(),
     ...(stored.tasks || {}),
-    tasks: stored.tasks?.tasks || [],
+    tasks: (stored.tasks?.tasks || []).map(normalizeLocalTask),
     receipts: stored.tasks?.receipts || [],
   };
   state.projects = {
@@ -654,7 +657,7 @@ function upgradePreviewEnvelope(envelope) {
       tasks: {
         ...defaultTasksOps(),
         ...(envelope.tasks || {}),
-        tasks: (envelope.tasks?.tasks || []).map((task) => ({
+        tasks: (envelope.tasks?.tasks || []).map((task) => normalizeLocalTask({
           ...task,
           status: mapTaskStatus(task.status),
         })),
@@ -672,7 +675,7 @@ function upgradePreviewEnvelope(envelope) {
     };
   }
   if (envelope.schemaVersion === 5) {
-    const mapProposal = (entry) => ({
+    const mapProposal = (entry) => normalizeCalendarProposal({
       ...entry,
       status: entry.status || 'proposed',
       reminderProposal: entry.reminderProposal || '',
@@ -697,7 +700,7 @@ function upgradePreviewEnvelope(envelope) {
       tasks: {
         ...defaultTasksOps(),
         ...(envelope.tasks || {}),
-        tasks: (envelope.tasks?.tasks || []).map((task) => ({
+        tasks: (envelope.tasks?.tasks || []).map((task) => normalizeLocalTask({
           ...task,
           status: mapTaskStatus(task.status),
         })),
@@ -1000,6 +1003,62 @@ function accountLabelForThread(thread) {
   return fixture?.displayName || thread.accountId;
 }
 
+function accountIdFromThreadId(threadId) {
+  if (!threadId) return '';
+  return inboxThreads().find((thread) => thread.id === threadId)?.accountId || '';
+}
+
+function accountIdFromSourceRef(sourceRef) {
+  const text = String(sourceRef || '');
+  if (text.startsWith('inbox-thread:')) return accountIdFromThreadId(text.replace('inbox-thread:', ''));
+  return '';
+}
+
+function accountIdFromLabel(accountLabel) {
+  const normalized = String(accountLabel || '').trim().toLowerCase();
+  if (!normalized) return '';
+  return allMailAccounts().find((account) => String(account.displayName || '').trim().toLowerCase() === normalized)?.accountId || '';
+}
+
+function normalizeObjectAccountId(entry = {}) {
+  return entry.accountId
+    || accountIdFromThreadId(entry.threadId)
+    || accountIdFromSourceRef(entry.sourceRef)
+    || accountIdFromLabel(entry.accountLabel)
+    || '';
+}
+
+function activeScopeAccountIdForLane(laneId = state.laneId) {
+  if (laneId === 'inbox') return state.inbox.accountFilter || SCOPE_ALL_ACCOUNTS;
+  if (laneId === 'calendar') return state.calendar.scopeFilter || SCOPE_ALL_ACCOUNTS;
+  if (laneId === 'tasks') return state.tasks.scopeFilter || SCOPE_ALL_ACCOUNTS;
+  if (laneId === 'receipts') return state.activity.accountFilter || SCOPE_ALL_ACCOUNTS;
+  return SCOPE_ALL_ACCOUNTS;
+}
+
+function objectMatchesScope(entry, accountId) {
+  if (!accountId || accountId === SCOPE_ALL_ACCOUNTS) return true;
+  return normalizeObjectAccountId(entry) === accountId;
+}
+
+function scopeAccountOptions() {
+  return allMailAccounts().map((account) => ({
+    accountId: account.accountId,
+    label: account.displayName || account.email || account.accountId,
+  }));
+}
+
+function accountDisplayLabel(accountId) {
+  if (!accountId) return '';
+  const account = accountById(accountId);
+  return account?.displayName || account?.email || accountId;
+}
+
+function normalizeScopedObjects() {
+  state.calendar.proposals = (state.calendar.proposals || []).map(normalizeCalendarProposal);
+  state.tasks.tasks = (state.tasks.tasks || []).map(normalizeLocalTask);
+}
+
 function accountSyncStatusLabel(syncState) {
   const normalized = String(syncState || '').toLowerCase();
   if (normalized === 'connected') return 'Connected';
@@ -1203,9 +1262,14 @@ function allCalendarProposals() {
   return state.calendar.proposals || [];
 }
 
+function scopedCalendarProposals() {
+  const scope = activeScopeAccountIdForLane('calendar');
+  return allCalendarProposals().filter((proposal) => objectMatchesScope(proposal, scope));
+}
+
 function selectedCalendarProposal() {
-  const proposals = allCalendarProposals();
-  return proposals.find((entry) => entry.id === state.calendar.selectedProposalId) || proposals[0] || null;
+  const scoped = scopedCalendarProposals();
+  return scoped.find((entry) => entry.id === state.calendar.selectedProposalId) || scoped[0] || null;
 }
 
 function addCalendarReceipt({ type, title, proposalId, summary }) {
@@ -1227,6 +1291,7 @@ function saveCalendarProposal(formData, proposalId) {
     title: String(formData.get('title') || '').trim(),
     dateTime: String(formData.get('dateTime') || '').trim(),
     notes: String(formData.get('notes') || '').trim(),
+    accountId: String(formData.get('accountId') || '').trim(),
     sourceRef: String(formData.get('sourceRef') || '').trim(),
     sourceType: String(formData.get('sourceType') || 'calendar_local').trim(),
     threadId: String(formData.get('threadId') || '').trim() || null,
@@ -1279,14 +1344,19 @@ function clearCalendarProposal(proposalId) {
 }
 
 function normalizeCalendarProposal(entry) {
-  return {
+  const proposal = {
     status: 'proposed',
     reminderProposal: '',
     draftId: null,
     projectTag: '',
+    accountId: '',
     accountLabel: '',
     providerSyncState: 'blocked',
     ...entry,
+  };
+  return {
+    ...proposal,
+    accountId: normalizeObjectAccountId(proposal),
   };
 }
 
@@ -1309,6 +1379,7 @@ function seedCalendarFixtureProposalsIfNeeded() {
       status: 'proposed',
       reminderProposal: '15 min before pickup window',
       projectTag: 'Family',
+      accountId: 'personal-gmail-preview',
       accountLabel: 'Family preview',
       providerSyncState: 'blocked',
       createdAt: now,
@@ -1327,6 +1398,7 @@ function seedCalendarFixtureProposalsIfNeeded() {
       status: 'reviewed',
       reminderProposal: '1 day before',
       projectTag: 'Product',
+      accountId: 'personal-gmail-preview',
       accountLabel: 'Preview workspace',
       providerSyncState: 'blocked',
       createdAt: now,
@@ -1694,6 +1766,7 @@ function syncInboxTaskProposals() {
       status: 'backlog',
       dueDate: '',
       notes: proposal.summary || '',
+      accountId: accountIdFromThreadId(proposal.threadId),
       sourceRef: proposal.threadId ? `inbox-thread:${proposal.threadId}` : '',
       sourceType: 'inbox_local',
       threadId: proposal.threadId || null,
@@ -1710,8 +1783,23 @@ function allLocalTasks() {
   return state.tasks.tasks || [];
 }
 
+function scopedLocalTasks() {
+  const scope = activeScopeAccountIdForLane('tasks');
+  return allLocalTasks().filter((task) => objectMatchesScope(task, scope));
+}
+
+function storyMatchesScope(story, accountId) {
+  if (!accountId || accountId === SCOPE_ALL_ACCOUNTS) return true;
+  return accountIdFromThreadId(story?.sourceThreadId) === accountId;
+}
+
+function scopedStories(projectId, epicId) {
+  const scope = activeScopeAccountIdForLane('tasks');
+  return allStories(projectId, epicId).filter((story) => storyMatchesScope(story, scope));
+}
+
 function selectedLocalTask() {
-  const tasks = allLocalTasks();
+  const tasks = scopedLocalTasks();
   return tasks.find((entry) => entry.id === state.tasks.selectedTaskId) || tasks[0] || null;
 }
 
@@ -1730,17 +1818,18 @@ function addTaskReceipt({ type, title, taskId, summary }) {
 }
 
 function saveLocalTask(formData, taskId) {
-  const payload = {
+  const payload = normalizeLocalTask({
     title: String(formData.get('title') || '').trim(),
     status: migrateTaskStatus(String(formData.get('status') || 'backlog').trim()),
     dueDate: String(formData.get('dueDate') || '').trim(),
     notes: String(formData.get('notes') || '').trim(),
+    accountId: String(formData.get('accountId') || '').trim(),
     sourceRef: String(formData.get('sourceRef') || '').trim(),
     sourceType: String(formData.get('sourceType') || 'tasks_local').trim(),
     threadId: String(formData.get('threadId') || '').trim() || null,
     calendarId: String(formData.get('calendarId') || '').trim() || null,
     state: 'local_preview_task',
-  };
+  });
   const now = new Date().toISOString();
   if (taskId) {
     state.tasks.tasks = (state.tasks.tasks || []).map((entry) => (
@@ -1770,6 +1859,17 @@ function saveLocalTask(formData, taskId) {
   }
   state.tasks.formOpen = false;
   saveState();
+}
+
+function normalizeLocalTask(entry) {
+  const task = {
+    accountId: '',
+    ...entry,
+  };
+  return {
+    ...task,
+    accountId: normalizeObjectAccountId(task),
+  };
 }
 
 function changeTaskStatus(taskId, status) {
@@ -4193,10 +4293,25 @@ function activityRiskLevel(outcome, type) {
   return 'low';
 }
 
+function accountIdForActivity(defaults = {}, receipt = {}) {
+  if (defaults.accountId) return defaults.accountId;
+  const source = defaults.sourceLink || {};
+  if (source.threadId) return accountIdFromThreadId(source.threadId);
+  if (source.proposalId) {
+    return normalizeObjectAccountId(allCalendarProposals().find((entry) => entry.id === source.proposalId) || {});
+  }
+  if (source.taskId) {
+    return normalizeObjectAccountId(allLocalTasks().find((entry) => entry.id === source.taskId) || {});
+  }
+  return normalizeObjectAccountId(receipt);
+}
+
 function activityEntryFromReceipt(receipt, area, defaults = {}) {
   const type = defaults.activityType || receipt.type || 'local_state_changed';
   const outcome = defaults.outcome || activityOutcomeFor(receipt.state, type);
   const id = `${area}:${receipt.id}`;
+  const accountId = accountIdForActivity(defaults, receipt);
+  const account = accountId ? (accountById(accountId)?.displayName || accountId) : (defaults.account || 'Preview account');
   return {
     id,
     activityType: type,
@@ -4205,7 +4320,8 @@ function activityEntryFromReceipt(receipt, area, defaults = {}) {
     status: receipt.state || defaults.status || 'preview_only',
     outcome,
     createdAt: receipt.createdAt || defaults.createdAt || new Date().toISOString(),
-    account: defaults.account || 'Preview account',
+    accountId,
+    account,
     sourceObject: defaults.sourceObject || receipt.summary || area,
     sourceLink: defaults.sourceLink || null,
     blockedReason: defaults.blockedReason || (outcome === 'blocked' ? (receipt.limitations || 'Action blocked in Tier 1 preview.') : ''),
@@ -4419,7 +4535,7 @@ function activityPrimaryFilterMatches(entry, filter) {
 
 function activitySecondaryFilterMatches(entry) {
   const q = (state.activity.searchQuery || '').trim().toLowerCase();
-  if (state.activity.accountFilter !== 'all' && entry.account !== state.activity.accountFilter) return false;
+  if (state.activity.accountFilter !== SCOPE_ALL_ACCOUNTS && entry.accountId !== state.activity.accountFilter) return false;
   if (state.activity.typeFilter !== 'all' && entry.activityType !== state.activity.typeFilter) return false;
   if (state.activity.statusFilter !== 'all' && entry.status !== state.activity.statusFilter) return false;
   if (state.activity.scopeFilter !== 'all' && entry.scope !== state.activity.scopeFilter) return false;
@@ -4637,7 +4753,7 @@ function inspectableItemsForLane(laneId) {
   }
 
   if (laneId === 'calendar') {
-    allCalendarProposals().forEach((proposal) => {
+    scopedCalendarProposals().forEach((proposal) => {
       items.push({
         id: `calendar:local:${proposal.id}`,
         kind: 'local calendar proposal',
@@ -4653,7 +4769,7 @@ function inspectableItemsForLane(laneId) {
   }
 
   if (laneId === 'tasks') {
-    allLocalTasks().forEach((task) => {
+    scopedLocalTasks().forEach((task) => {
       items.push({
         id: `tasks:local:${task.id}`,
         kind: 'local preview task',
@@ -5144,6 +5260,32 @@ function renderContextNavSection(label, itemsHtml) {
   `;
 }
 
+function renderScopeLens(workspace) {
+  const active = workspace === 'mail'
+    ? (state.inbox.accountFilter || SCOPE_ALL_ACCOUNTS)
+    : workspace === 'calendar'
+      ? (state.calendar.scopeFilter || SCOPE_ALL_ACCOUNTS)
+      : workspace === 'tasks'
+        ? (state.tasks.scopeFilter || SCOPE_ALL_ACCOUNTS)
+        : workspace === 'activity'
+          ? (state.activity.accountFilter || SCOPE_ALL_ACCOUNTS)
+          : SCOPE_ALL_ACCOUNTS;
+  const options = [
+    { accountId: SCOPE_ALL_ACCOUNTS, label: 'All accounts' },
+    ...scopeAccountOptions(),
+  ];
+  return `
+    <div class="scope-lens" aria-label="Account scope lens" data-scope-workspace="${escapeHtml(workspace)}">
+      <p class="context-nav-label">Scope</p>
+      <div class="scope-lens-options">
+        ${options.map((option) => `
+          <button class="scope-lens-option ${active === option.accountId ? 'is-active' : ''}" type="button" data-scope-lens-action="select" data-scope-account-id="${escapeHtml(option.accountId)}" aria-pressed="${active === option.accountId ? 'true' : 'false'}">${escapeHtml(option.label)}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderContextualLeftRail() {
   const workspace = activeProductWorkspace();
   let body = '';
@@ -5156,6 +5298,9 @@ function renderContextualLeftRail() {
   else if (workspace === 'integrations') body = renderIntegrationsContextNav();
   else if (workspace === 'settings') body = renderSettingsContextNav();
   else body = `<p class="form-hint mail-nav-hint">Choose Home, Mail, Calendar, Tasks, or another workspace from the top bar.</p>`;
+  if (['mail', 'calendar', 'tasks', 'activity'].includes(workspace)) {
+    body = `${renderScopeLens(workspace)}${body}`;
+  }
   const workspaceLabel = PRODUCT_LEVEL_NAV.find((entry) => entry.id === workspace)?.label || 'Workspace';
   return `
     <nav class="lane-nav context-nav-pane" aria-label="${escapeHtml(workspaceLabel)} navigation">
@@ -6175,7 +6320,7 @@ function calendarEventsByDay() {
       add(day, { kind: 'agenda', focusId: item.focusId, title: item.title, time: item.time, summary: item.summary });
     }
   });
-  allCalendarProposals().forEach((proposal, index) => {
+  scopedCalendarProposals().forEach((proposal, index) => {
     const day = proposalGridDay(proposal, year, month) || Math.min(8 + index, calendarDaysInMonth(year, month));
     add(day, {
       kind: 'proposal',
@@ -6324,7 +6469,7 @@ function renderCalendarProposalDetail(proposal) {
       </header>
       <dl class="calendar-object-summary">
         <div><dt>Provider sync</dt><dd>${escapeHtml(label(proposal.providerSyncState || 'blocked'))} — no provider calendar write</dd></div>
-        ${proposal.accountLabel ? `<div><dt>Account</dt><dd>${escapeHtml(proposal.accountLabel)}</dd></div>` : ''}
+        ${proposal.accountId ? `<div><dt>Account</dt><dd>${escapeHtml(accountDisplayLabel(proposal.accountId))}</dd></div>` : (proposal.accountLabel ? `<div><dt>Account</dt><dd>${escapeHtml(proposal.accountLabel)}</dd></div>` : '')}
         ${proposal.projectTag ? `<div><dt>Project</dt><dd>${escapeHtml(proposal.projectTag)}</dd></div>` : ''}
         <div><dt>Source</dt><dd>${escapeHtml(proposal.sourceRef || 'none')}</dd></div>
         ${thread ? `<div><dt>Mail thread</dt><dd><button class="inbox-link-btn" type="button" data-calendar-action="open-source-thread" data-thread-id="${escapeHtml(thread.id)}">${escapeHtml(demoteMailDisplayText(thread.title))}</button></dd></div>` : ''}
@@ -6365,9 +6510,12 @@ function renderCalendarProposalForm(proposalId) {
     ? allCalendarProposals().find((entry) => entry.id === proposalId)
     : selectedCalendarProposal();
   const id = proposalId || selected?.id || '';
+  const scopedAccountId = activeScopeAccountIdForLane('calendar');
+  const accountId = selected?.accountId || (scopedAccountId !== SCOPE_ALL_ACCOUNTS ? scopedAccountId : '');
   return `
     <form class="inbox-draft-form" data-calendar-form="proposal" aria-label="Event proposal">
       <input type="hidden" name="proposalId" value="${escapeHtml(id)}" />
+      <input type="hidden" name="accountId" value="${escapeHtml(accountId)}" />
       <label for="calendar-title">Title</label>
       <input id="calendar-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
       <label for="calendar-datetime">When</label>
@@ -6416,7 +6564,7 @@ function renderCalendarEventSheet() {
 }
 
 function renderCalendarReadingPane() {
-  const proposals = allCalendarProposals();
+  const proposals = scopedCalendarProposals();
   const proposal = proposals.find((entry) => entry.id === state.calendar.selectedProposalId)
     || (state.focusId?.startsWith('calendar:local:')
       ? proposals.find((entry) => `calendar:local:${entry.id}` === state.focusId)
@@ -6819,7 +6967,7 @@ function taskBoardColumns() {
       });
     });
   });
-  allLocalTasks().forEach((task) => {
+  scopedLocalTasks().forEach((task) => {
     const colLabel = TASK_COLUMN_MAP[task.status] || 'Backlog';
     const col = columns.find((entry) => entry.label === colLabel) || columns[0];
     col.items.push({
@@ -6831,7 +6979,7 @@ function taskBoardColumns() {
       task,
     });
   });
-  allStories().forEach((story) => {
+  scopedStories().forEach((story) => {
     const colLabel = TASK_COLUMN_MAP[story.status] || 'Backlog';
     const col = columns.find((entry) => entry.label === colLabel) || columns[0];
     col.items.push({
@@ -6888,9 +7036,12 @@ function renderTasksTaskForm(taskId) {
     ? allLocalTasks().find((entry) => entry.id === taskId)
     : selectedLocalTask();
   const id = taskId || selected?.id || '';
+  const scopedAccountId = activeScopeAccountIdForLane('tasks');
+  const accountId = selected?.accountId || (scopedAccountId !== SCOPE_ALL_ACCOUNTS ? scopedAccountId : '');
   return `
     <form class="inbox-draft-form" data-tasks-form="task" aria-label="Task form">
       <input type="hidden" name="taskId" value="${escapeHtml(id)}" />
+      <input type="hidden" name="accountId" value="${escapeHtml(accountId)}" />
       <label for="task-title">Title</label>
       <input id="task-title" name="title" type="text" autocomplete="off" value="${escapeHtml(selected?.title || '')}" />
       <label for="task-status">Status</label>
@@ -6986,7 +7137,7 @@ function renderTasksTaskSheet() {
 }
 
 function renderTasksReadingPane() {
-  const tasks = allLocalTasks();
+  const tasks = scopedLocalTasks();
   const task = tasks.find((entry) => entry.id === state.tasks.selectedTaskId)
     || (state.focusId?.startsWith('tasks:local:')
       ? tasks.find((entry) => `tasks:local:${entry.id}` === state.focusId)
@@ -7009,6 +7160,7 @@ function renderTasksReadingPane() {
           </div>
         </header>
         <p>${escapeHtml(task.notes || 'No notes.')}</p>
+        ${task.accountId ? `<p class="form-hint">Account: ${escapeHtml(accountDisplayLabel(task.accountId))}</p>` : ''}
         <div class="task-source-row">${renderTaskSourceLink({ kind: 'local', task })}</div>
         ${task.sourceRef ? `<p class="form-hint">Ref: ${escapeHtml(task.sourceRef)}</p>` : ''}
         ${renderTaskStatusButtons(task.id, migrateTaskStatus(task.status || 'backlog'))}
@@ -8802,7 +8954,7 @@ function relatedCardsForContext() {
     pushRule(selectedRule, 'Current dry-run rule remains selectable as the native object.');
   } else if (laneId === 'receipts') {
     const entry = selectedActivityEntry();
-    const target = parseActivitySourceTarget(entry?.source || entry?.sourceLabel || entry?.focusId || '');
+    const target = parseActivitySource(entry?.source || entry?.sourceLabel || entry?.focusId || '');
     if (target?.threadId) pushThread(inboxThreads().find((thread) => thread.id === target.threadId), 'Activity can resume the source mail object.');
     pushProposal(firstProposal, 'Activity should expose downstream time proposals created by controlled work.');
     pushTask(firstTask, 'Activity should expose downstream work items created by controlled work.');
@@ -10303,6 +10455,35 @@ function handleRelatedAction(action, params = {}) {
   openActivitySource(target);
 }
 
+function handleScopeLensAction(accountId) {
+  const next = accountId && accountId !== SCOPE_ALL_ACCOUNTS ? accountId : SCOPE_ALL_ACCOUNTS;
+  const workspace = activeProductWorkspace();
+  if (workspace === 'mail') {
+    state.inbox.accountFilter = next === SCOPE_ALL_ACCOUNTS ? null : next;
+    state.inbox.labelFilter = null;
+    state.inbox.folderFilter = null;
+    state.inbox.mailboxView = state.inbox.mailboxView || 'inbox';
+  } else if (workspace === 'calendar') {
+    state.calendar.scopeFilter = next;
+    if (state.calendar.selectedProposalId && !scopedCalendarProposals().some((entry) => entry.id === state.calendar.selectedProposalId)) {
+      state.calendar.selectedProposalId = scopedCalendarProposals()[0]?.id || null;
+    }
+  } else if (workspace === 'tasks') {
+    state.tasks.scopeFilter = next;
+    if (state.tasks.selectedTaskId && !scopedLocalTasks().some((entry) => entry.id === state.tasks.selectedTaskId)) {
+      state.tasks.selectedTaskId = scopedLocalTasks()[0]?.id || null;
+    }
+    if (state.tasks.selectedStoryId && !scopedStories().some((entry) => entry.id === state.tasks.selectedStoryId)) {
+      state.tasks.selectedStoryId = scopedStories()[0]?.id || null;
+    }
+  } else if (workspace === 'activity') {
+    state.activity.accountFilter = next;
+  }
+  state.focusId = defaultFocusIdForLane(state.laneId);
+  saveState();
+  renderShell();
+}
+
 function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth, shiftDay, threadId, draftId) {
   if (action === 'shift-to-day' && shiftYear && shiftMonth && shiftDay) {
     state.calendar.viewMonth = `${shiftYear}-${String(shiftMonth).padStart(2, '0')}`;
@@ -10844,6 +11025,13 @@ function bindEvents() {
       return;
     }
 
+    const scopeLensAction = event.target.closest?.('[data-scope-lens-action]');
+    if (scopeLensAction?.dataset.scopeLensAction === 'select') {
+      event.preventDefault();
+      handleScopeLensAction(scopeLensAction.dataset.scopeAccountId);
+      return;
+    }
+
     const accountAction = event.target.closest?.('[data-account-action]');
     if (accountAction?.dataset.accountAction && accountAction.dataset.accountAction !== 'session-save') {
       event.preventDefault();
@@ -11032,6 +11220,7 @@ async function init() {
   loadState();
   state.payload = await fetchJson(DATA_URL, {});
   ensureAccountDefaults();
+  normalizeScopedObjects();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
   saveState();

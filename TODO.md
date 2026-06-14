@@ -90,8 +90,8 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] UI-016C component boundary check scripts before extraction (`scripts/ui-016c-boundary-check.mjs`).
 - [x] UI-013B Level 2 visual system implementation / premium redesign before owner proof (`docs/ui/reviews/ui-013b-visual-implementation-receipt.md`).
 - [x] UI-014B Level 3 cross-pollination implementation (`docs/ui/reviews/ui-014b-cross-pollination-implementation-receipt.md`).
-- [ ] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity.
-- [ ] Add `accountId` migration plan for calendar proposals and task/work items before account-scoped implementation.
+- [x] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity (`docs/ui/reviews/scope-001-shared-account-lens-receipt.md`).
+- [x] Add `accountId` migration plan for calendar proposals and task/work items before account-scoped implementation (`docs/ui/reviews/scope-001-shared-account-lens-receipt.md`).
 - [ ] Prepare UI-003E owner visual-proof support packet.
 - [ ] Create module skeleton and route-table contract without deleting working UI.
 

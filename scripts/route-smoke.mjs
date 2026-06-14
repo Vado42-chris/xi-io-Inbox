@@ -119,6 +119,42 @@ async function main() {
       }
     }
 
+    for (const workspace of ['mail', 'calendar', 'tasks', 'activity']) {
+      await page.locator(`[data-product-workspace="${workspace}"]`).click();
+      await page.waitForSelector('.scope-lens', { timeout: 10000 });
+      const options = page.locator('.scope-lens-option');
+      const optionCount = await options.count();
+      if (optionCount < 2) throw new Error(`${workspace} scope lens missing account options`);
+      const accountOption = page.locator('.scope-lens-option[data-scope-account-id]:not([data-scope-account-id="all"])').first();
+      const accountLabel = await accountOption.innerText();
+      await accountOption.click();
+      const activeAccountScope = page.locator('.scope-lens-option.is-active').filter({ hasText: accountLabel }).first();
+      await activeAccountScope.waitFor({ timeout: 10000 }).catch(async () => {
+        const buttons = await page.evaluate(() => [...document.querySelectorAll('.scope-lens-option')].map((button) => ({
+          text: button.textContent?.trim(),
+          classes: button.className,
+          account: button.getAttribute('data-scope-account-id'),
+        })));
+        const scopeState = await page.evaluate(() => ({
+          laneId: window.xiioInboxPreview?.state?.laneId,
+          activity: window.xiioInboxPreview?.state?.activity?.accountFilter,
+        }));
+        throw new Error(`${workspace} active account scope not rendered for ${accountLabel}; state ${JSON.stringify(scopeState)} buttons ${JSON.stringify(buttons)}`);
+      });
+      const activeScope = await activeAccountScope.innerText();
+      if (activeScope !== accountLabel) {
+        const scopeState = await page.evaluate(() => ({
+          laneId: window.xiioInboxPreview?.state?.laneId,
+          inbox: window.xiioInboxPreview?.state?.inbox?.accountFilter,
+          calendar: window.xiioInboxPreview?.state?.calendar?.scopeFilter,
+          tasks: window.xiioInboxPreview?.state?.tasks?.scopeFilter,
+          activity: window.xiioInboxPreview?.state?.activity?.accountFilter,
+        }));
+        throw new Error(`${workspace} scope lens did not switch to account scope (${activeScope} vs ${accountLabel}; state ${JSON.stringify(scopeState)})`);
+      }
+      await page.locator('.scope-lens-option').filter({ hasText: 'All accounts' }).click();
+    }
+
     await page.locator('[data-product-workspace="mail"]').click();
     await page.waitForSelector('.is-mail-workbench', { timeout: 10000 });
     await page.waitForSelector('.mail-list-pane .thread-row', { timeout: 10000 });
