@@ -88,13 +88,13 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] UI-016B component anatomy spec (`docs/ui/ui-016b-component-anatomy-and-boundary-checks.md`).
 - [x] Cross-project planning and framework document standardization (`docs/product/07-cross-project-planning-standard.md`, `docs/operations/framework-document-standardization-backfeed.md`).
 - [x] UI-016C component boundary check scripts before extraction (`scripts/ui-016c-boundary-check.mjs`).
-- [x] UI-013B Level 2 visual system implementation — agent CSS pass (`docs/ui/reviews/ui-013b-visual-implementation-receipt.md`).
-- [ ] UI-013C owner-grade visual redesign — **owner preliminary FAIL 2026-06-14** (generic AI slop; see `pr-20-full-peer-review-2026-06-14.md`).
+- [x] UI-013B Level 2 visual system implementation — agent CSS pass (`docs/ui/reviews/ui-013b-visual-implementation-receipt.md`); owner preliminary FAIL.
 - [x] UI-014B Level 3 cross-pollination implementation (`docs/ui/reviews/ui-014b-cross-pollination-implementation-receipt.md`).
 - [x] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity (`docs/ui/reviews/scope-001-shared-account-lens-receipt.md`).
 - [x] Add `accountId` runtime normalization for calendar proposals and task/work items (schema v12 migration deferred — see PR-20-004).
-- [ ] Merge PR #20 into `ui-002/framework-derived-static-preview` after peer-review fixes (`docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`).
-- [ ] Prepare UI-003E owner visual-proof support packet (after UI-013C).
+- [x] Merge PR #20 into `ui-002/framework-derived-static-preview` after peer-review fixes (`docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`).
+- [x] UI-013C owner-grade visual redesign — agent pass (`docs/ui/reviews/ui-013c-visual-implementation-receipt.md`); **owner review pending**.
+- [ ] UI-003E owner visual proof — **blocked until owner reviews UI-013C at localhost:4488**.
 - [ ] Create module skeleton and route-table contract without deleting working UI.
 
 ## ARCH-004: platform runtime and deployment envelope

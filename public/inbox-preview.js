@@ -5316,8 +5316,11 @@ function renderTopBar() {
     <header class="app-topbar" role="banner">
       <div class="topbar-leading">
         <section class="brand-block" aria-label="Product identity">
-          <h1 class="product-title">XI-IO Inbox</h1>
-          <span class="env-status-badge">${escapeHtml(environmentStatusBadge())}</span>
+          <div class="brand-mark" aria-hidden="true"><span>XI</span></div>
+          <div class="brand-copy">
+            <h1 class="product-title">XI-IO Inbox</h1>
+            <span class="env-status-badge">${escapeHtml(environmentStatusBadge())}</span>
+          </div>
         </section>
       </div>
 
@@ -6233,9 +6236,9 @@ function renderDraftEgress(section) {
 
 function renderCalendarProviderBanner() {
   return `
-    <aside class="calendar-provider-banner" role="note" aria-label="Calendar provider sync status">
-      <strong>Provider calendar sync blocked</strong>
-      <p>Events and reminders are local preview proposals only. Google Calendar, Outlook, and provider writes remain disabled in Tier 1.</p>
+    <aside class="calendar-provider-banner trust-affordance trust-affordance-warn" role="note" aria-label="Calendar provider sync status">
+      <strong>Calendar writes locked until you connect a provider</strong>
+      <p>Local proposals stay on this device. Google Calendar and Outlook sync unlock after you approve provider connection.</p>
     </aside>
   `;
 }
@@ -6828,9 +6831,9 @@ function renderTasksViewToggle() {
 
 function renderTasksProviderBanner() {
   return `
-    <aside class="tasks-provider-banner" role="note" aria-label="Task provider sync status">
-      <strong>External tracker and provider sync blocked</strong>
-      <p>Tasks, stories, and bugs are local preview objects only. No GitHub Issues, Jira, Linear, or provider task write in Tier 1.</p>
+    <aside class="tasks-provider-banner trust-affordance trust-affordance-warn" role="note" aria-label="Task provider sync status">
+      <strong>External task sync locked until you connect a provider</strong>
+      <p>Stories, bugs, and backlog items stay local for now. GitHub, Jira, and Linear sync unlock after provider gates clear.</p>
     </aside>
   `;
 }
@@ -9559,7 +9562,7 @@ function renderShell() {
     <a class="skip-to-main" href="#appMainLane">Skip to main content</a>
     <section class="app-shell" aria-label="xi-io Inbox unified app shell">
       ${renderTopBar()}
-      <section class="app-frame app-density-${escapeHtml(state.settings.userPrefs?.displayDensity || 'comfortable')} ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
+      <section class="app-frame app-density-${escapeHtml(state.settings.userPrefs?.displayDensity || 'comfortable')} app-frame-lane-${escapeHtml(state.laneId)} ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
         ${renderNavigation()}
         ${renderMainLane()}
         ${renderInspector()}

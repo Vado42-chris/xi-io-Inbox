@@ -77,11 +77,11 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 27. SLICE-UI-013B — visual system implementation (agent CSS pass) — **complete** (`ui-013b-visual-implementation-receipt.md`)
 28. SLICE-UI-014B — cross-pollination implementation — **complete** (`ui-014b-cross-pollination-implementation-receipt.md`)
 29. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **complete** (`scope-001-shared-account-lens-receipt.md`)
-30. SLICE-PR-20-PEER-REVIEW — independent verification + merge prep — **complete** (`pr-20-full-peer-review-2026-06-14.md`)
-31. SLICE-UI-013C — owner-grade visual redesign — **next** (owner preliminary FAIL on UI-013B)
-32. SLICE-PR-20-MERGE — merge PR #20 into ui-002 product branch — **ready after peer-review commit**
-33. SLICE-UI-003E owner visual proof — **blocked until UI-013C**
-34. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof or explicit extraction go-ahead**
+31. SLICE-PR-20-PEER-REVIEW — independent verification + merge prep — **complete** (`pr-20-full-peer-review-2026-06-14.md`)
+32. SLICE-PR-20-MERGE — merge PR #20 into ui-002 product branch — **complete** @ `50a6ad8`
+33. SLICE-UI-013C — owner-grade visual redesign — **complete agent pass** (`ui-013c-visual-implementation-receipt.md`); owner review pending
+34. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C preview
+35. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

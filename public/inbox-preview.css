@@ -5929,3 +5929,261 @@ body {
   color: var(--text);
   box-shadow: 0 10px 26px var(--lane-glow);
 }
+
+/* UI-013C — owner-grade visual direction (editorial cockpit, not generic AI dashboard) */
+:root {
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-ui: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
+  --type-display: clamp(1.65rem, 2.2vw, 2.15rem);
+  --type-title: 1.125rem;
+  --type-body: 0.9375rem;
+  --type-meta: 0.8125rem;
+  --type-label: 0.6875rem;
+  --trust-warn-bg: rgba(246, 196, 93, 0.1);
+  --trust-warn-border: rgba(246, 196, 93, 0.42);
+  --trust-warn-text: #ffe7a8;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 214, 153, 0.28);
+  background:
+    conic-gradient(from 210deg at 50% 50%, rgba(255, 167, 94, 0.35), rgba(121, 216, 255, 0.28), rgba(184, 156, 255, 0.32), rgba(255, 167, 94, 0.35));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.brand-mark span {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff7ef;
+}
+
+.product-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.env-status-badge {
+  font-size: var(--type-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--lane-accent, var(--accent)) 70%, var(--muted));
+}
+
+.product-nav-item {
+  padding: 0.52rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+}
+
+.lane-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.lane-header .lane-summary,
+.lane-header p {
+  max-width: 42rem;
+  font-size: var(--type-body);
+  color: var(--text-secondary);
+}
+
+.trust-affordance {
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+}
+
+.trust-affordance-warn {
+  border: 1px solid var(--trust-warn-border);
+  background:
+    linear-gradient(135deg, var(--trust-warn-bg), rgba(255, 255, 255, 0.02));
+  color: var(--trust-warn-text);
+}
+
+.trust-affordance-warn p {
+  margin: 0.35rem 0 0;
+  color: color-mix(in srgb, var(--trust-warn-text) 72%, var(--text-secondary));
+}
+
+.inbox-action-btn.is-primary {
+  border-color: color-mix(in srgb, var(--lane-accent, var(--accent)) 72%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lane-accent, var(--accent)) 88%, #fff 12%), color-mix(in srgb, var(--lane-accent, var(--accent)) 62%, #000 8%));
+  color: #081018;
+  font-weight: 700;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--lane-accent, var(--accent)) 34%, transparent);
+}
+
+.inbox-action-btn.is-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.calendar-workspace-grid {
+  grid-template-columns: minmax(0, 2.15fr) minmax(17rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.calendar-month-shell {
+  padding: 1rem 1.05rem 1.1rem;
+}
+
+.calendar-month-head h3 {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+}
+
+.calendar-weekday-row span {
+  font-size: var(--type-label);
+  letter-spacing: 0.08em;
+}
+
+.calendar-day-cell {
+  min-height: 5.25rem;
+  padding: 0.45rem;
+  border-radius: 12px;
+}
+
+.calendar-day-num {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.calendar-event-chip {
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.calendar-day-agenda,
+.lane-reading-pane {
+  padding: 0.85rem 0.95rem;
+}
+
+.calendar-day-agenda-head h4 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.home-workspace {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.home-stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.home-stat-card {
+  padding: 1rem 1.05rem;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid rgba(191, 211, 255, 0.14);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    rgba(10, 14, 26, 0.72);
+}
+
+.home-stat-card strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  line-height: 1;
+  margin-bottom: 0.35rem;
+}
+
+.home-priority-panel {
+  padding: 1rem 1.05rem;
+  border-radius: 18px;
+  border: 1px solid rgba(191, 211, 255, 0.16);
+  background:
+    linear-gradient(155deg, rgba(121, 216, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(8, 10, 18, 0.55);
+}
+
+.home-priority-panel h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  margin: 0 0 0.75rem;
+}
+
+.scope-lens-label {
+  font-size: var(--type-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--lane-accent) 72%, var(--muted));
+}
+
+.related-suite-card {
+  padding: 0.75rem 0.8rem;
+  border-left: 3px solid color-mix(in srgb, var(--lane-accent) 72%, transparent);
+}
+
+.tasks-planning-grid {
+  gap: 0.85rem;
+}
+
+.tasks-kanban-column {
+  min-width: 11.5rem;
+}
+
+.tasks-kanban-card {
+  padding: 0.7rem 0.75rem;
+}
+
+.app-frame-lane-calendar .lane-nav,
+.app-frame-lane-calendar .lane-surface {
+  border-color: rgba(255, 191, 135, 0.18);
+}
+
+.app-frame-lane-tasks .lane-nav,
+.app-frame-lane-tasks .lane-surface {
+  border-color: rgba(207, 190, 255, 0.18);
+}
+
+.app-frame-lane-home .lane-surface::before {
+  background:
+    linear-gradient(90deg, rgba(121, 216, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 92% 0%, rgba(121, 216, 255, 0.14), transparent 24rem);
+}
+
+@media (max-width: 1180px) {
+  .calendar-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-day-cell {
+    min-height: 4.5rem;
+  }
+}
