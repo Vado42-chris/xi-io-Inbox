@@ -57,7 +57,7 @@ AI-generated interfaces.
 | `renderCalendarLocalReceipts`, `renderTasksLocalReceipts`, `renderAutomationsLocalReceipts`, `renderExtensionsLocalReceipts`, `renderSettingsLocalReceipts` | Receipt UI diverges and failures hide by lane. | Create one receipt-list helper before module extraction. |
 | `renderCalendarProviderBanner` and `renderTasksProviderBanner` | Trust/blocked-provider language drifts. | Create provider/trust banner component. |
 | Per-lane edit sheets | Forms look and behave inconsistently. | Create shared sheet/form anatomy. |
-| Multiple detail grid CSS blocks | Data hierarchy varies by lane. | Create shared detail grid component/class. |
+| Multiple detail grid CSS blocks (`extensions-detail-grid`, `settings-detail-grid`, `activity-detail-grid`) | Data hierarchy varies by lane. | Create shared detail grid component/class. |
 | Context nav arrays in JS | Nav/routing can drift from product IA. | Convert to one route/context table. |
 | Activity/log/receipt rows | Audit trail can look disconnected from source lanes. | Use one receipt row and continuation link model. |
 | Task/story/bug/evidence cards | Tasks can become disconnected mini-apps. | Use one `XiWorkItemCard` with typed badges. |

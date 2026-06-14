@@ -73,8 +73,8 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 23. SLICE-UI-016A — Level 5 componentization / framework-vs-repo-vs-template audit — **complete** (`ui-016-level-5-componentization-consistency-index.md`)
 24. SLICE-UI-016B — component anatomy spec — **complete** (`ui-016b-component-anatomy-and-boundary-checks.md`)
 25. SLICE-PLAN-STD-001 — cross-project planning/framework document standardization — **complete** (`07-cross-project-planning-standard.md`, `framework-document-standardization-backfeed.md`)
-26. SLICE-UI-016C — component boundary check scripts — **next**
-27. SLICE-UI-013B — visual system implementation / premium redesign — **after UI-016C guardrails**
+26. SLICE-UI-016C — component boundary check scripts — **complete** (`ui-016c-boundary-check.mjs`)
+27. SLICE-UI-013B — visual system implementation / premium redesign — **next**
 28. SLICE-UI-014B — cross-pollination implementation — **after UI-016C guardrails**
 29. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after route/scope anatomy decision**
 30. SLICE-UI-003E owner visual proof — **ready after visible redesign and visual QA evidence**

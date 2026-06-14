@@ -87,7 +87,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] UI-016A Level 5 componentization / framework-vs-repo-vs-template audit (`docs/ui/ui-016-level-5-componentization-consistency-index.md`).
 - [x] UI-016B component anatomy spec (`docs/ui/ui-016b-component-anatomy-and-boundary-checks.md`).
 - [x] Cross-project planning and framework document standardization (`docs/product/07-cross-project-planning-standard.md`, `docs/operations/framework-document-standardization-backfeed.md`).
-- [ ] UI-016C component boundary check scripts before extraction.
+- [x] UI-016C component boundary check scripts before extraction (`scripts/ui-016c-boundary-check.mjs`).
 - [ ] UI-013B Level 2 visual system implementation / premium redesign before owner proof.
 - [ ] UI-014B Level 3 cross-pollination implementation.
 - [ ] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity.

@@ -155,6 +155,11 @@ These should become scripts before the first extraction claim:
 | `check:component-ownership` | each extracted module has ownership tag: framework/repo/split/template. |
 | `check:visual-proof` | required screenshots/video exist for changed visible components. |
 
+`scripts/ui-016c-boundary-check.mjs` implements the first guardrail pass. It allows the
+documented pre-extraction baseline but fails on undocumented new receipt renderers, provider
+banners, detail grid classes, context nav renderers, or primary-nav drift. It is wired into
+`npm run check:components`, `npm run check:quick`, and `npm run check`.
+
 ## Extraction rules
 
 - Do not move Gmail adapter/privacy validation into the framework.
@@ -169,7 +174,7 @@ These should become scripts before the first extraction claim:
 - [x] Component anatomy fields standardized.
 - [x] P0/P1 component candidates defined.
 - [x] Boundary checks specified.
-- [ ] Boundary checks implemented as scripts.
+- [x] Boundary checks implemented as scripts for the documented pre-extraction baseline.
 - [ ] First component extraction under `public/src/*` completed.
 - [ ] Framework backfeed packet created for `xi-io.net#239`.
 
