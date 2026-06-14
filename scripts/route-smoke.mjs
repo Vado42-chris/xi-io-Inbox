@@ -93,6 +93,32 @@ async function main() {
       if (!headingPattern.test(heading)) throw new Error(`${workspace} nav heading mismatch: ${heading}`);
     }
 
+    for (const [workspace, shouldClickHandoff] of [
+      ['home', true],
+      ['mail', true],
+      ['calendar', true],
+      ['tasks', true],
+      ['automations', false],
+      ['activity', false],
+      ['integrations', false],
+    ]) {
+      await page.locator(`[data-product-workspace="${workspace}"]`).click();
+      await page.waitForSelector('.related-suite-zone', { timeout: 10000 });
+      const cards = page.locator('.related-suite-card');
+      const cardCount = await cards.count();
+      if (cardCount < 2) throw new Error(`${workspace} related zone needs at least two cards; found ${cardCount}`);
+      const relatedText = await page.locator('.related-suite-zone').innerText();
+      if (!/Source:/i.test(relatedText) || !/Why now:/i.test(relatedText) || !/Limit:/i.test(relatedText)) {
+        throw new Error(`${workspace} related zone missing source/why/limit copy`);
+      }
+      if (shouldClickHandoff) {
+        const before = page.url();
+        await page.locator('.related-suite-card [data-related-action="open-target"]').first().click();
+        await page.waitForSelector('#appMainLane', { timeout: 10000 });
+        if (page.url() === before) throw new Error(`${workspace} related handoff did not change route/focus`);
+      }
+    }
+
     await page.locator('[data-product-workspace="mail"]').click();
     await page.waitForSelector('.is-mail-workbench', { timeout: 10000 });
     await page.waitForSelector('.mail-list-pane .thread-row', { timeout: 10000 });

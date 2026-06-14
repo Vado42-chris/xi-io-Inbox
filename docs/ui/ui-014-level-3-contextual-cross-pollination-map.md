@@ -70,12 +70,12 @@ receipt and cannot call the journey complete.
 
 ## Acceptance criteria
 
-- [ ] Every primary lane has at least two contextual external object types.
-- [ ] Every related object has source/ref/why-now copy.
-- [ ] Activity can resume each receipt into the relevant native lane.
-- [ ] Provider gates appear at point of need, not only in Integrations.
-- [ ] Route smoke or model checks cover at least one cross-lane handoff per primary lane.
-- [ ] No handoff implies live provider mutation, send, sync, or automation execution.
+- [x] Every primary lane has at least two contextual external object types.
+- [x] Every related object has source/ref/why-now copy.
+- [x] Activity can resume each receipt into the relevant native lane.
+- [x] Provider gates appear at point of need, not only in Integrations.
+- [x] Route smoke or model checks cover at least one cross-lane handoff per primary lane.
+- [x] No handoff implies live provider mutation, send, sync, or automation execution.
 
 ## Decision value
 

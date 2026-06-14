@@ -8693,6 +8693,158 @@ function renderInspectorBlock(title, body, listItems = []) {
   `;
 }
 
+function relatedTargetAttrs(target) {
+  return [
+    `data-related-lane="${escapeHtml(target.lane || '')}"`,
+    target.threadId ? `data-thread-id="${escapeHtml(target.threadId)}"` : '',
+    target.mailboxView ? `data-mailbox-view="${escapeHtml(target.mailboxView)}"` : '',
+    target.draftId ? `data-draft-id="${escapeHtml(target.draftId)}"` : '',
+    target.proposalId ? `data-proposal-id="${escapeHtml(target.proposalId)}"` : '',
+    target.taskId ? `data-task-id="${escapeHtml(target.taskId)}"` : '',
+    target.storyId ? `data-story-id="${escapeHtml(target.storyId)}"` : '',
+    target.ruleId ? `data-rule-id="${escapeHtml(target.ruleId)}"` : '',
+    target.providerId ? `data-provider-id="${escapeHtml(target.providerId)}"` : '',
+    target.installId ? `data-install-id="${escapeHtml(target.installId)}"` : '',
+    target.settingsKey ? `data-settings-key="${escapeHtml(target.settingsKey)}"` : '',
+  ].filter(Boolean).join(' ');
+}
+
+function relatedCard(type, title, sourceRef, reason, limitation, target, actionLabel) {
+  return {
+    type,
+    title,
+    sourceRef: sourceRef || 'local-preview',
+    reason,
+    limitation: limitation || 'Preview only. Provider/runtime mutation remains blocked.',
+    target,
+    actionLabel: actionLabel || `Open ${type}`,
+  };
+}
+
+function activityRelatedCard(reason = 'Receipts explain what changed locally and what stayed blocked.') {
+  return relatedCard(
+    'Activity',
+    'Activity and receipts ledger',
+    'local-receipts',
+    reason,
+    'Receipt ledger is local preview evidence, not runtime proof.',
+    { lane: 'receipts' },
+    'Open Activity',
+  );
+}
+
+function providerGateRelatedCard(title, providerId, reason) {
+  return relatedCard(
+    'Provider gate',
+    title,
+    `extensions:provider:${providerId}`,
+    reason,
+    'Provider connect/sync/write remains blocked in this preview.',
+    { lane: 'extensions', providerId },
+    'Open provider gate',
+  );
+}
+
+function relatedCardsForContext() {
+  const laneId = state.laneId;
+  const focusId = state.focusId || defaultFocusIdForLane(laneId);
+  const cards = [];
+  const firstThread = selectedInboxThread();
+  const firstProposal = selectedCalendarProposal();
+  const firstTask = selectedLocalTask();
+  const selectedRule = selectedAutomationRule();
+  const selectedProvider = state.extensions.selectedProviderId
+    ? extensionProviderById(state.extensions.selectedProviderId)
+    : filteredExtensionProviders()[0];
+
+  const pushThread = (thread, reason) => {
+    if (!thread) return;
+    cards.push(relatedCard('Mail thread', thread.title, `inbox-thread:${thread.id}`, reason, 'Mail body/import/send boundaries remain blocked unless explicitly shown.', { lane: 'inbox', threadId: thread.id }, 'Open in Mail'));
+  };
+  const pushProposal = (proposal, reason) => {
+    if (!proposal) return;
+    cards.push(relatedCard('Calendar proposal', proposal.title, proposal.sourceRef || `calendar:local:${proposal.id}`, reason, 'Provider calendar write and invite send remain blocked.', { lane: 'calendar', proposalId: proposal.id }, 'Open in Calendar'));
+  };
+  const pushTask = (task, reason) => {
+    if (!task) return;
+    cards.push(relatedCard('Work item', task.title, task.sourceRef || `tasks:local:${task.id}`, reason, 'External task provider sync remains blocked.', { lane: 'tasks', taskId: task.id }, 'Open in Tasks'));
+  };
+  const pushRule = (rule, reason) => {
+    if (!rule) return;
+    cards.push(relatedCard('Automation dry-run', rule.title, `automations:local:${rule.id}`, reason, 'Automation enablement and execution remain blocked.', { lane: 'automations', ruleId: rule.id }, 'Open automation'));
+  };
+
+  if (laneId === 'inbox' && focusId.startsWith('inbox-thread:')) {
+    const threadId = focusId.replace('inbox-thread:', '');
+    const thread = inboxThreads().find((entry) => entry.id === threadId) || firstThread;
+    localProposalsForThread(threadId).slice(0, 1).forEach((proposal) => pushProposal(proposal, 'Mail mentions a time-sensitive follow-up that belongs on Calendar.'));
+    linkedTasksForThread(threadId).slice(0, 1).forEach((task) => pushTask(task, 'Mail has work intent that should continue in Tasks.'));
+    cards.push(activityRelatedCard('Mail draft/triage receipts stay visible after the user moves lanes.'));
+    cards.push(providerGateRelatedCard('Gmail provider gate', 'email-gmail', 'Mail actions depend on provider gates, so the block is visible here.'));
+    if (thread && cards.length < 2) pushThread(thread, 'Current thread remains the source object for downstream proposals.');
+  } else if (laneId === 'calendar' && focusId.startsWith('calendar:local:')) {
+    const proposal = allCalendarProposals().find((entry) => `calendar:local:${entry.id}` === focusId) || firstProposal;
+    pushThread(calendarLinkedThread(proposal), 'Calendar proposal keeps its originating mail thread one click away.');
+    calendarLinkedTasks(proposal).slice(0, 1).forEach((task) => pushTask(task, 'Time proposal has related execution work in Tasks.'));
+    cards.push(activityRelatedCard('Calendar review/save actions create receipt expectations.'));
+    cards.push(providerGateRelatedCard('Calendar provider gate', 'email-outlook', 'Calendar provider writes are blocked until the provider gate clears.'));
+  } else if (laneId === 'tasks' && focusId.startsWith('tasks:local:')) {
+    const task = allLocalTasks().find((entry) => `tasks:local:${entry.id}` === focusId) || firstTask;
+    if (task?.threadId) pushThread(inboxThreads().find((thread) => thread.id === task.threadId), 'Task originated from mail and should not lose its evidence.');
+    if (task?.calendarId) pushProposal(allCalendarProposals().find((proposal) => proposal.id === task.calendarId), 'Task has a linked time proposal.');
+    if (!cards.some((card) => card.type === 'Calendar proposal')) pushProposal(firstProposal, 'Tasks should expose upcoming time pressure where relevant.');
+    cards.push(activityRelatedCard('Task status changes and evidence placeholders should create receipts.'));
+    cards.push(providerGateRelatedCard('GitHub / tracker gate', 'dev-github', 'External tracker mutation is blocked at the point of need.'));
+  } else if (laneId === 'automations') {
+    pushTask(firstTask, 'Dry-runs should show which work item they affect before execution is considered.');
+    cards.push(activityRelatedCard('Dry-run results belong in Activity before any automation is enabled.'));
+    cards.push(providerGateRelatedCard('Automation provider gate', 'auto-zapier', 'External automation execution stays gated.'));
+    pushRule(selectedRule, 'Current dry-run rule remains selectable as the native object.');
+  } else if (laneId === 'receipts') {
+    const entry = selectedActivityEntry();
+    const target = parseActivitySourceTarget(entry?.source || entry?.sourceLabel || entry?.focusId || '');
+    if (target?.threadId) pushThread(inboxThreads().find((thread) => thread.id === target.threadId), 'Activity can resume the source mail object.');
+    pushProposal(firstProposal, 'Activity should expose downstream time proposals created by controlled work.');
+    pushTask(firstTask, 'Activity should expose downstream work items created by controlled work.');
+    cards.push(providerGateRelatedCard('Receipt export gate', 'internal-activity', 'Receipt export/sync stays blocked until explicit runtime gates exist.'));
+  } else if (laneId === 'extensions') {
+    const provider = selectedProvider;
+    pushThread(firstThread, `${provider?.name || 'Provider'} affects mail workflows, so Mail remains visible.`);
+    pushTask(firstTask, `${provider?.name || 'Provider'} may unblock work execution later, but tasks stay local now.`);
+    cards.push(activityRelatedCard('Provider gate views and blocked connects need receipt context.'));
+  } else {
+    pushThread(firstThread, 'Home surfaces urgent mail as the input object.');
+    pushProposal(firstProposal, 'Home surfaces upcoming time proposals from the shared object graph.');
+    pushTask(firstTask, 'Home surfaces work items that continue outside Mail.');
+    cards.push(activityRelatedCard('Home explains local receipts and blocked actions across the suite.'));
+  }
+
+  return cards.slice(0, 4);
+}
+
+function renderRelatedSuiteZone() {
+  const cards = relatedCardsForContext();
+  if (cards.length < 2) return '';
+  return `
+    <section class="inspector-block related-suite-zone" aria-label="Related objects across suite">
+      <h3>Related across suite</h3>
+      <p>Contextual handoffs keep the user out of lane silos. Each link opens the native object and keeps safety limits visible.</p>
+      <div class="related-suite-list">
+        ${cards.map((card) => `
+          <article class="related-suite-card">
+            <span class="related-suite-type">${escapeHtml(card.type)}</span>
+            <strong>${escapeHtml(demoteMailDisplayText(card.title))}</strong>
+            <p><span>Source:</span> ${escapeHtml(demoteMailDisplayText(card.sourceRef))}</p>
+            <p><span>Why now:</span> ${escapeHtml(demoteMailDisplayText(card.reason))}</p>
+            <p><span>Limit:</span> ${escapeHtml(card.limitation)}</p>
+            <button class="inbox-link-btn" type="button" data-related-action="open-target" ${relatedTargetAttrs(card.target)}>${escapeHtml(card.actionLabel)}</button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function renderDisabledActions() {
   const actions = getPayload().egressPolicy?.blockedActions || [];
   return `
@@ -9076,6 +9228,7 @@ function renderInspector() {
         </div>
       </section>
       ${inboxOutcomes}
+      ${renderRelatedSuiteZone()}
       <details class="inspector-meta-collapsed">
         <summary>More context (advanced)</summary>
         ${renderInspectorBlock('Selected', demoteMailDisplayText(inspector.context || 'Nothing selected yet.'))}
@@ -10132,6 +10285,24 @@ function handleActivityAction(action, params = {}) {
   }
 }
 
+function handleRelatedAction(action, params = {}) {
+  if (action !== 'open-target') return;
+  const target = {
+    lane: params.relatedLane || params.laneId || DEFAULT_LANE,
+    threadId: params.threadId || null,
+    mailboxView: params.mailboxView || null,
+    draftId: params.draftId || null,
+    proposalId: params.proposalId || null,
+    taskId: params.taskId || null,
+    storyId: params.storyId || null,
+    ruleId: params.ruleId || null,
+    providerId: params.providerId || null,
+    installId: params.installId || null,
+    settingsKey: params.settingsKey || null,
+  };
+  openActivitySource(target);
+}
+
 function handleCalendarAction(action, proposalId, focusId, shiftYear, shiftMonth, shiftDay, threadId, draftId) {
   if (action === 'shift-to-day' && shiftYear && shiftMonth && shiftDay) {
     state.calendar.viewMonth = `${shiftYear}-${String(shiftMonth).padStart(2, '0')}`;
@@ -10710,6 +10881,13 @@ function bindEvents() {
         automationsAction.dataset.focusId,
         automationsAction.dataset.actionId,
       );
+      return;
+    }
+
+    const relatedAction = event.target.closest?.('[data-related-action]');
+    if (relatedAction?.dataset.relatedAction) {
+      event.preventDefault();
+      handleRelatedAction(relatedAction.dataset.relatedAction, relatedAction.dataset);
       return;
     }
 

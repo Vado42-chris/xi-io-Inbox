@@ -5839,3 +5839,56 @@ body {
     padding: 0 0.5rem 0.5rem;
   }
 }
+
+/* UI-014B — contextual cross-pollination related zone */
+.related-suite-zone {
+  border-color: color-mix(in srgb, var(--lane-accent) 28%, rgba(191, 211, 255, 0.18));
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--lane-accent) 10%, transparent), rgba(255, 255, 255, 0.025)),
+    rgba(13, 17, 29, 0.58);
+}
+
+.related-suite-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.related-suite-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(191, 211, 255, 0.14);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018)),
+    rgba(8, 10, 18, 0.4);
+}
+
+.related-suite-card strong {
+  line-height: 1.25;
+}
+
+.related-suite-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.related-suite-card p span,
+.related-suite-type {
+  color: color-mix(in srgb, var(--lane-accent) 78%, #f5f7fb);
+  font-weight: 800;
+}
+
+.related-suite-type {
+  font-size: 0.65rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.related-suite-card .inbox-link-btn {
+  width: fit-content;
+  margin-top: 0.1rem;
+}

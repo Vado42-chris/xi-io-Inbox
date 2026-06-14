@@ -75,8 +75,8 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 25. SLICE-PLAN-STD-001 — cross-project planning/framework document standardization — **complete** (`07-cross-project-planning-standard.md`, `framework-document-standardization-backfeed.md`)
 26. SLICE-UI-016C — component boundary check scripts — **complete** (`ui-016c-boundary-check.mjs`)
 27. SLICE-UI-013B — visual system implementation / premium redesign — **complete** (`ui-013b-visual-implementation-receipt.md`)
-28. SLICE-UI-014B — cross-pollination implementation — **next**
-29. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after route/scope anatomy decision**
+28. SLICE-UI-014B — cross-pollination implementation — **complete** (`ui-014b-cross-pollination-implementation-receipt.md`)
+29. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **next**
 30. SLICE-UI-003E owner visual proof — **ready after visible redesign and visual QA evidence**
 31. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after Level 5 boundary checks**
 
