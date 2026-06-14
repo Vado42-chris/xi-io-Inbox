@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-`214a9bfd996cfdc66cdc27b959c7c39d99158705`
+`bae5fcdd9c607ae87f388dc9b980434b232e21df`
 
 ## Scope
 
@@ -43,7 +43,7 @@ historyId sync (EXT-004), sync status UI (EXT-003), body read, draft write, send
 
 ## Live metadata proof status
 
-**pass** (metadata updates are written to `data/mail-index.json` upon successful metadata sync jobs).
+**structural/unit-test pass** (OAuth credentials expired; requires `node cli.js connect` + successful sync run to verify live metadata persistence).
 
 ## Local Index Structure
 
