@@ -59,9 +59,11 @@ function gateStatus(bodyReadAllowed) {
 function summarizeLastSync(syncReceipts) {
   const successEvents = new Set(['completed', 'historyComplete']);
   const failedEvents = new Set(['failed', 'historyFailed']);
-  const completed = syncReceipts.find((entry) => successEvents.has(entry.event) && !entry.details?.dryRun);
-  const failed = syncReceipts.find((entry) => failedEvents.has(entry.event));
-  const source = failed && (!completed || failed.at > completed.at) ? failed : completed;
+  const lastSuccess = syncReceipts.find((entry) => successEvents.has(entry.event) && !entry.details?.dryRun);
+  const lastFailed = syncReceipts.find((entry) => failedEvents.has(entry.event));
+  const failedIsNewest = Boolean(lastFailed && (!lastSuccess || lastFailed.at > lastSuccess.at));
+  const source = failedIsNewest ? lastFailed : (lastSuccess || lastFailed);
+  const statsSource = lastSuccess || source;
   if (!source) {
     return {
       at: null,
@@ -78,17 +80,17 @@ function summarizeLastSync(syncReceipts) {
   }
   return {
     at: source.at || null,
-    pagesFetched: source.details?.pagesFetched ?? null,
-    threadCount: source.details?.threadCount ?? null,
-    messageCount: source.details?.messageCount ?? null,
-    stoppedReason: source.details?.stoppedReason ?? source.details?.reason ?? null,
-    jobs: source.details?.job ? String(source.details.job).split(',').filter(Boolean) : null,
+    pagesFetched: statsSource.details?.pagesFetched ?? null,
+    threadCount: statsSource.details?.threadCount ?? null,
+    messageCount: statsSource.details?.messageCount ?? null,
+    stoppedReason: statsSource.details?.stoppedReason ?? statsSource.details?.reason ?? null,
+    jobs: statsSource.details?.job ? String(statsSource.details.job).split(',').filter(Boolean) : null,
     event: source.event,
-    syncMode: source.event === 'historyComplete' ? 'incremental' : (source.details?.job === 'history_incremental' ? 'incremental' : 'full'),
-    startHistoryId: source.details?.startHistoryId ?? null,
-    endHistoryId: source.details?.endHistoryId ?? null,
-    success: source.success !== false,
-    error: source.error || null,
+    syncMode: source.event === 'historyComplete' ? 'incremental' : (statsSource.details?.job === 'history_incremental' ? 'incremental' : 'full'),
+    startHistoryId: statsSource.details?.startHistoryId ?? null,
+    endHistoryId: statsSource.details?.endHistoryId ?? null,
+    success: !failedIsNewest && source.success !== false,
+    error: failedIsNewest ? (lastFailed.error || null) : (source.error || null),
   };
 }
 

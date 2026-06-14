@@ -121,7 +121,7 @@ AI-generated interfaces.
 
 ## Checks needed before extraction
 
-- [ ] A route-table check: every primary nav item has label, route, lane, context rail, owner.
+- [x] A route-table check: every primary nav item has label, route, lane, context rail, owner.
 - [ ] A duplicate-receipt-renderer check: only one local receipt list renderer remains.
 - [ ] A duplicate-detail-grid check: detail grids use one shared class/helper.
 - [ ] A blocked-action check: every provider/dry-run/send action uses shared blocked-action grammar.

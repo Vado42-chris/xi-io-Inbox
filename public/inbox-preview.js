@@ -1,3 +1,15 @@
+import {
+  PRODUCT_LEVEL_NAV,
+  ROUTE_PREFIX,
+  DEFAULT_LANE,
+  IBAL_LEGACY_LANE,
+  SCOPE_ALL_ACCOUNTS,
+  workspaceForLane,
+  getPrimaryNavRoute,
+  parseRouteIdFromHash,
+  laneFromRouteId,
+} from './src/shell/route-table.js';
+
 const DATA_URL = './data/inbox-events.preview.json';
 const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
 const GMAIL_METADATA_SAMPLE_URL = './data/gmail-metadata.sample.json';
@@ -24,16 +36,6 @@ const PRODUCT_GATE_COPY = {
 
 const MAIL_PROVIDER_IDS = new Set(['gmail', 'imap', 'outlook', 'microsoft', 'exchange', 'fixture']);
 const INTEGRATION_PROVIDER_IDS = new Set(['github', 'slack', 'discord', 'jira', 'linear', 'zapier', 'make', 'n8n', 'calendar', 'drive']);
-
-const PRODUCT_LEVEL_NAV = [
-  { id: 'home', label: 'Home' },
-  { id: 'mail', label: 'Mail' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'automations', label: 'Automations' },
-  { id: 'activity', label: 'Activity' },
-  { id: 'integrations', label: 'Integrations' },
-];
 
 const INTEGRATIONS_NAV_CATEGORIES = [
   { id: 'integrations-email', label: 'Email', categoryFilter: 'email' },
@@ -130,11 +132,6 @@ const AUTOMATION_CONDITION_CATALOG = [
 ];
 
 const AUTOMATION_GATE_DEFAULT = 'Human approval required before any runtime enablement';
-
-const ROUTE_PREFIX = '#/';
-const DEFAULT_LANE = 'home';
-const IBAL_LEGACY_LANE = 'ibal';
-const SCOPE_ALL_ACCOUNTS = 'all';
 
 const state = {
   payload: null,
@@ -938,13 +935,11 @@ function laneIds() {
 }
 
 function routeIdFromHash() {
-  return String(window.location.hash || '').replace(ROUTE_PREFIX, '').trim();
+  return parseRouteIdFromHash(window.location.hash);
 }
 
 function laneFromHash() {
-  const raw = routeIdFromHash();
-  if (raw === IBAL_LEGACY_LANE) return DEFAULT_LANE;
-  return laneIds().has(raw) ? raw : DEFAULT_LANE;
+  return laneFromRouteId(routeIdFromHash(), laneIds());
 }
 
 function activeLane() {
@@ -5317,17 +5312,7 @@ function selectInspectorFocus(focusId) {
 }
 
 function activeProductWorkspace() {
-  if (state.laneId === 'home') return 'home';
-  if (state.laneId === 'inbox') {
-    return 'mail';
-  }
-  if (state.laneId === 'calendar') return 'calendar';
-  if (state.laneId === 'tasks') return 'tasks';
-  if (state.laneId === 'automations') return 'automations';
-  if (state.laneId === 'receipts') return 'activity';
-  if (state.laneId === 'extensions') return 'integrations';
-  if (state.laneId === 'settings') return 'settings';
-  return null;
+  return workspaceForLane(state.laneId);
 }
 
 function environmentStatusBadge() {
@@ -9894,7 +9879,8 @@ function handleHelpAction(action) {
 }
 
 function handleProductNavAction(workspaceId) {
-  if (!workspaceId) return;
+  const route = getPrimaryNavRoute(workspaceId);
+  if (!route) return;
   if (!state.shell) state.shell = defaultShellOps();
   const previousWorkspace = activeProductWorkspace();
   if (previousWorkspace && previousWorkspace !== workspaceId) {
@@ -9902,31 +9888,20 @@ function handleProductNavAction(workspaceId) {
   }
   activeContextSubNav = state.shell.contextSubNavByWorkspace[workspaceId] ?? null;
   helpPanelOpen = false;
-  if (workspaceId === 'home') {
-    state.laneId = 'home';
-  } else if (workspaceId === 'mail') {
-    state.laneId = 'inbox';
+  state.laneId = route.lane;
+  if (workspaceId === 'mail') {
     state.inbox.mailboxView = 'inbox';
     state.inbox.labelFilter = null;
     state.inbox.folderFilter = null;
-  } else if (workspaceId === 'calendar') {
-    state.laneId = 'calendar';
   } else if (workspaceId === 'tasks') {
-    state.laneId = 'tasks';
     state.tasks.viewMode = 'planning';
-  } else if (workspaceId === 'automations') {
-    state.laneId = 'automations';
   } else if (workspaceId === 'activity') {
-    state.laneId = 'receipts';
     state.activity.filter = 'all';
   } else if (workspaceId === 'integrations') {
-    state.laneId = 'extensions';
     state.extensions.categoryFilter = 'all';
-  } else {
-    return;
   }
   state.focusId = defaultFocusIdForLane(state.laneId);
-  window.location.hash = `${ROUTE_PREFIX}${state.laneId}`;
+  window.location.hash = route.hash;
   saveState();
   renderShell();
 }

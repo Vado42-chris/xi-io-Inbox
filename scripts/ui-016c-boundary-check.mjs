@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { primaryNavIds } from '../public/src/shell/route-table.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const js = fs.readFileSync(path.join(root, 'public/inbox-preview.js'), 'utf8');
@@ -47,19 +48,15 @@ function assertDocMentions(doc, terms, label) {
   }
 }
 
-const primaryNavBlock = js.match(/const PRODUCT_LEVEL_NAV = \[(?<body>[\s\S]*?)\];/);
-assert.ok(primaryNavBlock?.groups?.body, 'PRODUCT_LEVEL_NAV block missing');
-const navIds = uniqueMatches(/id: '([^']+)'/g, primaryNavBlock.groups.body);
+const navIds = primaryNavIds();
 assert.deepEqual(navIds, expectedPrimaryNav, 'primary nav must match NAV-002 route contract');
 assert.ok(!navIds.includes('plan'), 'Plan must not be primary nav');
 assert.ok(!navIds.includes('drafts'), 'Drafts must remain a Mail sub-view');
 assert.ok(!navIds.includes('approvals'), 'Approvals must remain a Mail sub-view');
 
-assert.match(js, /if \(state\.laneId === 'home'\) return 'home';/);
-assert.match(js, /if \(state\.laneId === 'calendar'\) return 'calendar';/);
-assert.match(js, /if \(state\.laneId === 'tasks'\) return 'tasks';/);
-assert.match(js, /if \(state\.laneId === 'receipts'\) return 'activity';/);
-assert.match(js, /if \(state\.laneId === 'extensions'\) return 'integrations';/);
+assert.match(js, /from '\.\/src\/shell\/route-table\.js'/);
+assert.match(js, /workspaceForLane\(/);
+assert.doesNotMatch(js, /const PRODUCT_LEVEL_NAV = \[/);
 
 const receiptRenderers = uniqueMatches(/function (render[A-Za-z]+LocalReceipts)\(/g, js);
 assertNoUnknown(receiptRenderers, knownReceiptRenderers, 'local receipt renderers');
