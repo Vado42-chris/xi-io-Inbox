@@ -64,6 +64,35 @@ async function main() {
     if (!(await skipLink.count())) throw new Error('missing skip-to-main link');
     if (!(await page.locator('#appMainLane').count())) throw new Error('missing #appMainLane');
 
+    for (const workspace of ['home', 'mail', 'calendar', 'tasks', 'automations', 'activity', 'integrations']) {
+      if (!(await page.locator(`[data-product-workspace="${workspace}"]`).count())) {
+        throw new Error(`primary nav missing ${workspace}`);
+      }
+    }
+    if (await page.locator('[data-product-workspace="plan"]').count()) {
+      throw new Error('Plan must not be a primary nav destination');
+    }
+    const navRows = await page.locator('.product-nav-item').evaluateAll((nodes) => {
+      return [...new Set(nodes.map((node) => Math.round(node.getBoundingClientRect().top)))].length;
+    });
+    if (navRows !== 1) throw new Error(`primary nav wrapped into ${navRows} rows`);
+
+    for (const [workspace, expectedHash, headingPattern] of [
+      ['calendar', '#/calendar', /Calendar/i],
+      ['tasks', '#/tasks', /Tasks/i],
+      ['home', '#/home', /Home/i],
+      ['mail', '#/inbox', /Inbox|Mail/i],
+      ['home', '#/home', /Home/i],
+    ]) {
+      await page.locator(`[data-product-workspace="${workspace}"]`).click();
+      await page.waitForSelector('#appMainLane', { timeout: 10000 });
+      if (!page.url().includes(expectedHash)) throw new Error(`${workspace} nav did not route to ${expectedHash}`);
+      const activeLabel = await page.locator('.product-nav-item.is-active').innerText();
+      if (activeLabel.toLowerCase() !== workspace) throw new Error(`${workspace} nav active label mismatch: ${activeLabel}`);
+      const heading = await page.locator('#appMainLane h1, #appMainLane h2').first().innerText();
+      if (!headingPattern.test(heading)) throw new Error(`${workspace} nav heading mismatch: ${heading}`);
+    }
+
     await page.locator('[data-product-workspace="mail"]').click();
     await page.waitForSelector('.is-mail-workbench', { timeout: 10000 });
     await page.waitForSelector('.mail-list-pane .thread-row', { timeout: 10000 });

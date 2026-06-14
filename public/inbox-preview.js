@@ -22,10 +22,10 @@ const MAIL_PROVIDER_IDS = new Set(['gmail', 'imap', 'outlook', 'microsoft', 'exc
 const INTEGRATION_PROVIDER_IDS = new Set(['github', 'slack', 'discord', 'jira', 'linear', 'zapier', 'make', 'n8n', 'calendar', 'drive']);
 
 const PRODUCT_LEVEL_NAV = [
+  { id: 'home', label: 'Home' },
   { id: 'mail', label: 'Mail' },
-  { id: 'drafts', label: 'Drafts' },
-  { id: 'approvals', label: 'Approvals' },
-  { id: 'plan', label: 'Plan' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'tasks', label: 'Tasks' },
   { id: 'automations', label: 'Automations' },
   { id: 'activity', label: 'Activity' },
   { id: 'integrations', label: 'Integrations' },
@@ -4925,13 +4925,12 @@ function selectInspectorFocus(focusId) {
 }
 
 function activeProductWorkspace() {
+  if (state.laneId === 'home') return 'home';
   if (state.laneId === 'inbox') {
-    const view = state.inbox.mailboxView || 'inbox';
-    if (view === 'drafts') return 'drafts';
-    if (view === 'approval-queue') return 'approvals';
     return 'mail';
   }
-  if (state.laneId === 'tasks' || state.laneId === 'calendar') return 'plan';
+  if (state.laneId === 'calendar') return 'calendar';
+  if (state.laneId === 'tasks') return 'tasks';
   if (state.laneId === 'automations') return 'automations';
   if (state.laneId === 'receipts') return 'activity';
   if (state.laneId === 'extensions') return 'integrations';
@@ -4971,10 +4970,10 @@ function contextualHelpContent() {
   const policy = getPayload().egressPolicy || {};
   const statements = policy.safetyStatements || [];
   const workspaceHints = {
+    home: 'Home summarizes urgent mail, upcoming time, open tasks, and blocked provider gates across the local preview.',
     mail: 'Mail shows fixture threads. Provider sync, body read, draft write, and send remain blocked.',
-    drafts: 'Drafts save locally in this browser. Submit for approval without provider write.',
-    approvals: 'Approval queue is local-only. Send stays blocked until GMAIL-002D and owner proof.',
-    plan: 'Tasks, calendar, epics, and bugs are local planning objects — not synced providers.',
+    calendar: 'Calendar is a primary time surface. Provider writes remain blocked; account scope lens is planned in NAV-002/SCOPE-001.',
+    tasks: 'Tasks is a primary work surface. Epics, stories, bugs, and evidence live here as sub-views.',
     automations: 'Automations dry-run only. External execution and provider mutation stay blocked.',
     activity: 'Activity records local receipts — what happened, what was proposed, and what was blocked.',
     integrations: 'Integrations show provider gates honestly. Connect paths run outside the browser preview.',
@@ -5065,19 +5064,28 @@ function renderApprovalsContextNav() {
   `;
 }
 
-function renderPlanContextNav() {
+function renderCalendarContextNav() {
+  return renderContextNavSection('Calendar', [
+    contextNavButton('All accounts', 'calendar-all', state.calendar.proposals?.length || 0, state.laneId === 'calendar' && !state.calendar.scopeFilter),
+    contextNavButton('Proposals', 'calendar-proposals', state.calendar.proposals?.length || 0, state.laneId === 'calendar'),
+    contextNavButton('Conflicts', 'calendar-conflicts', null, activeContextSubNav === 'calendar-conflicts'),
+    contextNavButton('Blocked writes', 'calendar-blocked-writes', null, activeContextSubNav === 'calendar-blocked-writes'),
+  ].join(''));
+}
+
+function renderTasksContextNav() {
   const tasksCount = (state.tasks.tasks || []).length;
   const epicsCount = (state.planning.epics || []).length;
   const storiesCount = (state.planning.stories || []).length;
   const bugsCount = (state.bugs.items || []).length;
   const evidenceCount = (state.evidence.items || []).length;
-  return renderContextNavSection('Plan', [
-    contextNavButton('Tasks', 'plan-tasks', tasksCount, state.laneId === 'tasks' && (state.tasks.viewMode || 'planning') === 'planning'),
-    contextNavButton('Calendar', 'plan-calendar', state.calendar.proposals?.length || 0, state.laneId === 'calendar'),
-    contextNavButton('Epics', 'plan-epics', epicsCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && Boolean(state.tasks.selectedEpicId)),
-    contextNavButton('Stories', 'plan-stories', storiesCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && Boolean(state.tasks.selectedStoryId)),
-    contextNavButton('Bugs', 'plan-bugs', bugsCount, state.laneId === 'tasks' && Boolean(state.tasks.selectedBugId)),
-    contextNavButton('Evidence', 'plan-evidence', evidenceCount, activeContextSubNav === 'plan-evidence'),
+  return renderContextNavSection('Tasks', [
+    contextNavButton('Planning', 'tasks-planning', tasksCount, state.laneId === 'tasks' && (state.tasks.viewMode || 'planning') === 'planning'),
+    contextNavButton('Board', 'tasks-board', tasksCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && !state.tasks.selectedEpicId && !state.tasks.selectedStoryId && !state.tasks.selectedBugId),
+    contextNavButton('Epics', 'tasks-epics', epicsCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && Boolean(state.tasks.selectedEpicId)),
+    contextNavButton('Stories', 'tasks-stories', storiesCount, state.laneId === 'tasks' && state.tasks.viewMode === 'board' && Boolean(state.tasks.selectedStoryId)),
+    contextNavButton('Bugs', 'tasks-bugs', bugsCount, state.laneId === 'tasks' && Boolean(state.tasks.selectedBugId)),
+    contextNavButton('Evidence', 'tasks-evidence', evidenceCount, activeContextSubNav === 'tasks-evidence'),
   ].join(''));
 }
 
@@ -5139,15 +5147,15 @@ function renderContextNavSection(label, itemsHtml) {
 function renderContextualLeftRail() {
   const workspace = activeProductWorkspace();
   let body = '';
-  if (workspace === 'mail') body = renderMailContextNav();
-  else if (workspace === 'drafts') body = renderDraftsContextNav();
-  else if (workspace === 'approvals') body = renderApprovalsContextNav();
-  else if (workspace === 'plan') body = renderPlanContextNav();
+  if (workspace === 'home') body = `<p class="form-hint mail-nav-hint">Home is the cross-account overview. Use primary nav for Mail, Calendar, Tasks, Automations, Activity, and Integrations.</p>`;
+  else if (workspace === 'mail') body = `${renderMailContextNav()}${renderDraftsContextNav()}${renderApprovalsContextNav()}`;
+  else if (workspace === 'calendar') body = renderCalendarContextNav();
+  else if (workspace === 'tasks') body = renderTasksContextNav();
   else if (workspace === 'automations') body = renderAutomationsContextNav();
   else if (workspace === 'activity') body = renderActivityContextNav();
   else if (workspace === 'integrations') body = renderIntegrationsContextNav();
   else if (workspace === 'settings') body = renderSettingsContextNav();
-  else body = `<p class="form-hint mail-nav-hint">Choose Mail, Drafts, Plan, or another workspace from the top bar.</p>`;
+  else body = `<p class="form-hint mail-nav-hint">Choose Home, Mail, Calendar, Tasks, or another workspace from the top bar.</p>`;
   const workspaceLabel = PRODUCT_LEVEL_NAV.find((entry) => entry.id === workspace)?.label || 'Workspace';
   return `
     <nav class="lane-nav context-nav-pane" aria-label="${escapeHtml(workspaceLabel)} navigation">
@@ -9279,18 +9287,16 @@ function handleProductNavAction(workspaceId) {
   }
   activeContextSubNav = state.shell.contextSubNavByWorkspace[workspaceId] ?? null;
   helpPanelOpen = false;
-  if (workspaceId === 'mail') {
+  if (workspaceId === 'home') {
+    state.laneId = 'home';
+  } else if (workspaceId === 'mail') {
     state.laneId = 'inbox';
     state.inbox.mailboxView = 'inbox';
     state.inbox.labelFilter = null;
     state.inbox.folderFilter = null;
-  } else if (workspaceId === 'drafts') {
-    state.laneId = 'inbox';
-    state.inbox.mailboxView = 'drafts';
-  } else if (workspaceId === 'approvals') {
-    state.laneId = 'inbox';
-    state.inbox.mailboxView = 'approval-queue';
-  } else if (workspaceId === 'plan') {
+  } else if (workspaceId === 'calendar') {
+    state.laneId = 'calendar';
+  } else if (workspaceId === 'tasks') {
     state.laneId = 'tasks';
     state.tasks.viewMode = 'planning';
   } else if (workspaceId === 'automations') {
@@ -9339,20 +9345,19 @@ function handleContextNavAction(subNavId) {
   } else if (subNavId.startsWith('approvals-')) {
     state.laneId = 'inbox';
     state.inbox.mailboxView = 'approval-queue';
-  } else if (subNavId === 'plan-tasks') {
+  } else if (subNavId.startsWith('calendar-')) {
+    state.laneId = 'calendar';
+    window.location.hash = `${ROUTE_PREFIX}calendar`;
+  } else if (subNavId === 'tasks-planning') {
     state.laneId = 'tasks';
     state.tasks.viewMode = 'planning';
     activeContextSubNav = null;
     window.location.hash = `${ROUTE_PREFIX}tasks`;
-  } else if (subNavId === 'plan-calendar') {
-    state.laneId = 'calendar';
-    activeContextSubNav = null;
-    window.location.hash = `${ROUTE_PREFIX}calendar`;
-  } else if (subNavId === 'plan-epics' || subNavId === 'plan-stories' || subNavId === 'plan-bugs') {
+  } else if (subNavId === 'tasks-board' || subNavId === 'tasks-epics' || subNavId === 'tasks-stories' || subNavId === 'tasks-bugs') {
     state.laneId = 'tasks';
     state.tasks.viewMode = 'board';
     window.location.hash = `${ROUTE_PREFIX}tasks`;
-  } else if (subNavId === 'plan-evidence') {
+  } else if (subNavId === 'tasks-evidence') {
     state.laneId = 'tasks';
     state.tasks.viewMode = 'board';
     window.location.hash = `${ROUTE_PREFIX}tasks`;
