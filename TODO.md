@@ -98,8 +98,9 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [ ] UI-003E owner visual proof — **ready for owner** after chrome tweak review at localhost:4488.
 - [x] RECON-GMAIL-001 — Gmail source-truth + adapter contract repair (`docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md`).
 - [x] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (`docs/ui/reviews/gmail-002a-ext-001-metadata-pagination-receipt.md`); peer review **pass** (`gmail-002a-ext-001-peer-review-receipt.md`).
-- [x] GMAIL-002A-EXT-002 — local mail index storage.
-- [ ] GMAIL-002A-EXT-003 — sync status UI + Activity receipts.
+- [x] GMAIL-002A-EXT-002 — local mail index storage (agent pass; peer review partial).
+- [x] GMAIL-002A-EXT-002-REPAIR — local mail index safety repair (`docs/ui/reviews/gmail-002a-ext-002-repair-receipt.md`).
+- [ ] GMAIL-002A-EXT-003 — sync status UI + Activity receipts (**after EXT-002 repair peer review**).
 - [ ] GMAIL-002A-EXT-004 — historyId incremental sync + full-sync fallback.
 - [ ] GCAL-001 — Google Calendar read-only metadata import (Calendar API; mirror GMAIL-002 staged gates).
 - [ ] Create module skeleton and route-table contract without deleting working UI.

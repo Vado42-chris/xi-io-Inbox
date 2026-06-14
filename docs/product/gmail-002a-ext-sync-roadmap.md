@@ -25,7 +25,8 @@ GMAIL-002B-LIVE-PROOF validated metadata ingress with a **25-thread snapshot**. 
 | Slice | Delivers |
 | --- | --- |
 | **GMAIL-002A-EXT-001** | Pagination + label jobs + CLI plan/dry-run + sync receipts |
-| **GMAIL-002A-EXT-002** | Local mail index (SQLite/LMDB) |
+| **GMAIL-002A-EXT-002** | Local mail index (JSON scaffold; safety repair required before status UI) |
+| **GMAIL-002A-EXT-002-REPAIR** | Index test isolation, fail-closed load, atomic writes, envelope, account filters, safe query output |
 | **GMAIL-002A-EXT-003** | Sync status in Activity + operator progress UI |
 | **GMAIL-002A-EXT-004** | `historyId` incremental sync + full-sync fallback |
 
@@ -44,7 +45,8 @@ Paginated exports keep the existing metadata snapshot schema (`mode: metadata-on
 
 ## Remaining blockers
 
-- Local index (EXT-002)
+- EXT-002 repair pass (peer review partial fixes)
+- Sync status UI (EXT-003) — blocked until EXT-002 repair pass
 - historyId incremental sync (EXT-004)
 - Body read remains gated (GMAIL-002B)
 - Draft/send/mutation blocked (GMAIL-002C/D)

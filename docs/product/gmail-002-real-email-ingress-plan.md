@@ -225,7 +225,8 @@ After **RECON-GMAIL-001** contract repair, implement in order:
 | Slice | Scope | Out of scope |
 | --- | --- | --- |
 | **GMAIL-002A-EXT-001** | Metadata pagination (`pageToken`), label-scoped sync jobs, fail-closed query contract | local index DB, historyId, UI sync status |
-| **GMAIL-002A-EXT-002** | Local mail index storage (SQLite/LMDB or equivalent) | historyId incremental sync |
+| **GMAIL-002A-EXT-002** | Local mail index storage (JSON scaffold; safety repair before status UI) | historyId incremental sync |
+| **GMAIL-002A-EXT-002-REPAIR** | Index safety: test isolation, fail-closed load, atomic writes, envelope, account filters, safe query output | sync status UI, historyId |
 | **GMAIL-002A-EXT-003** | Sync status UI + Activity receipts (per-label progress, backfill state) | provider writes |
 | **GMAIL-002A-EXT-004** | `historyId` incremental sync + full-sync fallback when startHistoryId out of range ([Gmail sync guide](https://developers.google.com/workspace/gmail/api/guides/sync)) | send, draft write, mutation |
 

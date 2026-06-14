@@ -58,7 +58,7 @@ Commands:
   read-thread-bodies <threadId> [--max N]
   export-readonly-body-snapshot (--message-id ID | --thread-id ID | --in PATH | --allow-batch-readonly-export) [--max N] [--max-messages N] [--out PATH]
   redact-body-snapshot --in PATH [--out PATH] [--include-payload]
-  query-index [--label ID] [--max N] [--offset N] [--sort asc|desc]
+  query-index [--label ID] [--account-email EMAIL] [--max N] [--offset N] [--sort asc|desc] [--include-body-preview]
   blocked <method>   (test blocked escalation: body, draft write, send, mutation)
 `;
 
@@ -117,6 +117,8 @@ async function main() {
     else if (rest[i] === '--include-payload') flags.includePayload = true;
     else if (rest[i] === '--offset') flags.offset = Number(rest[++i]);
     else if (rest[i] === '--sort') flags.sort = rest[++i];
+    else if (rest[i] === '--account-email') flags.accountEmail = rest[++i];
+    else if (rest[i] === '--include-body-preview') flags.includeBodyPreview = true;
     else if (!flags._) flags._ = rest[i];
   }
 
@@ -213,9 +215,11 @@ async function main() {
       case 'query-index':
         result = await queryMailIndex({
           labelId: flags.label,
+          accountEmail: flags.accountEmail,
           limit: flags.max || 25,
           offset: flags.offset || 0,
           sort: flags.sort || 'desc',
+          includeBodyPreview: Boolean(flags.includeBodyPreview),
         });
         break;
       case 'blocked':

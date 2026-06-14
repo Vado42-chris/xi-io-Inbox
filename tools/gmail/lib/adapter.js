@@ -1226,6 +1226,7 @@ export async function runMetadataSync({
     await upsertToMailIndex({
       threads: fetched.threads,
       messages: fetched.messages,
+      accountEmail,
     });
 
     if (outputPath) {
