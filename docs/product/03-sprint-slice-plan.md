@@ -81,8 +81,8 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 32. SLICE-PR-20-MERGE — merge PR #20 into ui-002 product branch — **complete** @ `50a6ad8`
 33. SLICE-UI-013C — owner-grade visual redesign — **complete agent pass** (`ui-013c-visual-implementation-receipt.md`); owner direction PASS; UI-003E proof pending
 34. SLICE-RECON-GMAIL-001 — Gmail source-truth + adapter contract repair — **complete** (`recon-gmail-001-source-truth-contract-repair-receipt.md`) @ `93c3501`
-35. SLICE-GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs — **complete** (`gmail-002a-ext-001-metadata-pagination-receipt.md`)
-36. SLICE-GMAIL-002A-EXT-002 — local mail index — **next**
+36. SLICE-GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs — **complete + peer reviewed** (`gmail-002a-ext-001-peer-review-receipt.md`)
+37. SLICE-GMAIL-002A-EXT-002 — local mail index — **next**
 36. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
 37. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
 

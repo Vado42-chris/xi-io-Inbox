@@ -96,7 +96,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] UI-013C owner-grade visual redesign — agent pass + owner direction PASS 2026-06-10 (`docs/ui/ui-013c-owner-grade-visual-direction.md`); chrome radius tweak applied; **UI-003E proof pending**.
 - [ ] UI-003E owner visual proof — **ready for owner** after chrome tweak review at localhost:4488.
 - [x] RECON-GMAIL-001 — Gmail source-truth + adapter contract repair (`docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md`).
-- [x] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (`docs/ui/reviews/gmail-002a-ext-001-metadata-pagination-receipt.md`).
+- [x] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (`docs/ui/reviews/gmail-002a-ext-001-metadata-pagination-receipt.md`); peer review **pass** (`gmail-002a-ext-001-peer-review-receipt.md`).
 - [ ] GMAIL-002A-EXT-002 — local mail index storage.
 - [ ] GMAIL-002A-EXT-003 — sync status UI + Activity receipts.
 - [ ] GMAIL-002A-EXT-004 — historyId incremental sync + full-sync fallback.
@@ -193,7 +193,8 @@ Status: technical static render smoke proof passed locally, but owner/framework 
 - [x] Run UI-005E Automations dry-run operability (`docs/ui/reviews/ui-005e-automations-operability-receipt.md`).
 - [x] Run UI-005F Extensions / Provider Gates operability (`docs/ui/reviews/ui-005f-extensions-operability-receipt.md`).
 - [x] Run UI-005G Settings operability (`docs/ui/reviews/ui-005g-settings-operability-receipt.md`).
-- [x] Run UI-005H Ibal concierge shell (`docs/ui/reviews/ui-005h-ibal-concierge-receipt.md`).
+- [x] Run UI-005H Ibal concierge shell — **shell/placeholder only**; not product-complete (`docs/ui/reviews/ui-005h-ibal-concierge-receipt.md`).
+- [ ] IBAL-001 — real Ibal concierge implementation (current preview is placeholder; no model routing, execution, or product-grade UX; **must not be marked complete in UI**).
 - [x] Run UI-005I Account/session shell (`docs/ui/reviews/ui-005i-account-session-receipt.md`).
 - [x] Agent structural UI-003E re-verification + owner proof packet (`docs/ui/reviews/ui-003e-operability-rereview-receipt.md`, `docs/ui/reviews/ui-003e-owner-visual-proof-packet.md`).
 - [x] UI-006A Inbox progressive disclosure IA (3-pane workspace).
