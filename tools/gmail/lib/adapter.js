@@ -43,12 +43,16 @@ import {
   mergeThreadRows,
   flattenMessagesFromThreads,
   paginateListParams,
+  collectHistoryMutations,
+  isHistoryIdNotFoundError,
 } from './metadata-sync.js';
 import {
   loadMailIndex,
   saveMailIndex,
   upsertToMailIndex,
   queryMailIndex,
+  removeFromMailIndex,
+  setHistoryState,
 } from './local-mail-index.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -1027,6 +1031,8 @@ export {
   paginateListParams,
   mergeThreadRows,
   flattenMessagesFromThreads,
+  collectHistoryMutations,
+  isHistoryIdNotFoundError,
 } from './metadata-sync.js';
 
 export function resolveSyncLabelJobs({
@@ -1154,6 +1160,172 @@ async function fetchLabelThreadsPaginated(gmail, labelJob, limits, emitReceipts 
   return { threads, pagesFetched, stoppedReason, nextPageToken: pageToken || null };
 }
 
+export async function runHistorySync({
+  startHistoryId,
+  maxPages = 10,
+  maxThreads = 25,
+  maxMessages = 50,
+  fallbackFullSync = true,
+  jobs = ['inbox_recent'],
+  fallbackMaxPages = 1,
+  fallbackMaxThreads = 25,
+} = {}) {
+  const profileResult = await gmailProfileGet();
+  const accountEmail = profileResult.payload?.emailAddress || null;
+  const currentHistoryId = profileResult.payload?.historyId || null;
+  const index = await loadMailIndex();
+  const storedStart = startHistoryId || index.historyState?.lastHistoryId || null;
+
+  writeSyncReceipt({
+    event: 'planned',
+    details: { job: 'history_incremental', startHistoryId: storedStart },
+  });
+  writeSyncReceipt({ event: 'bodyWithheld', blocked: true, success: true });
+  writeSyncReceipt({ event: 'draftWriteBlocked', blocked: true, success: true });
+  writeSyncReceipt({ event: 'sendBlocked', blocked: true, success: true });
+  writeSyncReceipt({ event: 'mutationBlocked', blocked: true, success: true });
+
+  if (!storedStart) {
+    writeSyncReceipt({
+      event: 'historyFallback',
+      details: { reason: 'no_start_history_id' },
+    });
+    if (!fallbackFullSync) {
+      return envelope({
+        success: false,
+        method: 'gmail.historySync.plan',
+        error: 'No startHistoryId stored. Run sync-metadata first or pass --start-history-id.',
+      });
+    }
+    const full = await runMetadataSync({
+      jobs,
+      maxPages: fallbackMaxPages,
+      maxThreads: fallbackMaxThreads,
+      maxMessages,
+    });
+    return envelope({
+      success: true,
+      method: 'gmail.historySync.fallbackFull',
+      payload: { reason: 'no_start_history_id', fullSync: full.payload },
+    });
+  }
+
+  writeSyncReceipt({
+    event: 'historyStarted',
+    details: { startHistoryId: storedStart },
+  });
+
+  try {
+    const gmail = await getGmail();
+    let pageToken;
+    let pagesFetched = 0;
+    const historyRecords = [];
+
+    while (pagesFetched < maxPages) {
+      const res = await gmail.users.history.list({
+        userId: 'me',
+        startHistoryId: storedStart,
+        pageToken,
+        historyTypes: ['messageAdded', 'messageDeleted', 'labelAdded', 'labelRemoved'],
+      });
+      pagesFetched += 1;
+      const batch = res.data.history || [];
+      historyRecords.push(...batch);
+      writeSyncReceipt({
+        event: 'historyPageFetched',
+        details: {
+          page: pagesFetched,
+          pagesFetched,
+          historyRecords: batch.length,
+        },
+      });
+      pageToken = res.data.nextPageToken;
+      if (!pageToken) break;
+    }
+
+    const mutations = collectHistoryMutations(historyRecords);
+    const threads = [];
+    for (const threadId of mutations.threadIds.slice(0, maxThreads)) {
+      threads.push(await threadMetadataRow(gmail, threadId));
+    }
+    const messages = flattenMessagesFromThreads(threads, maxMessages);
+
+    if (mutations.removedMessageIds.length || mutations.removedThreadIds.length) {
+      await removeFromMailIndex({
+        messageIds: mutations.removedMessageIds,
+        threadIds: mutations.removedThreadIds,
+      });
+    }
+    if (threads.length || messages.length) {
+      await upsertToMailIndex({ threads, messages, accountEmail });
+    }
+
+    if (currentHistoryId) {
+      const updated = await loadMailIndex();
+      setHistoryState(updated, {
+        lastHistoryId: currentHistoryId,
+        lastSyncMode: 'incremental',
+      });
+      await saveMailIndex(updated);
+    }
+
+    writeSyncReceipt({
+      event: 'historyComplete',
+      details: {
+        startHistoryId: storedStart,
+        endHistoryId: currentHistoryId,
+        pagesFetched,
+        threadCount: threads.length,
+        messageCount: messages.length,
+      },
+    });
+
+    return envelope({
+      success: true,
+      method: 'gmail.historySync.run',
+      payload: {
+        startHistoryId: storedStart,
+        endHistoryId: currentHistoryId,
+        pagesFetched,
+        threadCount: threads.length,
+        messageCount: messages.length,
+        removedMessageCount: mutations.removedMessageIds.length,
+        removedThreadCount: mutations.removedThreadIds.length,
+      },
+    });
+  } catch (err) {
+    if (isHistoryIdNotFoundError(err)) {
+      writeSyncReceipt({
+        event: 'historyFallback',
+        details: { reason: 'history_id_not_found', startHistoryId: storedStart },
+      });
+      if (fallbackFullSync) {
+        const full = await runMetadataSync({
+          jobs,
+          maxPages: fallbackMaxPages,
+          maxThreads: fallbackMaxThreads,
+          maxMessages,
+        });
+        return envelope({
+          success: true,
+          method: 'gmail.historySync.fallbackFull',
+          payload: {
+            reason: 'history_id_not_found',
+            startHistoryId: storedStart,
+            fullSync: full.payload,
+          },
+        });
+      }
+    }
+    writeSyncReceipt({
+      event: 'historyFailed',
+      success: false,
+      error: err.message || String(err),
+    });
+    throw err;
+  }
+}
+
 export async function runMetadataSync({
   labelIds = [],
   mailbox,
@@ -1249,6 +1421,16 @@ export async function runMetadataSync({
       messages: fetched.messages,
       accountEmail,
     });
+
+    const latestProfile = await gmailProfileGet();
+    if (latestProfile.payload?.historyId) {
+      const indexAfterSync = await loadMailIndex();
+      setHistoryState(indexAfterSync, {
+        lastHistoryId: latestProfile.payload.historyId,
+        lastSyncMode: 'full',
+      });
+      await saveMailIndex(indexAfterSync);
+    }
 
     if (outputPath) {
       const profileResult = await gmailProfileGet();

@@ -19,6 +19,7 @@ import {
   exportReadonlyBodySnapshot,
   redactBodySnapshotFile,
   runMetadataSync,
+  runHistorySync,
   METADATA_SYNC_JOB_PRESETS,
   resolveSyncLabelJobs,
   invokeBlocked,
@@ -55,6 +56,7 @@ Commands:
   drafts-metadata [--max N]
   export-metadata-snapshot [--mailbox M | --label ID | --job JOB] [--max N] [--max-pages N] [--max-messages N] [--out PATH]
   sync-metadata | metadata-sync [--plan | --dry-run] [--job JOB | --jobs a,b] [--mailbox M | --label ID] [--max-pages N] [--max N] [--max-messages N] [--out PATH]
+  sync-history [--start-history-id ID] [--no-fallback] [--max-pages N] [--max N] [--max-messages N] [--job JOB | --jobs a,b]
   sync-plan                 alias: sync-metadata --plan
   read-message-body <messageId>
   read-thread-bodies <threadId> [--max N]
@@ -90,6 +92,20 @@ function syncOptions(flags) {
   };
 }
 
+function historySyncOptions(flags) {
+  const sync = syncOptions(flags);
+  return {
+    startHistoryId: flags.startHistoryId,
+    maxPages: flags.maxPages || 10,
+    maxThreads: flags.max || 25,
+    maxMessages: flags.maxMessages || 50,
+    fallbackFullSync: !flags.noFallback,
+    jobs: sync.jobs?.length ? sync.jobs : ['inbox_recent'],
+    fallbackMaxPages: sync.maxPages || 1,
+    fallbackMaxThreads: sync.maxThreads || 25,
+  };
+}
+
 async function main() {
   const [,, cmd, ...rest] = process.argv;
   if (!cmd || cmd === 'help' || cmd === '--help') {
@@ -121,6 +137,8 @@ async function main() {
     else if (rest[i] === '--sort') flags.sort = rest[++i];
     else if (rest[i] === '--account-email') flags.accountEmail = rest[++i];
     else if (rest[i] === '--include-body-preview') flags.includeBodyPreview = true;
+    else if (rest[i] === '--start-history-id') flags.startHistoryId = rest[++i];
+    else if (rest[i] === '--no-fallback') flags.noFallback = true;
     else if (!flags._) flags._ = rest[i];
   }
 
@@ -191,6 +209,9 @@ async function main() {
           ...syncOptions(flags),
           planOnly: cmd === 'sync-plan' ? true : Boolean(flags.planOnly),
         });
+        break;
+      case 'sync-history':
+        result = await runHistorySync(historySyncOptions(flags));
         break;
       case 'read-message-body':
         result = await readMessageBody({ messageId: flags._ || flags.messageId });

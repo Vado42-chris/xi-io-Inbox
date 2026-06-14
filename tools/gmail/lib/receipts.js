@@ -33,6 +33,7 @@ export function writeReceipt({ method, success, blocked, error, event = null, de
 const SYNC_RECEIPT_DETAIL_KEYS = new Set([
   'labelIds', 'job', 'page', 'pagesFetched', 'threadCount', 'messageCount',
   'stoppedReason', 'dryRun', 'planOnly', 'nextPageTokenPresent', 'jobName',
+  'startHistoryId', 'endHistoryId', 'historyRecords', 'reason',
 ]);
 
 const SYNC_RECEIPT_EVENTS = new Set([
@@ -47,6 +48,11 @@ const SYNC_RECEIPT_EVENTS = new Set([
   'draftWriteBlocked',
   'sendBlocked',
   'mutationBlocked',
+  'historyStarted',
+  'historyPageFetched',
+  'historyComplete',
+  'historyFallback',
+  'historyFailed',
 ]);
 
 function sanitizeSyncReceipt(row) {

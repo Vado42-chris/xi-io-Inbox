@@ -26,7 +26,12 @@
       "threadCount": 3,
       "messageCount": 4,
       "updatedAt": "2026-06-14T11:55:00.000Z",
-      "accountEmails": ["sample@example.com"]
+      "accountEmails": ["sample@example.com"],
+      "historyState": {
+        "lastHistoryId": "9876543210",
+        "updatedAt": "2026-06-14T11:56:00.000Z",
+        "lastSyncMode": "full"
+      }
     },
     "readonlyBodySnapshot": {
       "present": false,

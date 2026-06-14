@@ -82,12 +82,13 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 33. SLICE-UI-013C — owner-grade visual redesign — **complete agent pass** (`ui-013c-visual-implementation-receipt.md`); owner direction PASS; UI-003E proof pending
 34. SLICE-RECON-GMAIL-001 — Gmail source-truth + adapter contract repair — **complete** (`recon-gmail-001-source-truth-contract-repair-receipt.md`) @ `93c3501`
 35. SLICE-GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs — **complete + peer reviewed** (`gmail-002a-ext-001-peer-review-receipt.md`)
-36. SLICE-GMAIL-002A-EXT-002 — local mail index — **complete agent pass** (`gmail-002a-ext-002-local-mail-index-receipt.md`); peer review partial
+36. SLICE-GMAIL-002A-EXT-002 — local mail index — **complete** (`gmail-002a-ext-002-repair-peer-review-receipt.md` pass)
 37. SLICE-GMAIL-002A-EXT-002-REPAIR — index safety repair — **complete** (`gmail-002a-ext-002-repair-receipt.md`)
 38. SLICE-GMAIL-002A-EXT-003 — sync status UI + Activity receipts — **complete** (`gmail-002a-ext-003-sync-status-activity-receipts-receipt.md`)
-39. SLICE-GMAIL-002A-EXT-004 — historyId incremental sync — **next**
-40. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
-41. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
+39. SLICE-GMAIL-002A-EXT-004 — historyId incremental sync — **complete** (`gmail-002a-ext-004-history-sync-receipt.md`)
+40. SLICE-GCAL-001 — Calendar read-only import — **next**
+41. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
+42. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

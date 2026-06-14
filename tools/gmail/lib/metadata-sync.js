@@ -98,3 +98,38 @@ export function paginateListParams({
   }
   return params;
 }
+
+export function collectHistoryMutations(historyRecords = []) {
+  const threadIds = new Set();
+  const messageIds = new Set();
+  const removedMessageIds = new Set();
+  const removedThreadIds = new Set();
+
+  for (const record of historyRecords) {
+    for (const bucket of ['messagesAdded', 'labelsAdded', 'labelsRemoved']) {
+      for (const entry of record[bucket] || []) {
+        if (entry.message?.id) messageIds.add(entry.message.id);
+        if (entry.message?.threadId) threadIds.add(entry.message.threadId);
+      }
+    }
+    for (const entry of record.messagesDeleted || []) {
+      if (entry.message?.id) removedMessageIds.add(entry.message.id);
+      if (entry.message?.threadId) removedThreadIds.add(entry.message.threadId);
+    }
+  }
+
+  return {
+    threadIds: [...threadIds],
+    messageIds: [...messageIds],
+    removedMessageIds: [...removedMessageIds],
+    removedThreadIds: [...removedThreadIds],
+  };
+}
+
+export function isHistoryIdNotFoundError(err) {
+  const status = err?.code || err?.response?.status;
+  const message = String(err?.message || err?.errors?.[0]?.message || '');
+  return status === 404
+    || /history.*not found/i.test(message)
+    || /startHistoryId/i.test(message);
+}

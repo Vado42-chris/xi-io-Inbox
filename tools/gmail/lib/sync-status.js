@@ -57,8 +57,10 @@ function gateStatus(bodyReadAllowed) {
 }
 
 function summarizeLastSync(syncReceipts) {
-  const completed = syncReceipts.find((entry) => entry.event === 'completed' && !entry.details?.dryRun);
-  const failed = syncReceipts.find((entry) => entry.event === 'failed');
+  const successEvents = new Set(['completed', 'historyComplete']);
+  const failedEvents = new Set(['failed', 'historyFailed']);
+  const completed = syncReceipts.find((entry) => successEvents.has(entry.event) && !entry.details?.dryRun);
+  const failed = syncReceipts.find((entry) => failedEvents.has(entry.event));
   const source = failed && (!completed || failed.at > completed.at) ? failed : completed;
   if (!source) {
     return {
@@ -69,6 +71,9 @@ function summarizeLastSync(syncReceipts) {
       stoppedReason: null,
       jobs: null,
       event: null,
+      syncMode: null,
+      startHistoryId: null,
+      endHistoryId: null,
     };
   }
   return {
@@ -76,9 +81,12 @@ function summarizeLastSync(syncReceipts) {
     pagesFetched: source.details?.pagesFetched ?? null,
     threadCount: source.details?.threadCount ?? null,
     messageCount: source.details?.messageCount ?? null,
-    stoppedReason: source.details?.stoppedReason ?? null,
+    stoppedReason: source.details?.stoppedReason ?? source.details?.reason ?? null,
     jobs: source.details?.job ? String(source.details.job).split(',').filter(Boolean) : null,
     event: source.event,
+    syncMode: source.event === 'historyComplete' ? 'incremental' : (source.details?.job === 'history_incremental' ? 'incremental' : 'full'),
+    startHistoryId: source.details?.startHistoryId ?? null,
+    endHistoryId: source.details?.endHistoryId ?? null,
     success: source.success !== false,
     error: source.error || null,
   };
@@ -118,6 +126,13 @@ export async function buildSyncStatus() {
         messageCount: index.messages?.length ?? 0,
         updatedAt: index.updatedAt || null,
         accountEmails: [...new Set((index.accounts || []).map((entry) => entry.accountEmail).filter(Boolean))],
+        historyState: index.historyState
+          ? {
+            lastHistoryId: index.historyState.lastHistoryId || null,
+            updatedAt: index.historyState.updatedAt || null,
+            lastSyncMode: index.historyState.lastSyncMode || null,
+          }
+          : null,
       };
     } catch (err) {
       mailIndexSummary = {
@@ -194,7 +209,9 @@ export async function buildSyncStatus() {
         ? 'Run: cd tools/gmail && node cli.js connect'
         : !lastSync.at
           ? 'Run: cd tools/gmail && node cli.js sync-metadata --job inbox_recent --max-pages 1 --max 25'
-          : 'Run: node cli.js sync-status --out data/gmail-sync-status.local.json and import into preview Settings',
+          : lastSync.event === 'completed' && mailIndexSummary.historyState?.lastHistoryId
+            ? 'Run: node cli.js sync-history --max-pages 1 --max 25, then sync-status --out data/gmail-sync-status.local.json'
+            : 'Run: node cli.js sync-status --out data/gmail-sync-status.local.json and import into preview Settings',
   };
 }
 

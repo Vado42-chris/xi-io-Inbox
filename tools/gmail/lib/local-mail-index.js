@@ -314,6 +314,43 @@ export async function upsertToMailIndex({
   return index;
 }
 
+export function setHistoryState(index, { lastHistoryId, lastSyncMode = 'incremental' } = {}) {
+  if (!index || !lastHistoryId) return index;
+  index.historyState = {
+    lastHistoryId: String(lastHistoryId),
+    updatedAt: new Date().toISOString(),
+    lastSyncMode,
+  };
+  return index;
+}
+
+export async function removeFromMailIndex({
+  messageIds = [],
+  threadIds = [],
+  indexPath,
+} = {}) {
+  const index = await loadMailIndex({ indexPath });
+  const messageSet = new Set(messageIds);
+  const threadSet = new Set(threadIds);
+
+  index.messages = (index.messages || []).filter((message) => !messageSet.has(message.id));
+  index.threads = (index.threads || [])
+    .filter((thread) => !threadSet.has(thread.id))
+    .map((thread) => {
+      const messages = (thread.messages || []).filter((message) => !messageSet.has(message.id));
+      return {
+        ...thread,
+        messages,
+        messageIds: messages.map((message) => message.id),
+        labelIds: [...new Set(messages.flatMap((message) => message.labelIds || []))],
+        unread: messages.some((message) => message.unread),
+      };
+    });
+
+  await saveMailIndex(index, { indexPath });
+  return index;
+}
+
 export function summarizeThreadForQuery(thread, { includeBodyPreview = false } = {}) {
   const messages = thread.messages || [];
   const latestMessage = messages.at(-1) || null;

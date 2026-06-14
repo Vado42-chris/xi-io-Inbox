@@ -4060,6 +4060,11 @@ function gmailSyncReceiptActivityTitle(event) {
     draftWriteBlocked: 'Gmail draft write blocked',
     sendBlocked: 'Gmail send blocked',
     mutationBlocked: 'Gmail provider mutation blocked',
+    historyStarted: 'Gmail history sync started',
+    historyPageFetched: 'Gmail history page fetched',
+    historyComplete: 'Gmail history sync completed',
+    historyFallback: 'Gmail history sync fell back to full metadata sync',
+    historyFailed: 'Gmail history sync failed',
   };
   return labels[event] || `Gmail sync ${event || 'event'}`;
 }
@@ -4073,9 +4078,13 @@ function mapGmailSyncReceiptToActivity(receipt) {
     title: gmailSyncReceiptActivityTitle(event),
     summary: receipt.error
       ? `${event} · ${receipt.error}`
-      : receipt.details?.job
-        ? `${event} · job ${receipt.details.job}${receipt.details.threadCount != null ? ` · ${receipt.details.threadCount} threads` : ''}`
-        : event,
+      : receipt.details?.startHistoryId
+        ? `${event} · ${receipt.details.startHistoryId}${receipt.details.endHistoryId ? ` → ${receipt.details.endHistoryId}` : ''}${receipt.details.threadCount != null ? ` · ${receipt.details.threadCount} threads` : ''}`
+        : receipt.details?.reason
+          ? `${event} · ${receipt.details.reason}`
+          : receipt.details?.job
+            ? `${event} · job ${receipt.details.job}${receipt.details.threadCount != null ? ` · ${receipt.details.threadCount} threads` : ''}`
+            : event,
     status: 'preview_only',
     outcome: receipt.success === false ? 'blocked' : (blocked ? 'blocked' : 'recorded'),
     createdAt: receipt.at || new Date().toISOString(),
@@ -4091,7 +4100,7 @@ function mapGmailSyncReceiptToActivity(receipt) {
     safeNext: gmailSyncStatus?.nextOperatorAction || 'Run tools/gmail CLI locally; browser preview is not connected.',
     scope: 'external',
     focusId: `activity:gmail-sync:${receipt.id || event}`,
-    isBuildEvidence: !blocked && event === 'completed',
+    isBuildEvidence: !blocked && (event === 'completed' || event === 'historyComplete'),
   };
 }
 
@@ -4166,10 +4175,12 @@ function renderGmailSyncStatusPanel({ compact = false } = {}) {
   const status = gmailSyncStatus;
   const source = gmailSyncStatusSource === 'sample-file' ? 'sample fixture' : 'local file';
   const last = status.lastSync || {};
+  const history = status.artifacts?.mailIndex?.historyState;
   const rows = [
     ['OAuth (CLI)', `${label(status.oauth?.status || 'unknown')} · browser OAuth: no`],
     ['Metadata snapshot', status.artifacts?.metadataSnapshot?.present ? `present · ${status.artifacts.metadataSnapshot.threadCount ?? 0} threads` : 'missing'],
     ['Local mail index', status.artifacts?.mailIndex?.present ? `present · ${status.artifacts.mailIndex.threadCount ?? 0} threads` : 'missing'],
+    ['History cursor', history?.lastHistoryId ? `${history.lastSyncMode || 'sync'} · id ${history.lastHistoryId}` : 'none stored'],
     ['Last sync', last.at ? `${formatMailDate(last.at)} · ${last.event || 'event'} · ${last.threadCount ?? 0} threads` : 'none recorded'],
     ['Body read', label(status.gates?.bodyRead || 'blocked')],
     ['Draft write', label(status.gates?.draftWrite || 'blocked')],

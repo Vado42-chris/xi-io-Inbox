@@ -9,6 +9,8 @@ import {
   flattenMessagesFromThreads,
   buildMetadataSyncPlan,
   METADATA_SYNC_JOB_PRESETS,
+  collectHistoryMutations,
+  isHistoryIdNotFoundError,
 } from '../lib/adapter.js';
 
 assert.throws(
@@ -76,5 +78,12 @@ const messages = flattenMessagesFromThreads([
 assert.equal(messages.length, 3);
 
 assert.ok(METADATA_SYNC_JOB_PRESETS.inbox_recent);
+
+const historyMutations = collectHistoryMutations([
+  { messagesAdded: [{ message: { id: 'a', threadId: 't-a' } }] },
+  { labelsRemoved: [{ message: { id: 'b', threadId: 't-b' } }] },
+]);
+assert.deepEqual(historyMutations.threadIds.sort(), ['t-a', 't-b']);
+assert.equal(isHistoryIdNotFoundError({ response: { status: 404 } }), true);
 
 console.log('metadata-sync: pass');
