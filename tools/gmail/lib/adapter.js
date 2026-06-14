@@ -43,6 +43,12 @@ import {
   flattenMessagesFromThreads,
   paginateListParams,
 } from './metadata-sync.js';
+import {
+  loadMailIndex,
+  saveMailIndex,
+  upsertToMailIndex,
+  queryMailIndex,
+} from './local-mail-index.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LOOPBACK_HOST = DEFAULT_LOOPBACK_HOST;
@@ -987,6 +993,12 @@ export { wipeLocalAdapterData } from './local-data.js';
 export { bodyGateStatus, getAccessMode, READONLY_SCOPE } from './body-gate.js';
 export { redactBodyContent, redactBodySnapshot } from './body-redaction.js';
 export {
+  loadMailIndex,
+  saveMailIndex,
+  upsertToMailIndex,
+  queryMailIndex,
+} from './local-mail-index.js';
+export {
   METADATA_SYNC_JOB_PRESETS,
   DEFAULT_SYNC_LIMITS,
   buildMetadataSyncPlan,
@@ -1209,6 +1221,11 @@ export async function runMetadataSync({
         messageCount: fetched.summary.messageCount,
         stoppedReason: fetched.summary.stoppedReason,
       },
+    });
+
+    await upsertToMailIndex({
+      threads: fetched.threads,
+      messages: fetched.messages,
     });
 
     if (outputPath) {

@@ -23,6 +23,7 @@ import {
   resolveSyncLabelJobs,
   invokeBlocked,
   METADATA_MAILBOX_ALIASES,
+  queryMailIndex,
 } from './lib/adapter.js';
 
 const HELP = `Gmail metadata adapter (GMAIL-002B body gate)
@@ -57,6 +58,7 @@ Commands:
   read-thread-bodies <threadId> [--max N]
   export-readonly-body-snapshot (--message-id ID | --thread-id ID | --in PATH | --allow-batch-readonly-export) [--max N] [--max-messages N] [--out PATH]
   redact-body-snapshot --in PATH [--out PATH] [--include-payload]
+  query-index [--label ID] [--max N] [--offset N] [--sort asc|desc]
   blocked <method>   (test blocked escalation: body, draft write, send, mutation)
 `;
 
@@ -113,6 +115,8 @@ async function main() {
     else if (rest[i] === '--out') flags.out = rest[++i];
     else if (rest[i] === '--in') flags.in = rest[++i];
     else if (rest[i] === '--include-payload') flags.includePayload = true;
+    else if (rest[i] === '--offset') flags.offset = Number(rest[++i]);
+    else if (rest[i] === '--sort') flags.sort = rest[++i];
     else if (!flags._) flags._ = rest[i];
   }
 
@@ -204,6 +208,14 @@ async function main() {
           inputPath: flags.in,
           outputPath: flags.out,
           includePayload: Boolean(flags.includePayload),
+        });
+        break;
+      case 'query-index':
+        result = await queryMailIndex({
+          labelId: flags.label,
+          limit: flags.max || 25,
+          offset: flags.offset || 0,
+          sort: flags.sort || 'desc',
         });
         break;
       case 'blocked':
