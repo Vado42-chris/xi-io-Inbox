@@ -211,11 +211,7 @@ If PASS:
 UI_003E_PASS_OWNER_VISUAL_PROOF_COMPLETE
 ```
 
-If FAIL:
-
-```text
-UI_003E_FAIL_<short reason>
-```
+Follow-up: UI-013C agent-side implementation pass complete, local checks passing, and cross-repo peer-review brief/design contract (`docs/ui/reviews/ibal-cross-repo-peer-review-request.md`) established (2026-06-14). Font stack updated to prefer "Outfit" and "Inter" for UI elements. Ready for owner's final review check.
 
 ## Forbidden Until Owner PASS
 
@@ -223,3 +219,5 @@ UI_003E_FAIL_<short reason>
 - Exit PR #12 draft
 - Claim GATE-UI-VISUAL-001 pass
 - Merge to `main`
+
+

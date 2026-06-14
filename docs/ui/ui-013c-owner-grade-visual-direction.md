@@ -65,6 +65,7 @@ Each primary lane keeps a distinct accent but shares one composition grammar:
 - [x] Calendar layout breathing room and flagship treatment
 - [x] Trust affordance styling + product voice on Calendar/Tasks banners
 - [x] Primary button presence uses lane accent fill
+- [x] Owner direction review — preliminary PASS 2026-06-10 (editorial cockpit); chrome uses 3px corner radius per owner feedback
 - [ ] Owner visual review PASS (required for UI-003E)
 
 ## Decision value
