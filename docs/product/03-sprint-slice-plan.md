@@ -67,9 +67,13 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 17. SLICE-NPM-AUDIT-GMAIL-001 — review 4 moderate `tools/gmail` dependency vulnerabilities — **complete** (`npm-audit-gmail-001-dependency-audit-receipt.md`)
 18. SLICE-UI-NORTH-STAR-AMEND — Option B: Mail spine plus primary Calendar/Tasks/Home — **complete** (`ui-north-star-ratification-2026-06-13.md`)
 19. SLICE-NAV-002 — restore primary Home/Calendar/Tasks and dissolve Plan into Tasks sub-views — **complete** (`nav-002-primary-operations-nav-receipt.md`)
-20. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **next**
-21. SLICE-UI-003E owner visual proof — **ready after NAV-002 or explicit owner choice**
-22. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after NAV-002/scope contract**
+20. SLICE-UI-013 — Level 2 visual experience system — **next before owner proof**
+21. SLICE-UI-014 — Level 3 contextual cross-pollination map — **planned**
+22. SLICE-UI-015 — Level 4 lane purpose / journey / failure index — **complete** (`ui-015-level-4-lane-purpose-journey-index.md`)
+23. SLICE-UI-016 — Level 5 componentization / framework-vs-repo-vs-template index — **next after UI-015**
+24. SLICE-SCOPE-001 — shared account scope lens for Mail/Calendar/Tasks/Activity — **after Level 5 component boundary decision**
+25. SLICE-UI-003E owner visual proof — **ready after Level 2-5 plan and visible redesign**
+26. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after Level 5 component boundary decision**
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

@@ -81,6 +81,10 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Review npm audit output for 4 moderate `tools/gmail` dependency vulnerabilities before broader provider proof (`docs/ui/reviews/npm-audit-gmail-001-dependency-audit-receipt.md`).
 - [x] Amend north-star to Option B: Mail spine plus primary Home/Calendar/Tasks/Automations/Activity/Integrations (`docs/ui/reviews/ui-north-star-ratification-2026-06-13.md`).
 - [x] NAV-002: restore Home, Calendar, and Tasks as primary nav destinations; dissolve `Plan` into Tasks sub-views (`docs/ui/reviews/nav-002-primary-operations-nav-receipt.md`).
+- [x] UI-015 Level 4 lane purpose, journey, and failure index (`docs/ui/ui-015-level-4-lane-purpose-journey-index.md`).
+- [ ] UI-013 Level 2 visual experience system before owner proof.
+- [ ] UI-014 Level 3 contextual cross-pollination map.
+- [ ] UI-016 Level 5 componentization / framework-vs-repo-vs-template index.
 - [ ] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity.
 - [ ] Add `accountId` migration plan for calendar proposals and task/work items before account-scoped implementation.
 - [ ] Prepare UI-003E owner visual-proof support packet.

@@ -39,15 +39,17 @@ module boundaries, and hard gates are explicit.
 ## Migration order
 
 ```text
-1. Ratify draft-centered north star.
-2. Stand up design tokens and component contracts.
-3. Create shell/router/store skeleton with one route table:
+1. Ratify amended Option B north star.
+2. Complete Level 2 visual direction, Level 3 cross-pollination, Level 4 lane journey index,
+   and Level 5 component ownership decisions.
+3. Stand up design tokens and component contracts.
+4. Create shell/router/store skeleton with one route table:
    `Home | Mail | Calendar | Tasks | Automations | Activity | Integrations`.
-4. Add shared account scope lens contracts for Mail, Calendar, Tasks, and Activity.
-5. Move Mail/Drafts/Approvals/Sent into workbench modules.
-6. Move Calendar/Tasks/Automations/Activity/Integrations into primary destination modules.
-7. Move Ibal into concierge module only.
-8. Delete dead lane and migration scar tissue from the monolith only after focused receipts.
+5. Add shared account scope lens contracts for Mail, Calendar, Tasks, and Activity.
+6. Move Mail/Drafts/Approvals/Sent into workbench modules.
+7. Move Calendar/Tasks/Automations/Activity/Integrations into primary destination modules.
+8. Move Ibal into concierge module only.
+9. Delete dead lane and migration scar tissue from the monolith only after focused receipts.
 ```
 
 ## Anti-patterns
@@ -61,6 +63,8 @@ module boundaries, and hard gates are explicit.
   cleanup without owner sign-off and capability review.
 - Treating shell/nav receipts as proof that Calendar, Tasks, GitHub, or multi-account scope
   requirements are complete.
+- Extracting components before Level 5 decides whether they belong in the framework, this
+  repository, or product templates.
 
 ## Decision value
 
