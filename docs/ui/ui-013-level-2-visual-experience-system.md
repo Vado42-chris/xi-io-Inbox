@@ -69,12 +69,12 @@ A UI change fails UI-013 if:
 
 ## Acceptance criteria
 
-- [ ] Token reset documented and implemented.
-- [ ] Every primary lane has a distinct but unified identity.
-- [ ] Calendar and Tasks are visually treated as flagship surfaces.
-- [ ] Visual QA checklist exists and is run against Home/Mail/Calendar/Tasks.
+- [x] Token reset documented and implemented (`public/inbox-preview.css`, UI-013B block).
+- [x] Every primary lane has a distinct but unified identity.
+- [x] Calendar and Tasks are visually treated as flagship surfaces.
+- [x] Visual QA checklist exists and is run against Home/Mail/Calendar/Tasks.
 - [ ] Owner visual proof packet uses UI-013 screenshots/videos.
-- [ ] No provider/runtime safety claim is weakened by visual polish.
+- [x] No provider/runtime safety claim is weakened by visual polish.
 
 ## Decision value
 

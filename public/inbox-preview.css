@@ -5507,3 +5507,335 @@ textarea:focus-visible,
     max-width: none;
   }
 }
+
+/* UI-013B — Private Operations Cockpit visual implementation */
+:root {
+  --bg: #080a12;
+  --surface-canvas: #080a12;
+  --surface: rgba(16, 20, 33, 0.86);
+  --surface-strong: rgba(26, 32, 52, 0.94);
+  --surface-soft: rgba(38, 45, 72, 0.76);
+  --surface-elevated: rgba(13, 17, 29, 0.78);
+  --surface-overlay: rgba(8, 10, 18, 0.68);
+  --line: rgba(153, 173, 205, 0.18);
+  --line-strong: rgba(191, 211, 255, 0.32);
+  --text: #f5f7fb;
+  --text-secondary: #d7deeb;
+  --muted: #97a3b7;
+  --accent: #79d8ff;
+  --cyan: #79d8ff;
+  --green: #8ef0bd;
+  --amber: #f6c45d;
+  --red: #ff7b87;
+  --violet: #b89cff;
+  --lane-home: #79d8ff;
+  --lane-mail: #70f0c4;
+  --lane-calendar: #ffa75e;
+  --lane-tasks: #b89cff;
+  --lane-automations: #79d8ff;
+  --lane-activity: #f6c45d;
+  --lane-integrations: #8ef0bd;
+  --lane-accent: var(--accent);
+  --lane-glow: rgba(121, 216, 255, 0.18);
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 10px 26px rgba(0, 0, 0, 0.26);
+  --shadow-md: 0 24px 70px rgba(0, 0, 0, 0.36);
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(121, 216, 255, 0.18), transparent 34rem),
+    radial-gradient(circle at 86% 14%, rgba(184, 156, 255, 0.16), transparent 32rem),
+    linear-gradient(135deg, #080a12 0%, #111628 48%, #090b13 100%);
+}
+
+.app-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 15rem),
+    radial-gradient(circle at 50% -10%, rgba(121, 216, 255, 0.12), transparent 38rem);
+}
+
+.app-topbar {
+  margin: 0.85rem;
+  border: 1px solid rgba(191, 211, 255, 0.16);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(17, 23, 41, 0.92), rgba(11, 15, 27, 0.78)),
+    radial-gradient(circle at 20% 0%, rgba(121, 216, 255, 0.14), transparent 24rem);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(22px);
+}
+
+.brand-mark {
+  background:
+    linear-gradient(135deg, rgba(121, 216, 255, 0.22), rgba(184, 156, 255, 0.18)),
+    rgba(255, 255, 255, 0.04);
+  border-color: rgba(191, 211, 255, 0.22);
+}
+
+.product-level-nav {
+  justify-content: center;
+  padding: 0.2rem;
+  border: 1px solid rgba(191, 211, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(7, 10, 18, 0.52);
+}
+
+.product-nav-item {
+  position: relative;
+  overflow: hidden;
+  color: #b7c2d6;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.product-nav-item::after {
+  content: "";
+  position: absolute;
+  inset: auto 0.55rem 0.16rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--lane-accent);
+  opacity: 0;
+}
+
+.product-nav-item:hover:not(.is-active) {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.product-nav-item.is-active {
+  border-color: color-mix(in srgb, var(--lane-accent) 58%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--lane-accent) 20%, transparent), rgba(255, 255, 255, 0.045));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 10px 26px var(--lane-glow);
+}
+
+.product-nav-item.is-active::after {
+  opacity: 1;
+}
+
+.product-nav-item[data-product-workspace="home"].is-active {
+  --lane-accent: var(--lane-home);
+  --lane-glow: rgba(121, 216, 255, 0.16);
+}
+
+.product-nav-item[data-product-workspace="mail"].is-active {
+  --lane-accent: var(--lane-mail);
+  --lane-glow: rgba(112, 240, 196, 0.14);
+}
+
+.product-nav-item[data-product-workspace="calendar"].is-active {
+  --lane-accent: var(--lane-calendar);
+  --lane-glow: rgba(255, 167, 94, 0.16);
+}
+
+.product-nav-item[data-product-workspace="tasks"].is-active {
+  --lane-accent: var(--lane-tasks);
+  --lane-glow: rgba(184, 156, 255, 0.16);
+}
+
+.product-nav-item[data-product-workspace="automations"].is-active {
+  --lane-accent: var(--lane-automations);
+  --lane-glow: rgba(121, 216, 255, 0.14);
+}
+
+.product-nav-item[data-product-workspace="activity"].is-active {
+  --lane-accent: var(--lane-activity);
+  --lane-glow: rgba(246, 196, 93, 0.14);
+}
+
+.product-nav-item[data-product-workspace="integrations"].is-active {
+  --lane-accent: var(--lane-integrations);
+  --lane-glow: rgba(142, 240, 189, 0.13);
+}
+
+.app-frame {
+  padding: 0 0.85rem 0.85rem;
+  gap: 0.8rem;
+}
+
+.lane-nav,
+.right-inspector,
+.lane-surface,
+.thread-list-panel.mail-list-pane,
+.inbox-reading-pane,
+.lane-reading-pane,
+.calendar-month-shell,
+.calendar-day-agenda,
+.calendar-conflict-preview,
+.calendar-activity-panel,
+.tasks-epic-panel,
+.tasks-story-panel,
+.tasks-detail-panel,
+.tasks-story-detail,
+.tasks-bug-detail,
+.tasks-evidence-panel,
+.tasks-ac-panel,
+.tasks-bugs-panel,
+.tasks-activity-panel {
+  border-color: rgba(191, 211, 255, 0.16);
+  background:
+    linear-gradient(145deg, rgba(20, 26, 45, 0.88), rgba(10, 14, 26, 0.78)),
+    radial-gradient(circle at 0% 0%, var(--lane-glow), transparent 22rem);
+  box-shadow: var(--shadow-sm);
+}
+
+.lane-surface {
+  position: relative;
+  overflow: hidden;
+}
+
+.lane-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-top: 1px solid color-mix(in srgb, var(--lane-accent) 40%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--lane-accent) 14%, transparent), transparent 34%),
+    radial-gradient(circle at 95% 0%, var(--lane-glow), transparent 24rem);
+  opacity: 0.78;
+}
+
+.lane-surface > * {
+  position: relative;
+}
+
+.lane-header h2 {
+  letter-spacing: -0.035em;
+  text-shadow: 0 10px 34px rgba(0, 0, 0, 0.36);
+}
+
+.context-nav-label,
+.lane-nav-label,
+.eyebrow {
+  color: color-mix(in srgb, var(--lane-accent) 76%, #d7deeb);
+  letter-spacing: 0.08em;
+}
+
+.context-nav-item.is-active {
+  border-color: color-mix(in srgb, var(--lane-accent) 54%, transparent);
+  background: color-mix(in srgb, var(--lane-accent) 13%, transparent);
+  box-shadow: inset 3px 0 0 var(--lane-accent), 0 10px 26px var(--lane-glow);
+}
+
+.is-home-lane {
+  --lane-accent: var(--lane-home);
+  --lane-glow: rgba(121, 216, 255, 0.16);
+}
+
+.is-inbox-lane {
+  --lane-accent: var(--lane-mail);
+  --lane-glow: rgba(112, 240, 196, 0.14);
+}
+
+.is-calendar-lane {
+  --lane-accent: var(--lane-calendar);
+  --lane-glow: rgba(255, 167, 94, 0.16);
+}
+
+.is-tasks-lane {
+  --lane-accent: var(--lane-tasks);
+  --lane-glow: rgba(184, 156, 255, 0.16);
+}
+
+.is-automations-lane {
+  --lane-accent: var(--lane-automations);
+  --lane-glow: rgba(121, 216, 255, 0.14);
+}
+
+.is-receipts-lane {
+  --lane-accent: var(--lane-activity);
+  --lane-glow: rgba(246, 196, 93, 0.14);
+}
+
+.is-extensions-lane {
+  --lane-accent: var(--lane-integrations);
+  --lane-glow: rgba(142, 240, 189, 0.13);
+}
+
+.is-calendar-lane .calendar-month-shell,
+.is-calendar-lane .lane-reading-pane {
+  background:
+    linear-gradient(155deg, rgba(43, 27, 19, 0.92), rgba(13, 17, 29, 0.82)),
+    radial-gradient(circle at 10% 0%, rgba(255, 167, 94, 0.18), transparent 18rem);
+}
+
+.calendar-day-cell,
+.calendar-week-day {
+  border-color: rgba(255, 191, 135, 0.18);
+  background: rgba(255, 167, 94, 0.035);
+}
+
+.calendar-day-cell.is-selected,
+.calendar-week-day.is-selected {
+  box-shadow: inset 0 0 0 2px var(--lane-calendar), 0 12px 28px rgba(255, 167, 94, 0.14);
+}
+
+.calendar-provider-banner {
+  border-color: rgba(255, 123, 135, 0.45);
+  background:
+    linear-gradient(135deg, rgba(255, 123, 135, 0.13), rgba(255, 167, 94, 0.08));
+  box-shadow: 0 12px 34px rgba(255, 123, 135, 0.08);
+}
+
+.is-tasks-lane .tasks-planning-grid,
+.is-tasks-lane .lane-reading-pane {
+  background:
+    linear-gradient(155deg, rgba(26, 20, 45, 0.92), rgba(13, 17, 29, 0.82)),
+    radial-gradient(circle at 12% 0%, rgba(184, 156, 255, 0.18), transparent 18rem);
+}
+
+.tasks-epic-row,
+.tasks-story-row,
+.tasks-kanban-card,
+.acceptance-criterion {
+  border-color: rgba(207, 190, 255, 0.18);
+  background: rgba(184, 156, 255, 0.045);
+}
+
+.tasks-epic-row.is-selected,
+.tasks-story-row.is-selected {
+  border-color: rgba(184, 156, 255, 0.74);
+  box-shadow: inset 3px 0 0 var(--lane-tasks), 0 12px 30px rgba(184, 156, 255, 0.14);
+}
+
+.tasks-provider-banner {
+  border-color: rgba(255, 123, 135, 0.45);
+  background:
+    linear-gradient(135deg, rgba(255, 123, 135, 0.13), rgba(184, 156, 255, 0.08));
+  box-shadow: 0 12px 34px rgba(255, 123, 135, 0.08);
+}
+
+.metric-card,
+.lane-item,
+.home-panel,
+.home-card,
+.activity-entry-card,
+.thread-row {
+  border-color: rgba(191, 211, 255, 0.14);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
+    rgba(13, 17, 29, 0.58);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+.thread-row.is-selected,
+.activity-entry-card.is-selected,
+.lane-item.is-selected {
+  border-color: color-mix(in srgb, var(--lane-accent) 58%, transparent);
+  box-shadow: inset 3px 0 0 var(--lane-accent), 0 16px 38px var(--lane-glow);
+}
+
+@media (max-width: 980px) {
+  .app-topbar {
+    margin: 0.5rem;
+    border-radius: 16px;
+  }
+
+  .app-frame {
+    padding: 0 0.5rem 0.5rem;
+  }
+}
