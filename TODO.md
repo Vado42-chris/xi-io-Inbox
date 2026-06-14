@@ -93,8 +93,14 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Add shared account scope lens contract for Mail, Calendar, Tasks, and Activity (`docs/ui/reviews/scope-001-shared-account-lens-receipt.md`).
 - [x] Add `accountId` runtime normalization for calendar proposals and task/work items (schema v12 migration deferred — see PR-20-004).
 - [x] Merge PR #20 into `ui-002/framework-derived-static-preview` after peer-review fixes (`docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`).
-- [x] UI-013C owner-grade visual redesign — agent pass (`docs/ui/reviews/ui-013c-visual-implementation-receipt.md`); **owner review pending**.
-- [ ] UI-003E owner visual proof — **blocked until owner reviews UI-013C at localhost:4488**.
+- [x] UI-013C owner-grade visual redesign — agent pass + owner direction PASS 2026-06-10 (`docs/ui/ui-013c-owner-grade-visual-direction.md`); chrome radius tweak applied; **UI-003E proof pending**.
+- [ ] UI-003E owner visual proof — **ready for owner** after chrome tweak review at localhost:4488.
+- [x] RECON-GMAIL-001 — Gmail source-truth + adapter contract repair (`docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md`).
+- [ ] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (blocked until RECON-GMAIL-001 pass).
+- [ ] GMAIL-002A-EXT-002 — local mail index storage.
+- [ ] GMAIL-002A-EXT-003 — sync status UI + Activity receipts.
+- [ ] GMAIL-002A-EXT-004 — historyId incremental sync + full-sync fallback.
+- [ ] GCAL-001 — Google Calendar read-only metadata import (Calendar API; mirror GMAIL-002 staged gates).
 - [ ] Create module skeleton and route-table contract without deleting working UI.
 
 ## ARCH-004: platform runtime and deployment envelope

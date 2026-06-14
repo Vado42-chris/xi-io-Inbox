@@ -19,11 +19,19 @@ import {
   exportReadonlyBodySnapshot,
   redactBodySnapshotFile,
   invokeBlocked,
+  METADATA_MAILBOX_ALIASES,
 } from './lib/adapter.js';
 
 const HELP = `Gmail metadata adapter (GMAIL-002B body gate)
 Default mode: metadata-only (gmail.metadata). Body read requires GMAIL_ACCESS_MODE=readonly + reconnect.
 Scope: no draft write, send, mutation, or mail.google.com.
+
+Metadata list filters (gmail.metadata — no general Gmail search, no q parameter):
+  --mailbox inbox|sent|trash|spam|starred|important|draft|drafts
+  --label LABEL_ID          explicit Gmail label id (e.g. INBOX, STARRED)
+  --query in:<mailbox>      backward-compatible alias for safe in: values only
+  General search (from:, subject:, newer:, free text) is unavailable under gmail.metadata.
+
 Commands:
   status
   body-gate-status
@@ -33,18 +41,25 @@ Commands:
   profile
   labels | list-labels
   labels-counts
-  list-threads [--query Q] [--max N]
-  list-messages [--query Q] [--max N]
-  search-metadata [--query Q] [--max N]
+  list-threads [--mailbox M | --label ID | --query in:<alias>] [--max N]
+  list-messages [--mailbox M | --label ID | --query in:<alias>] [--max N]
+  list-mailbox-metadata [--mailbox M | --label ID | --query in:<alias>] [--max N]
+  search-metadata           deprecated alias for list-mailbox-metadata
   thread-metadata <threadId>
   drafts-metadata [--max N]
   export-metadata-snapshot [--max N] [--max-messages N] [--out PATH] [--include-payload]
   read-message-body <messageId>
   read-thread-bodies <threadId> [--max N]
-  export-readonly-body-snapshot [--max N] [--max-messages N] [--out PATH] [--include-payload]
+  export-readonly-body-snapshot (--message-id ID | --thread-id ID | --in PATH | --allow-batch-readonly-export) [--max N] [--max-messages N] [--out PATH]
   redact-body-snapshot --in PATH [--out PATH] [--include-payload]
   blocked <method>   (test blocked escalation: body, draft write, send, mutation)
 `;
+
+function metadataListOptions(flags) {
+  if (flags.label) return { labelIds: [flags.label], maxResults: flags.max || 10 };
+  if (flags.mailbox) return { query: `in:${flags.mailbox}`, maxResults: flags.max || 10 };
+  return { query: flags.query || 'in:inbox', maxResults: flags.max || 10 };
+}
 
 async function main() {
   const [,, cmd, ...rest] = process.argv;
@@ -58,6 +73,11 @@ async function main() {
     if (rest[i] === '--max') flags.max = Number(rest[++i]);
     else if (rest[i] === '--max-messages') flags.maxMessages = Number(rest[++i]);
     else if (rest[i] === '--query') flags.query = rest[++i];
+    else if (rest[i] === '--label') flags.label = rest[++i];
+    else if (rest[i] === '--mailbox') flags.mailbox = rest[++i];
+    else if (rest[i] === '--message-id') flags.messageId = rest[++i];
+    else if (rest[i] === '--thread-id') flags.threadId = rest[++i];
+    else if (rest[i] === '--allow-batch-readonly-export') flags.allowBatchReadonlyExport = true;
     else if (rest[i] === '--out') flags.out = rest[++i];
     else if (rest[i] === '--in') flags.in = rest[++i];
     else if (rest[i] === '--include-payload') flags.includePayload = true;
@@ -93,15 +113,22 @@ async function main() {
       case 'labels-counts':
         result = await gmailLabelsCounts();
         break;
-      case 'list-threads':
-        result = await gmailThreadsListMetadata({ query: flags.query || 'in:inbox', maxResults: flags.max || 10 });
+      case 'list-threads': {
+        const opts = metadataListOptions(flags);
+        result = await gmailThreadsListMetadata({ ...opts, maxResults: flags.max || opts.maxResults });
         break;
-      case 'list-messages':
-        result = await gmailMessagesListMetadata({ query: flags.query || 'in:inbox', maxResults: flags.max || 10 });
+      }
+      case 'list-messages': {
+        const opts = metadataListOptions(flags);
+        result = await gmailMessagesListMetadata({ ...opts, maxResults: flags.max || opts.maxResults });
         break;
+      }
       case 'search-metadata':
-        result = await gmailMessagesSearchMetadata({ query: flags.query || 'in:inbox', maxResults: flags.max || 5 });
+      case 'list-mailbox-metadata': {
+        const opts = metadataListOptions(flags);
+        result = await gmailMessagesSearchMetadata({ ...opts, maxResults: flags.max || opts.maxResults });
         break;
+      }
       case 'thread-metadata':
         result = await gmailThreadMetadata({ threadId: flags._ });
         break;
@@ -117,13 +144,17 @@ async function main() {
         });
         break;
       case 'read-message-body':
-        result = await readMessageBody({ messageId: flags._ });
+        result = await readMessageBody({ messageId: flags._ || flags.messageId });
         break;
       case 'read-thread-bodies':
-        result = await readThreadBodies({ threadId: flags._, maxMessages: flags.max || 5 });
+        result = await readThreadBodies({ threadId: flags._ || flags.threadId, maxMessages: flags.max || 5 });
         break;
       case 'export-readonly-body-snapshot':
         result = await exportReadonlyBodySnapshot({
+          messageId: flags.messageId,
+          threadId: flags.threadId || flags._,
+          inputPath: flags.in,
+          allowBatchReadonlyExport: Boolean(flags.allowBatchReadonlyExport),
           maxThreads: flags.max || 5,
           maxMessages: flags.maxMessages || 10,
           outputPath: flags.out,
@@ -143,6 +174,7 @@ async function main() {
       default:
         console.error(`Unknown command: ${cmd}`);
         console.log(HELP);
+        console.error(`Allowed metadata mailboxes: ${METADATA_MAILBOX_ALIASES.join(', ')}`);
         process.exit(1);
     }
   } catch (err) {

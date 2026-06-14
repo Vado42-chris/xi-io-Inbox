@@ -6,6 +6,8 @@ import {
   guardMethod,
   invokeBlocked,
   metadataListParams,
+  MetadataQueryError,
+  assertReadonlyBodyExportSelection,
   validateMetadataSnapshot,
   validateReadonlyBodySnapshot,
   redactBodyContent,
@@ -89,6 +91,11 @@ assert.deepEqual(metadataListParams({ query: 'in:inbox', maxResults: 25 }), {
   maxResults: 25,
   labelIds: ['INBOX'],
 });
+assert.deepEqual(metadataListParams({ maxResults: 10 }), {
+  userId: 'me',
+  maxResults: 10,
+  labelIds: ['INBOX'],
+});
 assert.deepEqual(metadataListParams({ query: 'in:sent', maxResults: 5 }), {
   userId: 'me',
   maxResults: 5,
@@ -99,11 +106,14 @@ assert.deepEqual(metadataListParams({ labelIds: ['STARRED'], maxResults: 10 }), 
   maxResults: 10,
   labelIds: ['STARRED'],
 });
-assert.deepEqual(metadataListParams({ query: 'from:someone@example.com', maxResults: 10 }), {
-  userId: 'me',
-  maxResults: 10,
-  labelIds: ['INBOX'],
-});
+assert.throws(
+  () => metadataListParams({ query: 'from:someone@example.com', maxResults: 10 }),
+  MetadataQueryError,
+);
+assert.throws(
+  () => metadataListParams({ query: 'in:customlabel', maxResults: 10 }),
+  MetadataQueryError,
+);
 assert.equal(Object.hasOwn(metadataListParams({ query: 'in:inbox', maxResults: 10 }), 'q'), false);
 
 console.log('metadata-guards: pass');

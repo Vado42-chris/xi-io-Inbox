@@ -148,7 +148,7 @@ OAuth client present → Gmail API enabled → token missing → snapshot missin
 
 Port conflict: `lsof -i :8787` — stop **only** stale xi-io connect listener; do not kill unrelated processes.
 
-- Live metadata/body/preview proof **not complete**
+- Live metadata proof **complete** (2026-06-13 receipt). Readonly body phase remains optional/separate.
 
 ### Future validation fixture — divorce email catalog (blocked)
 
@@ -218,6 +218,21 @@ A separate operator project (outside this repo) is cataloguing Gmail metadata in
 
 ---
 
+## GMAIL-002A-EXT — paginated sync (split; do not implement as one slice)
+
+After **RECON-GMAIL-001** contract repair, implement in order:
+
+| Slice | Scope | Out of scope |
+| --- | --- | --- |
+| **GMAIL-002A-EXT-001** | Metadata pagination (`pageToken`), label-scoped sync jobs, fail-closed query contract | local index DB, historyId, UI sync status |
+| **GMAIL-002A-EXT-002** | Local mail index storage (SQLite/LMDB or equivalent) | historyId incremental sync |
+| **GMAIL-002A-EXT-003** | Sync status UI + Activity receipts (per-label progress, backfill state) | provider writes |
+| **GMAIL-002A-EXT-004** | `historyId` incremental sync + full-sync fallback when startHistoryId out of range ([Gmail sync guide](https://developers.google.com/workspace/gmail/api/guides/sync)) | send, draft write, mutation |
+
+**RECON-GMAIL-001** (source-of-truth + adapter contract repair) must pass before EXT-001.
+
+---
+
 ## Relationship to NAV-001
 
 NAV-001 corrected shell placement for account status and Integrations taxonomy so GMAIL-002A can land without another navigation refactor.
@@ -235,5 +250,7 @@ NAV-001 corrected shell placement for account status and Integrations taxonomy s
 | GMAIL-002A | NAV-001 pass | `docs/ui/reviews/gmail-002a-real-gmail-metadata-ingress-receipt.md` |
 | GMAIL-002A-HARDEN | GMAIL-002A pass | `docs/ui/reviews/gmail-002a-hardening-receipt.md` |
 | GMAIL-002B | GMAIL-002A-HARDEN pass | `docs/ui/reviews/gmail-002b-read-only-body-gate-receipt.md` |
+| RECON-GMAIL-001 | GMAIL-002B-LIVE-PROOF metadata pass | `docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md` |
+| GMAIL-002A-EXT-001 | RECON-GMAIL-001 pass | TBD |
 | GMAIL-002C | GMAIL-002B stable | TBD |
 | GMAIL-002D | Approval + UI-003E path | TBD |

@@ -65,6 +65,15 @@ const METADATA_QUERY_LABELS = {
   important: 'IMPORTANT',
 };
 
+export const METADATA_MAILBOX_ALIASES = Object.keys(METADATA_QUERY_LABELS);
+
+export class MetadataQueryError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'MetadataQueryError';
+  }
+}
+
 function snapshotExportSummary({ outputPath, snapshot, extra = {}, includePayload = false }) {
   return {
     outputPath,
@@ -77,21 +86,32 @@ function snapshotExportSummary({ outputPath, snapshot, extra = {}, includePayloa
   };
 }
 
-/** Gmail metadata scope rejects search `q`; map inbox-style queries to labelIds. */
-export function metadataListParams({ query = 'in:inbox', maxResults = 10, labelIds } = {}) {
+/** Gmail metadata scope rejects search `q`; map safe in:<label> aliases to labelIds only. */
+export function metadataListParams({ query, maxResults = 10, labelIds } = {}) {
   const params = { userId: 'me', maxResults };
   if (labelIds?.length) {
     params.labelIds = labelIds;
     return params;
   }
-  const normalized = String(query || '').trim().toLowerCase();
-  const inMatch = /^in:([a-z_]+)$/.exec(normalized);
-  if (inMatch) {
-    const label = METADATA_QUERY_LABELS[inMatch[1]] || inMatch[1].toUpperCase();
-    params.labelIds = [label];
+  const normalized = String(query ?? '').trim().toLowerCase();
+  if (!normalized) {
+    params.labelIds = ['INBOX'];
     return params;
   }
-  params.labelIds = ['INBOX'];
+  const inMatch = /^in:([a-z_]+)$/.exec(normalized);
+  if (!inMatch) {
+    throw new MetadataQueryError(
+      `General Gmail search is unavailable under gmail.metadata scope (no q parameter). Unsupported query: "${query}". Use explicit labelIds, --label LABEL_ID, or --mailbox inbox|sent|trash|spam|starred|important.`,
+    );
+  }
+  const alias = inMatch[1];
+  const label = METADATA_QUERY_LABELS[alias];
+  if (!label) {
+    throw new MetadataQueryError(
+      `Unsupported in: alias "${alias}" under gmail.metadata scope. Allowed mailboxes: ${METADATA_MAILBOX_ALIASES.join(', ')}.`,
+    );
+  }
+  params.labelIds = [label];
   return params;
 }
 
@@ -671,35 +691,94 @@ export async function readThreadBodies({ threadId, maxMessages = 5 } = {}) {
   });
 }
 
+export function assertReadonlyBodyExportSelection({
+  messageId,
+  threadId,
+  inputPath,
+  allowBatchReadonlyExport = false,
+} = {}) {
+  if (inputPath) return;
+  if (messageId || threadId) return;
+  if (allowBatchReadonlyExport) return;
+  throw new Error(
+    'Read-only body export requires explicit --message-id, --thread-id, --in PATH, or --allow-batch-readonly-export (not valid for default LIVE-PROOF).',
+  );
+}
+
 export async function exportReadonlyBodySnapshot({
+  messageId,
+  threadId,
+  inputPath,
+  allowBatchReadonlyExport = false,
   maxThreads = 5,
   maxMessages = 10,
   threadQuery = 'in:inbox',
   outputPath = BODY_SNAPSHOT_PATH,
   includePayload = false,
 } = {}) {
+  assertReadonlyBodyExportSelection({ messageId, threadId, inputPath, allowBatchReadonlyExport });
+
+  if (inputPath) {
+    return redactBodySnapshotFile({ inputPath, outputPath, includePayload });
+  }
+
   await requireBodyReadGate();
   const profileResult = await gmailProfileGet();
-  const threadsResult = await gmailThreadsListMetadata({ query: threadQuery, maxResults: maxThreads });
-  const messages = [];
-  const threads = [];
+  let threads = [];
+  let messages = [];
 
-  for (const thread of threadsResult.payload?.threads || []) {
-    const bodies = await readThreadBodies({ threadId: thread.id, maxMessages });
+  if (messageId) {
+    const body = await readMessageBody({ messageId });
+    if (!body.success) throw new Error(body.error || 'Failed to read message body');
+    const row = body.payload.message;
+    messages = [row];
+    threads = [{
+      id: row.threadId,
+      snippet: row.snippet || '',
+      subject: row.subject,
+      from: row.from,
+      date: row.date,
+      unread: row.unread,
+      labelIds: row.labelIds,
+      messageIds: [row.id],
+      messages: [row],
+      provider: 'gmail-readonly',
+    }];
+  } else if (threadId) {
+    const bodies = await readThreadBodies({ threadId, maxMessages });
     if (!bodies.success) throw new Error(bodies.error || 'Failed to read thread bodies');
-    threads.push({
+    threads = [{
       id: bodies.payload.id,
-      snippet: bodies.payload.snippet || thread.snippet,
-      subject: thread.subject,
-      from: thread.from,
-      date: thread.date,
-      unread: thread.unread,
-      labelIds: thread.labelIds,
+      snippet: bodies.payload.snippet || '',
+      subject: bodies.payload.messages[0]?.subject || '',
+      from: bodies.payload.messages[0]?.from || '',
+      date: bodies.payload.messages[0]?.date || '',
+      unread: bodies.payload.messages.some((entry) => entry.unread),
+      labelIds: [...new Set(bodies.payload.messages.flatMap((entry) => entry.labelIds || []))],
       messageIds: bodies.payload.messages.map((entry) => entry.id),
       messages: bodies.payload.messages,
       provider: 'gmail-readonly',
-    });
-    messages.push(...bodies.payload.messages);
+    }];
+    messages = bodies.payload.messages;
+  } else {
+    const threadsResult = await gmailThreadsListMetadata({ query: threadQuery, maxResults: maxThreads });
+    for (const thread of threadsResult.payload?.threads || []) {
+      const bodies = await readThreadBodies({ threadId: thread.id, maxMessages });
+      if (!bodies.success) throw new Error(bodies.error || 'Failed to read thread bodies');
+      threads.push({
+        id: bodies.payload.id,
+        snippet: bodies.payload.snippet || thread.snippet,
+        subject: thread.subject,
+        from: thread.from,
+        date: thread.date,
+        unread: thread.unread,
+        labelIds: thread.labelIds,
+        messageIds: bodies.payload.messages.map((entry) => entry.id),
+        messages: bodies.payload.messages,
+        provider: 'gmail-readonly',
+      });
+      messages.push(...bodies.payload.messages);
+    }
   }
 
   let snapshot = {

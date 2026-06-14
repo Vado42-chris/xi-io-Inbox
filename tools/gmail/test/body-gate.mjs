@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import {
+  assertReadonlyBodyExportSelection,
+} from '../lib/adapter.js';
+import {
   bodyGateStatus,
   getAccessMode,
   getRequestedScopes,
@@ -7,6 +10,15 @@ import {
   READONLY_SCOPE,
   ACCESS_MODES,
 } from '../lib/body-gate.js';
+
+assert.throws(
+  () => assertReadonlyBodyExportSelection({}),
+  /requires explicit --message-id/,
+);
+assert.doesNotThrow(() => assertReadonlyBodyExportSelection({ messageId: 'm1' }));
+assert.doesNotThrow(() => assertReadonlyBodyExportSelection({ threadId: 't1' }));
+assert.doesNotThrow(() => assertReadonlyBodyExportSelection({ inputPath: '/tmp/body.json' }));
+assert.doesNotThrow(() => assertReadonlyBodyExportSelection({ allowBatchReadonlyExport: true }));
 
 assert.deepEqual(getRequestedScopes(ACCESS_MODES.METADATA), [
   'openid',
