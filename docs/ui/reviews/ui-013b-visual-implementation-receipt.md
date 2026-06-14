@@ -72,5 +72,10 @@ Manual walkthrough: /opt/cursor/artifacts/ui_013b_visual_system_walkthrough.mp4
 
 ## Decision value
 
-`UI_013B_VISUAL_SYSTEM_IMPLEMENTED_OWNER_PROOF_PENDING`
+`UI_013B_VISUAL_SYSTEM_AGENT_PASS_OWNER_FAIL_UI_013C_REQUIRED`
+
+## Owner override (2026-06-14)
+
+Owner preliminary review: **FAIL** for owner-grade / boutique visual bar. Agent self-QA pass
+does not satisfy GATE-UI-VISUAL-001. See `docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`.
 

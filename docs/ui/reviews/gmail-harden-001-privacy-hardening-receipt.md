@@ -65,9 +65,13 @@ npm run check:gmail
 npm run check
 ```
 
-Result: pass. `npm ci --prefix tools/gmail` initially reported 4 moderate dependency
+Result: pass on Linux CI and POSIX filesystems. `npm ci --prefix tools/gmail` initially reported 4 moderate dependency
 vulnerabilities; `SLICE-NPM-AUDIT-GMAIL-001` resolved them by updating `googleapis` to
 `^173.0.0`. Full route smoke passed after the fixture reading-pane honesty copy fix.
+
+**Filesystem caveat:** token `0600` mode assertion is skipped when the working copy is on a
+filesystem that does not honor POSIX chmod (e.g. exFAT/NTFS external drives). See
+`docs/operations/branch-truth.md`.
 
 ## Gate updates
 

@@ -65,6 +65,14 @@ assert.match(nestedBodyResult.errors.join('; '), /sanitizedPlainText must not co
 const unsafeRedaction = redactBodyContent('<a href="javascript:alert(1)">open</a> data:text/html;base64,abc');
 assert.doesNotMatch(unsafeRedaction.sanitizedPlainText, /javascript:|data:/i);
 
+async function chmodSupported(dir) {
+  const probe = path.join(dir, `.chmod-probe-${process.pid}`);
+  await fs.writeFile(probe, 'x', { mode: 0o600 });
+  const mode = (await fs.stat(probe)).mode & 0o777;
+  await fs.unlink(probe).catch(() => {});
+  return mode === 0o600;
+}
+
 const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'xiio-gmail-hardening-'));
 const inputPath = path.join(tmpDir, 'body.json');
 await fs.writeFile(inputPath, `${JSON.stringify({
@@ -82,8 +90,14 @@ assert.equal(Object.hasOwn(redactedWithPayload.payload, 'snapshot'), true);
 
 const priorToken = await loadToken();
 await saveToken({ access_token: 'test-access-token', scope: READONLY_SCOPE });
-const mode = (await fs.stat(tokenPath())).mode & 0o777;
-assert.equal(mode, tokenFileMode());
+const tokenDir = path.dirname(tokenPath());
+const posixFileModes = await chmodSupported(tokenDir);
+if (posixFileModes) {
+  const mode = (await fs.stat(tokenPath())).mode & 0o777;
+  assert.equal(mode, tokenFileMode());
+} else {
+  console.warn('hardening: skip token mode assertion — filesystem does not honor POSIX chmod (e.g. exFAT/NTFS mount)');
+}
 if (priorToken) await saveToken(priorToken);
 else await wipeToken();
 

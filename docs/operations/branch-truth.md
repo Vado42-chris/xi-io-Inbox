@@ -27,7 +27,9 @@ checked out `ui-002/framework-derived-static-preview`.
 | --- | --- | --- |
 | PR #15 | `main` | Do not merge as the sole repo truth unless it prominently states that `main` is docs/schemas only and product work lives on `ui-002`. |
 | PR #16 | `main` | Treat as a `main` freshness audit. Re-check all product claims against `ui-002` before preserving them. |
-| PR #17 | `ui-002/framework-derived-static-preview` | Useful strategic layer for multi-agent orchestration and UI convergence. Adapt its plan into `ui-002` while preserving local Cursor/Zed rules. |
+| PR #17 | `ui-002/framework-derived-static-preview` | Closed — superseded by PR #19, merged at `bf86b63`. |
+| PR #19 | `ui-002/framework-derived-static-preview` | Merged — branch-truth, north-star, orchestration, app peer review. |
+| PR #20 | `ui-002/framework-derived-static-preview` | **Open — product work lands here until merged.** Contains GMAIL-HARDEN-001, NAV-002, SCOPE-001, UI-013B/014B, Level 2–5 planning docs. See `docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`. |
 
 ## Current product-branch decision state
 
@@ -60,6 +62,10 @@ docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md
 - `npm run check`
 - `git diff --check`
 - `npm run dev` plus browser evidence for visible UI changes.
+
+Note: if the repo lives on a non-POSIX filesystem (exFAT/NTFS external drive), Gmail token
+`0600` mode assertions may be skipped in `tools/gmail/test/hardening.mjs`. Run full checks on
+ext4/Linux CI or move the clone to a POSIX volume for strict token-mode proof.
 
 ## Decision value
 

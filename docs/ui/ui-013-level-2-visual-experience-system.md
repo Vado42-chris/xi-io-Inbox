@@ -69,12 +69,19 @@ A UI change fails UI-013 if:
 
 ## Acceptance criteria
 
-- [x] Token reset documented and implemented (`public/inbox-preview.css`, UI-013B block).
-- [x] Every primary lane has a distinct but unified identity.
-- [x] Calendar and Tasks are visually treated as flagship surfaces.
-- [x] Visual QA checklist exists and is run against Home/Mail/Calendar/Tasks.
-- [ ] Owner visual proof packet uses UI-013 screenshots/videos.
+- [x] Token reset documented and implemented (`public/inbox-preview.css`, UI-013B block) — **agent pass only**.
+- [x] Every primary lane has a distinct but unified identity — **agent pass; owner bar not met**.
+- [x] Calendar and Tasks are visually treated as flagship surfaces — **agent pass; owner bar not met**.
+- [x] Visual QA checklist exists and is run against Home/Mail/Calendar/Tasks — **agent pass only**.
+- [ ] Owner visual proof packet uses UI-013 screenshots/videos — **blocked on UI-013C**.
 - [x] No provider/runtime safety claim is weakened by visual polish.
+
+## Owner review status (2026-06-14)
+
+Owner preliminary review: **FAIL** — functional IA acceptable; visual design reads as generic
+AI slop, lacks boutique presence and consistency. UI-013B is evidence of attempt, not approval.
+Next slice: **UI-013C owner-grade visual redesign** before UI-003E.
+See `docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`.
 
 ## Decision value
 
