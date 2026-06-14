@@ -2,6 +2,9 @@
 secrets/
 public/data/gmail-metadata.local.json
 public/data/gmail-body.local.json
+public/data/gcal-events.local.json
 node_modules/
 tools/gmail/data/
 tools/gmail/receipts/
+tools/gcal/data/
+tools/gcal/receipts/

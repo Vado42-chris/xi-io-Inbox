@@ -48,7 +48,7 @@ Paginated exports keep the existing metadata snapshot schema (`mode: metadata-on
 
 ## Remaining blockers
 
-- Calendar read-only import (GCAL-001)
+- Module skeleton + route-table contract (CONVERGE-001)
 - Body read remains gated (GMAIL-002B)
 - Draft/send/mutation blocked (GMAIL-002C/D)
 - Owner UI-003E not passed

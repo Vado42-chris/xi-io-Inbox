@@ -2501,6 +2501,10 @@ textarea:focus-visible,
   background: rgba(120, 200, 120, 0.15);
 }
 
+.calendar-day-chip.is-imported {
+  background: rgba(120, 196, 143, 0.22);
+}
+
 .calendar-day-more {
   font-size: 0.62rem;
   color: var(--muted);

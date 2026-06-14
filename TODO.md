@@ -102,7 +102,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] GMAIL-002A-EXT-002-REPAIR — local mail index safety repair (`docs/ui/reviews/gmail-002a-ext-002-repair-receipt.md`).
 - [x] GMAIL-002A-EXT-003 — sync status UI + Activity receipts.
 - [x] GMAIL-002A-EXT-004 — historyId incremental sync + full-sync fallback.
-- [ ] GCAL-001 — Google Calendar read-only metadata import (Calendar API; mirror GMAIL-002 staged gates).
+- [x] GCAL-001 — Google Calendar read-only metadata import (Calendar API; mirror GMAIL-002 staged gates).
 - [ ] Create module skeleton and route-table contract without deleting working UI.
 
 ## ARCH-004: platform runtime and deployment envelope

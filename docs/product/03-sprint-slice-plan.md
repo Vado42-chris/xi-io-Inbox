@@ -86,9 +86,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 37. SLICE-GMAIL-002A-EXT-002-REPAIR — index safety repair — **complete** (`gmail-002a-ext-002-repair-receipt.md`)
 38. SLICE-GMAIL-002A-EXT-003 — sync status UI + Activity receipts — **complete** (`gmail-002a-ext-003-sync-status-activity-receipts-receipt.md`)
 39. SLICE-GMAIL-002A-EXT-004 — historyId incremental sync — **complete** (`gmail-002a-ext-004-history-sync-receipt.md`)
-40. SLICE-GCAL-001 — Calendar read-only import — **next**
-41. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
-42. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **ready after owner proof**
+40. SLICE-GCAL-001 — Calendar read-only import — **complete** (`gcal-001-calendar-readonly-import-receipt.md`)
+41. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **next**
+42. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

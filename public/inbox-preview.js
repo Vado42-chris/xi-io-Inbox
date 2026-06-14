@@ -5,6 +5,8 @@ const GMAIL_BODY_LOCAL_URL = './data/gmail-body.local.json';
 const GMAIL_BODY_SAMPLE_URL = './data/gmail-body.sample.json';
 const GMAIL_SYNC_STATUS_LOCAL_URL = './data/gmail-sync-status.local.json';
 const GMAIL_SYNC_STATUS_SAMPLE_URL = './data/gmail-sync-status.sample.json';
+const GCAL_EVENTS_LOCAL_URL = './data/gcal-events.local.json';
+const GCAL_EVENTS_SAMPLE_URL = './data/gcal-events.sample.json';
 const STORAGE_KEY = 'xiioInbox.preview.state';
 const MIGRATION_UI005B_KEY = 'xiioInbox.preview.ui005b';
 const LEGACY_STORAGE_KEY = 'xiio-inbox-preview-state-v2';
@@ -50,6 +52,8 @@ let gmailBodySnapshot = null;
 let gmailBodySnapshotSource = null;
 let gmailSyncStatus = null;
 let gmailSyncStatusSource = null;
+let gcalEventsSnapshot = null;
+let gcalEventsSnapshotSource = null;
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -3067,6 +3071,10 @@ function gmailConnectInstructions() {
   return '1) Place OAuth client at secrets/gmail-oauth-client.json\n2) cd tools/gmail && npm install\n3) node cli.js connect\n4) node cli.js profile && node cli.js labels-counts\n5) node cli.js export-metadata-snapshot\n6) Copy tools/gmail/data/metadata-snapshot.json to public/data/gmail-metadata.local.json\n7) In preview Settings → Accounts, Import metadata snapshot\nMetadata only — no send, no bodies in repo.';
 }
 
+function gcalConnectInstructions() {
+  return '1) Place OAuth client at secrets/gcal-oauth-client.json\n2) cd tools/gcal && npm install\n3) node cli.js connect\n4) node cli.js profile && node cli.js list-calendars\n5) node cli.js export-calendar-snapshot\n6) Copy tools/gcal/data/calendar-snapshot.json to public/data/gcal-events.local.json\n7) In preview Settings → Accounts, Import calendar snapshot\nRead-only metadata — no event write or calendar mutation.';
+}
+
 function selectedIbalProposal() {
   const messages = state.ibal.messages || [];
   const match = messages.find((entry) => entry.proposal?.id === state.ibal.selectedProposalId);
@@ -4156,6 +4164,96 @@ function clearGmailSyncStatus() {
     summary: 'Preview no longer shows imported CLI sync status. Operator CLI artifacts remain on device.',
   });
   saveState();
+}
+
+function isGcalEventsSnapshot(value) {
+  return Boolean(
+    value
+    && value.mode === 'read-only-metadata'
+    && value.source === 'local-gcal-cli'
+    && Array.isArray(value.calendars)
+    && Array.isArray(value.events)
+    && Array.isArray(value.warnings)
+    && Array.isArray(value.blockedCapabilities)
+    && ['event_write', 'calendar_mutation', 'browser_oauth'].every((capability) => value.blockedCapabilities.includes(capability))
+    && !hasForbiddenSnapshotKey(value)
+  );
+}
+
+async function loadGcalEventsSnapshotFromUrl(url, sourceLabel) {
+  const snapshot = await fetchJson(url, null);
+  if (!isGcalEventsSnapshot(snapshot)) return null;
+  gcalEventsSnapshot = snapshot;
+  gcalEventsSnapshotSource = sourceLabel;
+  return snapshot;
+}
+
+async function importGcalEventsSnapshot({ preferLocal = true, recordReceipt = true } = {}) {
+  const tried = [];
+  if (preferLocal) {
+    const local = await loadGcalEventsSnapshotFromUrl(GCAL_EVENTS_LOCAL_URL, 'local-file');
+    if (local) {
+      if (recordReceipt) {
+        addAccountReceipt({
+          type: 'gcal_events_snapshot',
+          title: 'Calendar snapshot imported',
+          summary: `local file · ${local.events?.length || 0} events · read-only metadata`,
+        });
+      }
+      return { ok: true, source: 'local-file', snapshot: local };
+    }
+    tried.push(GCAL_EVENTS_LOCAL_URL);
+  }
+  const sample = await loadGcalEventsSnapshotFromUrl(GCAL_EVENTS_SAMPLE_URL, 'sample-file');
+  if (sample) {
+    if (recordReceipt) {
+      addAccountReceipt({
+        type: 'gcal_events_snapshot',
+        title: 'Calendar snapshot imported',
+        summary: `sample fixture · ${sample.events?.length || 0} events · read-only metadata`,
+      });
+    }
+    return { ok: true, source: 'sample-file', snapshot: sample };
+  }
+  tried.push(GCAL_EVENTS_SAMPLE_URL);
+  if (recordReceipt) {
+    addAccountReceipt({
+      type: 'gcal_events_snapshot_missing',
+      title: 'Calendar snapshot missing',
+      summary: `No snapshot at ${tried.join(' or ')}. Export with: cd tools/gcal && node cli.js export-calendar-snapshot`,
+    });
+  }
+  return { ok: false, source: null, tried };
+}
+
+function clearGcalEventsSnapshot() {
+  gcalEventsSnapshot = null;
+  gcalEventsSnapshotSource = null;
+  addAccountReceipt({
+    type: 'gcal_events_snapshot',
+    title: 'Calendar snapshot cleared',
+    summary: 'Preview calendar grid restored to fixtures and local proposals only.',
+  });
+  saveState();
+}
+
+function gcalEventsSnapshotActive() {
+  return isGcalEventsSnapshot(gcalEventsSnapshot);
+}
+
+function gcalEventDayInMonth(event, year, monthIndex) {
+  if (!event?.start) return null;
+  const date = new Date(event.start);
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getFullYear() !== year || date.getMonth() !== monthIndex) return null;
+  return date.getDate();
+}
+
+function gcalEventTimeLabel(event) {
+  if (event?.allDay) return 'All day';
+  const date = new Date(event.start);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function gmailSyncStatusActive() {
@@ -6415,10 +6513,20 @@ function renderDraftEgress(section) {
 }
 
 function renderCalendarProviderBanner() {
+  if (gcalEventsSnapshotActive()) {
+    const source = gcalEventsSnapshotSource === 'sample-file' ? 'sample fixture' : 'local file';
+    const count = gcalEventsSnapshot.events?.length || 0;
+    return `
+    <aside class="calendar-provider-banner trust-affordance trust-affordance-warn" role="note" aria-label="Calendar provider sync status">
+      <strong>Read-only calendar metadata imported (${escapeHtml(source)})</strong>
+      <p>${count} event${count === 1 ? '' : 's'} from local CLI snapshot. Event write and calendar mutation remain blocked in preview.</p>
+    </aside>
+  `;
+  }
   return `
     <aside class="calendar-provider-banner trust-affordance trust-affordance-warn" role="note" aria-label="Calendar provider sync status">
       <strong>Calendar writes locked until you connect a provider</strong>
-      <p>Local proposals stay on this device. Google Calendar and Outlook sync unlock after you approve provider connection.</p>
+      <p>Local proposals stay on this device. Import a read-only Google Calendar snapshot from Settings → Accounts after running <code>tools/gcal</code> CLI.</p>
     </aside>
   `;
 }
@@ -6514,6 +6622,19 @@ function calendarEventsByDay() {
       summary: proposal.notes || '',
     });
   });
+  if (gcalEventsSnapshotActive()) {
+    (gcalEventsSnapshot.events || []).forEach((event, index) => {
+      const day = gcalEventDayInMonth(event, year, month);
+      add(day, {
+        kind: 'imported',
+        id: event.id || `gcal-import-${index}`,
+        focusId: `calendar:imported:${event.id || index}`,
+        title: event.summary || '(no title)',
+        time: gcalEventTimeLabel(event),
+        summary: event.description || event.location || 'Imported read-only metadata',
+      });
+    });
+  }
   return byDay;
 }
 
@@ -6549,7 +6670,7 @@ function renderCalendarMonthGrid() {
             <span class="calendar-day-num">${day}${isToday ? ' · Today' : ''}</span>
             <div class="calendar-day-events">
               ${events.slice(0, 3).map((event) => `
-                <span class="calendar-day-chip ${event.kind === 'proposal' ? 'is-proposal' : 'is-fixture'}" title="${escapeHtml(event.title)}">${escapeHtml((event.time ? `${event.time} ` : '') + event.title)}</span>
+                <span class="calendar-day-chip ${event.kind === 'proposal' ? 'is-proposal' : event.kind === 'imported' ? 'is-imported' : 'is-fixture'}" title="${escapeHtml(event.title)}">${escapeHtml((event.time ? `${event.time} ` : '') + event.title)}</span>
               `).join('')}
               ${events.length > 3 ? `<span class="calendar-day-more">+${events.length - 3} more</span>` : ''}
             </div>
@@ -6623,7 +6744,7 @@ function renderCalendarDayAgendaPanel() {
                 <div>
                   <strong>${escapeHtml(event.title)}</strong>
                   <p>${escapeHtml(event.summary || '')}</p>
-                  <span class="calendar-event-kind">${event.kind === 'proposal' ? 'Local proposal' : 'Fixture agenda'}</span>
+                  <span class="calendar-event-kind">${event.kind === 'proposal' ? 'Local proposal' : event.kind === 'imported' ? 'Imported read-only event' : 'Fixture agenda'}</span>
                 </div>
               </button>
             </li>
@@ -8218,11 +8339,13 @@ function renderEmailAccountsBlock() {
         <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-sync-status">Import sync status</button>
+        <button class="inbox-action-btn" type="button" data-account-action="import-calendar-snapshot">Import calendar snapshot</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-body-snapshot">Import read-only body snapshot</button>
         <button class="inbox-action-btn" type="button" data-account-action="wipe-gmail-local-hint">Wipe local Gmail CLI data</button>
         ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
         ${gmailBodyBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-body-snapshot">Clear body snapshot</button>' : ''}
         ${gmailSyncStatusActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-sync-status">Clear sync status</button>' : ''}
+        ${gcalEventsSnapshotActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-calendar-snapshot">Clear calendar snapshot</button>' : ''}
       </div>
       <p class="form-hint">${escapeHtml(gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Mail accounts use the local Gmail CLI outside the browser. GitHub and other integrations live under Integrations — not Mail accounts.')}</p>
       ${renderGmailSyncStatusPanel()}
@@ -9936,6 +10059,13 @@ function handleAccountAction(action, accountId) {
     renderShell();
     return;
   }
+  if (action === 'connect-gcal') {
+    window.alert(gcalConnectInstructions());
+    setStatusMessage('Google Calendar connect runs in tools/gcal CLI. Read-only metadata; event write blocked.');
+    saveState();
+    renderShell();
+    return;
+  }
   if (action === 'import-metadata-snapshot') {
     importGmailMetadataSnapshot().then((result) => {
       saveState();
@@ -9975,6 +10105,22 @@ function handleAccountAction(action, accountId) {
   if (action === 'clear-sync-status') {
     clearGmailSyncStatus();
     setStatusMessage('Gmail sync status cleared from preview.');
+    renderShell();
+    return;
+  }
+  if (action === 'import-calendar-snapshot') {
+    importGcalEventsSnapshot().then((result) => {
+      saveState();
+      setStatusMessage(result.ok
+        ? `Calendar snapshot loaded (${result.source}). Event write and calendar mutation remain blocked.`
+        : 'Calendar snapshot not found. Export via tools/gcal CLI first.');
+      renderShell();
+    });
+    return;
+  }
+  if (action === 'clear-calendar-snapshot') {
+    clearGcalEventsSnapshot();
+    setStatusMessage('Calendar snapshot cleared. Fixture calendar restored.');
     renderShell();
     return;
   }
