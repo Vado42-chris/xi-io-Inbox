@@ -1,0 +1,17 @@
+{
+  "name": "@xi-io/gcal-readonly-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Google Calendar read-only adapter (GCAL-001). No event write or calendar mutation.",
+  "scripts": {
+    "check": "node scripts/ensure-deps.mjs && node --check lib/response.js && node --check lib/receipts.js && node --check lib/token-store.js && node --check lib/oauth-loopback.js && node --check lib/local-data.js && node --check lib/snapshot-schema.js && node --check lib/adapter.js && node --check cli.js && node test/snapshot-schema.mjs && node test/hardening.mjs",
+    "status": "node cli.js status",
+    "connect": "node cli.js connect",
+    "wipe": "node cli.js wipe",
+    "export-calendar-snapshot": "node cli.js export-calendar-snapshot"
+  },
+  "dependencies": {
+    "googleapis": "^173.0.0"
+  }
+}

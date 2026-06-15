@@ -2,6 +2,13 @@
 
 `xi-io Inbox` is a unified ingress, analysis, and controlled-egress command center for email first, later expanding into messages, files, contacts, tasks, bugs, calendars, schedules, and automations.
 
+## Branch truth for agents
+
+`main` is the planning/docs + shared-schema branch. Active static-preview product work lives
+on `ui-002/framework-derived-static-preview`. Before auditing or editing UI/product work,
+read `AGENTS.md`, `docs/operations/branch-truth.md`, and
+`docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md`.
+
 ## Product stance
 
 Email is the first adapter. The product is not limited to email. The long-term target is a private, auditable personal operations layer where Ibal helps the user understand incoming information and prepare safe outgoing actions.
@@ -16,9 +23,12 @@ Email is the first adapter. The product is not limited to email. The long-term t
 - Framework-aligned contracts should come from `xi-io.net` first.
 - Runtime code imports are blocked until source, license, and privacy boundaries are documented.
 
-## Current bootstrap status
+## Current product-branch status
 
-This repository is in planning/bootstrap mode. The first pass locks public-safe documentation, source audit rules, safety defaults, and architecture decisions before importing Android mail-client code.
+On `ui-002/framework-derived-static-preview`, this repository contains a static preview,
+local Gmail adapter, CI/static checks, and receipts through UI-012/GMAIL-002B. It is still
+not merge-ready: owner UI-003E visual proof, `GMAIL-002B-LIVE-PROOF`, ARCH-002, ARCH-004,
+and runtime/provider gates remain open.
 
 ## Planning issues
 

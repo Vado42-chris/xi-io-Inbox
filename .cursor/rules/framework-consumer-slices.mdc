@@ -1,0 +1,33 @@
+---
+description: Framework consumer slice workflow — receipts, compliance, xi-io.net backfeed
+globs: docs/**/*,public/**/*,scripts/**/*
+alwaysApply: false
+---
+
+# Framework consumer slices
+
+## Slice order (do not skip)
+
+Governance brief → code → model check → receipt → TODO → compliance index → xi-io.net freshness note (when promoting candidates).
+
+## Update; do not duplicate
+
+- Plans: `docs/ui/polish/16-white-label-framework-feedback-plan.md`
+- Compliance: `docs/product/06-compliance-validation-index.md`
+- Progress: `TODO.md`
+- Framework mirror: `xi-io.net/docs/framework/inbox-ui-consumer-freshness-note.md`
+
+## Model checks (extend before adding new)
+
+- `scripts/acc-001-model-check.mjs`
+- `scripts/mail-001-model-check.mjs`
+- `scripts/ui-012d-model-check.mjs`
+- `scripts/ui-012e-model-check.mjs`
+
+Wire new guards into `package.json` `check` chain only when a slice needs them.
+
+## Gates preserved
+
+- schemaVersion bump only with explicit slice scope
+- No secrets/tokens/bodies in git
+- `#239` backfeed documents candidates; does not close the issue or enable package import
