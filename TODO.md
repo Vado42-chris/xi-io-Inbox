@@ -95,7 +95,9 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] Merge PR #20 into `ui-002/framework-derived-static-preview` after peer-review fixes (`docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`).
 - [x] UI-013C owner-grade visual redesign — agent pass + owner direction PASS 2026-06-10 (`docs/ui/ui-013c-owner-grade-visual-direction.md`); chrome radius tweak applied; **UI-003E proof pending**.
 - [x] Coordinate with the xi-io:ibal team via a standardized peer-review brief and cross-repo design contract (`docs/ui/reviews/ibal-cross-repo-peer-review-request.md`).
-- [ ] UI-003E owner visual proof — **ready for owner** (`docs/ui/reviews/ui-003e-owner-session-runbook.md`; agent structural re-review @ `8b04267`).
+- [ ] UI-003E owner visual proof — **ready for owner** (`docs/ui/reviews/ui-003e-owner-session-runbook.md`).
+- [x] UI-003E-PREP — owner runbook + packet integrity guard @ `eeef62f` (`ui-003e-agent-structural-rereview-2026-06-15-receipt.md`).
+- [ ] MERGE-PREP-001 — staged runbook (`docs/operations/merge-prep-001-post-ui-003e-agent-runbook.md`); **execute only after owner UI-003E PASS**.
 - [x] RECON-GMAIL-001 — Gmail source-truth + adapter contract repair (`docs/ui/reviews/recon-gmail-001-source-truth-contract-repair-receipt.md`).
 - [x] GMAIL-002A-EXT-001 — metadata pagination + label-scoped sync jobs (`docs/ui/reviews/gmail-002a-ext-001-metadata-pagination-receipt.md`); peer review **pass** (`gmail-002a-ext-001-peer-review-receipt.md`).
 - [x] GMAIL-002A-EXT-002 — local mail index storage (`gmail-002a-ext-002-repair-peer-review-receipt.md` pass).
@@ -285,4 +287,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-10): UI-012B–F **pass** · route smoke **pass** · framework backfeed **pass**. Next: **UI-003E** owner proof (human) → merge prep (~1 pass after PASS). PR #12 draft.
+Current estimated work (2026-06-15): ACC-SYNC-UI-001 **pass** · FRAMEWORK-BACKFEED-001 **pass** · UI-003E-PREP **pass** @ `eeef62f` · CI **pass**. Next: **UI-003E** owner session (human, ~15–20 min) → MERGE-PREP-001 (~1 agent pass). PR #12 draft.

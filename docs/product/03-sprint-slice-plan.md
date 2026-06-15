@@ -93,8 +93,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 44. SLICE-CATCHUP-REVIEW-002 — peer review EXT-004 repair — **complete** (`catchup-review-002-ext004-repair-peer-review.md`)
 45. SLICE-FRAMEWORK-BACKFEED-001 — xi-io.net `#239` — **complete** (`framework-backfeed-001-xi-io-net-239-receipt.md`)
 46. SLICE-ACC-SYNC-UI-001 — account factory + sync empty-state — **complete** (`acc-sync-ui-001-receipt.md`)
-47. SLICE-UI-003E owner visual proof — **next (human)**
-48. SLICE-MERGE-PREP-001 — after UI-003E + ARCH-004 + IBAL — **blocked**
+47. SLICE-UI-003E-PREP — owner session runbook + packet integrity guard — **complete** @ `eeef62f`
+48. SLICE-UI-003E owner visual proof — **next (human)** — `ui-003e-owner-session-runbook.md`
+49. SLICE-MERGE-PREP-001 — post-UI-003E agent runbook staged — **blocked until owner PASS** (`merge-prep-001-post-ui-003e-agent-runbook.md`)
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 
