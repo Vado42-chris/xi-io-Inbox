@@ -105,7 +105,8 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] GCAL-001 — Google Calendar read-only metadata import (Calendar API; mirror GMAIL-002 staged gates).
 - [x] Create module skeleton and route-table contract without deleting working UI.
 - [x] CATCHUP-REVIEW-001 — peer review EXT-004 (partial), GCAL-001 (pass), CONVERGE-001 (pass); **do not backfeed yet**.
-- [x] GMAIL-002A-EXT-004-REPAIR — message-delete index safety + history pagination cursor (`docs/ui/reviews/gmail-002a-ext-004-repair-receipt.md` @ `b2a4b56`); **CATCHUP-REVIEW-002 required before framework backfeed**.
+- [x] GMAIL-002A-EXT-004-REPAIR — message-delete index safety + history pagination cursor (`docs/ui/reviews/gmail-002a-ext-004-repair-receipt.md` @ `b2a4b56`).
+- [x] CATCHUP-REVIEW-002 — peer review EXT-004 repair (`docs/ui/reviews/catchup-review-002-ext004-repair-peer-review.md`); **framework backfeed may start**; live history proof still deferred.
 
 ## ARCH-004: platform runtime and deployment envelope
 
