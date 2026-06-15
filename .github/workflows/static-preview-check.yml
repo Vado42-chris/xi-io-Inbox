@@ -7,6 +7,7 @@ on:
       - "public/**"
       - "scripts/**"
       - "tools/gmail/**"
+      - "tools/gcal/**"
       - ".github/workflows/static-preview-check.yml"
   workflow_dispatch:
 
@@ -31,6 +32,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             tools/gmail/package-lock.json
+            tools/gcal/package-lock.json
 
       - name: Install root dev dependencies
         run: npm ci
@@ -40,6 +42,10 @@ jobs:
 
       - name: Install Gmail adapter dependencies
         working-directory: tools/gmail
+        run: npm ci
+
+      - name: Install Calendar adapter dependencies
+        working-directory: tools/gcal
         run: npm ci
 
       - name: Run static preview checks

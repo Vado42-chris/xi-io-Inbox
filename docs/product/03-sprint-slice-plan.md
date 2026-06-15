@@ -91,8 +91,8 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 42. SLICE-CATCHUP-REVIEW-001 — peer review EXT-004 / GCAL-001 / CONVERGE-001 — **complete** (`catchup-review-001-ext004-gcal-converge-peer-review.md`)
 43. SLICE-GMAIL-002A-EXT-004-REPAIR — history delete + pagination cursor — **complete** (`gmail-002a-ext-004-repair-receipt.md` @ `b2a4b56`)
 44. SLICE-CATCHUP-REVIEW-002 — peer review EXT-004 repair — **complete** (`catchup-review-002-ext004-repair-peer-review.md`)
-45. SLICE-FRAMEWORK-BACKFEED-001 — xi-io.net `#239` — **next**
-46. SLICE-ACC-SYNC-UI-001 — account factory + sync empty-state — **deferred** (local stash)
+45. SLICE-FRAMEWORK-BACKFEED-001 — xi-io.net `#239` — **complete** (`framework-backfeed-001-xi-io-net-239-receipt.md`)
+46. SLICE-ACC-SYNC-UI-001 — account factory + sync empty-state — **next** (local stash)
 47. SLICE-UI-003E owner visual proof — **ready for owner** (human only)
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
