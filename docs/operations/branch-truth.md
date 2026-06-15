@@ -50,6 +50,25 @@ docs/operations/multi-agent-orchestration.md
 docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md
 ```
 
+## Current remote truth (2026-06-15)
+
+```text
+Branch: ui-002/framework-derived-static-preview
+HEAD: f164f5fd1d74df40897044030a21f2260cd94c6a
+PR: #12 (draft)
+CI: Static Preview Check pass
+```
+
+Completed on branch since 2026-06-10 peer review:
+
+- GMAIL-002A-EXT-004-REPAIR, CATCHUP-REVIEW-001/002
+- FRAMEWORK-BACKFEED-001 (xi-io.net#239)
+- ACC-SYNC-UI-001 (sync-status account factory)
+- UI-003E-PREP (owner runbook + packet integrity guard)
+- MERGE-PREP-001 runbook staged (execute only after owner UI-003E PASS)
+
+**Blocker:** Owner UI-003E visual proof — human only. Agents must not mark PASS in the owner packet.
+
 ## Required validation by branch
 
 ### `main`

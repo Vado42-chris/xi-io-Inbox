@@ -57,11 +57,33 @@ tools/gmail/, schemas/    adapter + contracts
 docs/                     receipts, gates, compliance
 ```
 
-## Current gate
+## Current gate (2026-06-15 @ `f164f5f`)
 
-- UI-012B–F + MAIL-001 + route smoke: **code pass** (owner UI-003E pending).
-- Next: Gmail hardening (APP-PR-007–011), then owner UI-003E, then convergence skeleton.
-- Merge prep: `docs/ui/reviews/ui-012-merge-prep-receipt.md` after owner PASS.
+```text
+Remote HEAD: ui-002/framework-derived-static-preview @ f164f5f
+PR #12: draft, unmerged
+CI: Static Preview Check pass
+```
+
+| Slice | Status |
+| --- | --- |
+| GMAIL-002A-EXT-004-REPAIR + CATCHUP-002 | complete |
+| FRAMEWORK-BACKFEED-001 → xi-io.net#239 | complete |
+| ACC-SYNC-UI-001 | complete |
+| UI-003E-PREP + MERGE-PREP runbook staged | complete |
+| **UI-003E owner visual proof** | **human gate — NOT passed** |
+| MERGE-PREP-001 execution | blocked until owner PASS |
+
+Owner session: `docs/ui/reviews/ui-003e-owner-session-runbook.md`
+Post-PASS agent runbook: `docs/operations/merge-prep-001-post-ui-003e-agent-runbook.md`
+
+## UI-003E chain of custody (critical)
+
+**Agents must not** edit `docs/ui/reviews/ui-003e-owner-visual-proof-packet.md` classification to PASS or check owner checklist items.
+
+Only the owner may record PASS after a real localhost:4488 review, using the exact string `UI_003E_PASS_OWNER_VISUAL_PROOF_COMPLETE`.
+
+`npm run check:ui003e-packet` enforces this in CI. If local edits revert the packet, run `git checkout -- docs/ui/reviews/ui-003e-owner-visual-proof-packet.md` from branch HEAD.
 
 ## Cursor Cloud
 
