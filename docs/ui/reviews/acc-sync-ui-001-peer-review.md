@@ -10,7 +10,7 @@
 Repo: Vado42-chris/xi-io-Inbox
 Branch: ui-002/framework-derived-static-preview
 PR: #12 (draft, unmerged)
-Review commit: (pending)
+Review commit: `9f2b034385c4c9b30db3fe7199dfcedfee3f49c4`
 ```
 
 ## Reviewer role
