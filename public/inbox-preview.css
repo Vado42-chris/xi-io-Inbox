@@ -4207,6 +4207,20 @@ textarea:focus-visible,
 .mail-account-state.is-connected { color: var(--green, #7fd99a); }
 .mail-account-state.is-queued { color: var(--amber); }
 .mail-account-state.is-demo { color: var(--muted); }
+.mail-account-state.is-syncing {
+  color: var(--accent, #69d2ff);
+  animation: inboxSyncPulse 1.8s ease-in-out infinite;
+}
+.mail-account-state.is-failed {
+  color: var(--status-blocked, var(--red, #ff877d));
+  font-weight: 700;
+}
+
+@keyframes inboxSyncPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
 
 .thread-row.is-unread .thread-sender,
 .thread-row.is-unread .thread-subject {

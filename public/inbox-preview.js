@@ -1070,17 +1070,62 @@ function accountSyncStatusLabel(syncState) {
   if (normalized === 'metadata_snapshot') return 'Metadata snapshot';
   if (normalized === 'readonly_body_snapshot') return 'Body snapshot';
   if (normalized === 'provider_blocked' || normalized === 'demo_fixture') return 'Demo';
+  if (normalized === 'syncing' || normalized === 'started' || normalized === 'planned') return 'Syncing…';
+  if (normalized === 'paused') return 'Sync paused';
+  if (normalized === 'failed' || normalized === 'error') return 'Sync failed';
+  if (normalized === 'historycomplete' || normalized === 'completed') return 'Connected';
   return label(syncState || 'not connected');
 }
 
 function accountSyncStatusClass(syncState) {
   const normalized = String(syncState || '').toLowerCase();
-  if (normalized === 'connected') return 'is-connected';
+  if (normalized === 'connected' || normalized === 'historycomplete' || normalized === 'completed') return 'is-connected';
   if (normalized === 'awaiting_local_connect') return 'is-queued';
   if (normalized === 'metadata_only') return 'is-metadata';
   if (normalized === 'metadata_snapshot') return 'is-metadata-snapshot';
   if (normalized === 'readonly_body_snapshot') return 'is-body-snapshot';
+  if (normalized === 'syncing' || normalized === 'started' || normalized === 'planned' || normalized === 'paused') return 'is-syncing';
+  if (normalized === 'failed' || normalized === 'error') return 'is-failed';
   return 'is-demo';
+}
+
+function gmailAccountIdFromEmail(email) {
+  return `gmail-${String(email || '').replace(/[^a-z0-9]+/gi, '-')}`;
+}
+
+function resolveGmailSyncStatusEmail(status) {
+  if (!status) return null;
+  return status.artifacts?.metadataSnapshot?.accountEmail
+    || status.artifacts?.mailIndex?.accountEmails?.[0]
+    || null;
+}
+
+function syncStateFromGmailSyncStatus(status) {
+  if (!status) return 'awaiting_local_connect';
+  if (status.lastSync?.success === false || status.lastSync?.error) return 'failed';
+  const event = String(status.lastSync?.event || '').toLowerCase();
+  if (['started', 'planned', 'historystarted', 'pagefetched', 'historypagefetched', 'labelcomplete'].includes(event)) {
+    return 'syncing';
+  }
+  if (event === 'paused') return 'paused';
+  if (['completed', 'historycomplete'].includes(event)) return 'connected';
+  if (['failed', 'historyfailed'].includes(event)) return 'failed';
+  if (status.oauth?.status === 'connected') return 'connected';
+  return 'awaiting_local_connect';
+}
+
+function isDemoFixtureMailAccount(account) {
+  if (!account) return false;
+  if (account.accountId === 'personal-gmail-preview') return true;
+  return String(account.syncState || '').toLowerCase() === 'demo_fixture';
+}
+
+function operatorMailAccounts() {
+  return allMailAccounts().filter((account) => !isDemoFixtureMailAccount(account));
+}
+
+function demoFixtureMailAccounts() {
+  return allMailAccounts().filter(isDemoFixtureMailAccount);
 }
 
 function threadMailbox(thread) {
@@ -2611,6 +2656,8 @@ function resolveMailAccountMode(account) {
   if (sync === 'metadata_only') return 'metadata-only';
   if (sync === 'awaiting_local_connect') return 'queued';
   if (sync === 'connected') return 'connected';
+  if (sync === 'syncing' || sync === 'started' || sync === 'planned' || sync === 'paused') return 'connected';
+  if (sync === 'failed' || sync === 'error') return 'connected';
   if (sync === 'demo_fixture') return 'fixture';
   return 'fixture';
 }
@@ -2663,16 +2710,6 @@ function allMailAccounts() {
   }
   for (const account of allPreviewAccounts().filter((entry) => isMailProviderId(entry.providerId))) {
     map.set(account.accountId, enrichMailAccount(account));
-  }
-  if (!map.size) {
-    map.set('personal-gmail-preview', enrichMailAccount({
-      accountId: 'personal-gmail-preview',
-      displayName: 'Personal Gmail preview',
-      providerId: 'gmail',
-      syncState: 'demo_fixture',
-      privacyProfile: 'private_mail',
-      counts: { unread: 0, needsReply: 0, drafts: 0, blocked: 0 },
-    }));
   }
   return [...map.values()];
 }
@@ -3968,6 +4005,40 @@ function applyMetadataSnapshotToAccounts(snapshot) {
   state.inbox.accountFilter = accountId;
 }
 
+function applySyncStatusToAccounts(status) {
+  if (!isGmailSyncStatusSnapshot(status)) return false;
+  const email = resolveGmailSyncStatusEmail(status);
+  if (!email) return false;
+  const accountId = gmailAccountIdFromEmail(email);
+  const syncState = syncStateFromGmailSyncStatus(status);
+  const existing = allPreviewAccounts().find((entry) => entry.email === email || entry.accountId === accountId);
+  const row = {
+    accountId,
+    email,
+    displayName: email,
+    providerId: 'gmail',
+    syncState,
+    accountKind: 'mail',
+    privacyProfile: 'private_mail',
+    counts: {
+      unread: status.artifacts?.metadataSnapshot?.threadCount ?? status.lastSync?.threadCount ?? 0,
+      needsReply: 0,
+      drafts: 0,
+      blocked: 0,
+    },
+  };
+  if (existing) {
+    state.account.previewAccounts = allPreviewAccounts().map((entry) => (
+      entry.accountId === existing.accountId ? { ...entry, ...row } : entry
+    ));
+  } else {
+    state.account.previewAccounts = [...allPreviewAccounts(), row];
+  }
+  state.account.activeAccountId = accountId;
+  state.inbox.accountFilter = accountId;
+  return true;
+}
+
 function addMetadataBridgeReceipt({ type, title, summary, limitations }) {
   return addAccountReceipt({
     type: type || 'metadata_bridge',
@@ -4024,8 +4095,11 @@ async function importGmailMetadataSnapshot({ preferLocal = true, recordReceipt =
 function clearGmailMetadataSnapshot() {
   gmailMetadataSnapshot = null;
   gmailMetadataSnapshotSource = null;
-  allPreviewAccounts().forEach((account) => {
-    if (account.syncState === 'metadata_snapshot') account.syncState = 'awaiting_local_connect';
+  state.account.previewAccounts = allPreviewAccounts().map((account) => {
+    if (account.syncState === 'metadata_snapshot' || account.syncState === 'readonly_body_snapshot') {
+      return { ...account, syncState: 'awaiting_local_connect' };
+    }
+    return account;
   });
   addMetadataBridgeReceipt({
     title: 'Gmail metadata snapshot cleared',
@@ -4121,6 +4195,7 @@ async function loadGmailSyncStatusFromUrl(url, sourceLabel) {
   if (!isGmailSyncStatusSnapshot(status)) return null;
   gmailSyncStatus = status;
   gmailSyncStatusSource = sourceLabel;
+  applySyncStatusToAccounts(status);
   return status;
 }
 
@@ -4153,6 +4228,18 @@ async function importGmailSyncStatus({ preferLocal = true, recordReceipt = true 
 function clearGmailSyncStatus() {
   gmailSyncStatus = null;
   gmailSyncStatusSource = null;
+  const syncDerivedStates = new Set([
+    'connected', 'syncing', 'failed', 'started', 'planned', 'paused',
+    'completed', 'historycomplete', 'historystarted', 'historyfailed',
+  ]);
+  state.account.previewAccounts = allPreviewAccounts().map((account) => {
+    if (!isMailProviderId(account.providerId) || isDemoFixtureMailAccount(account)) return account;
+    const sync = String(account.syncState || '').toLowerCase();
+    if (syncDerivedStates.has(sync) || sync.startsWith('history')) {
+      return { ...account, syncState: 'awaiting_local_connect' };
+    }
+    return account;
+  });
   addAccountReceipt({
     type: 'gmail_sync_status',
     title: 'Gmail sync status cleared',
@@ -5405,12 +5492,20 @@ function renderProductLevelNav() {
 
 function renderMailContextNav() {
   const searchQuery = (state.inbox.mailSearchQuery || '').trim();
-  const accounts = allMailAccounts();
+  const operatorAccounts = operatorMailAccounts();
+  const demoAccounts = demoFixtureMailAccounts();
+  const operatorSection = operatorAccounts.length
+    ? operatorAccounts.map((account) => renderMailAccountAccordion(account)).join('')
+    : '<p class="form-hint mail-nav-hint">No connected mail accounts yet. Export sync status locally, then import in Settings → Accounts.</p>';
+  const demoSection = demoAccounts.length
+    ? renderContextNavSection('Demo fixture', demoAccounts.map((account) => renderMailAccountAccordion(account)).join(''))
+    : '';
   return `
-    ${renderContextNavSection('Mail accounts', accounts.map((account) => renderMailAccountAccordion(account)).join('') || '<p class="form-hint mail-nav-hint">No mail accounts yet. Connect Gmail via local CLI, then import a metadata snapshot.</p>')}
+    ${renderContextNavSection('Mail accounts', operatorSection)}
+    ${demoSection}
     ${searchQuery ? renderContextNavSection('Search', contextNavButton('Search results', 'mail-search-results', threadsForMailboxView().length, true)) : ''}
     ${gmailMetadataBridgeActive() ? renderContextNavSection('Imported snapshots', `<p class="form-hint mail-nav-hint"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('snapshot')}</span>${escapeHtml(metadataBridgeStatusLabel())} · not live Gmail</p>`) : ''}
-    ${!gmailMetadataBridgeActive() ? renderContextNavSection('Preview source', '<p class="form-hint mail-nav-hint">Fixture preview mail until a local metadata snapshot is imported.</p>') : ''}
+    ${!gmailMetadataBridgeActive() && !operatorAccounts.length ? renderContextNavSection('Preview source', '<p class="form-hint mail-nav-hint">Fixture preview mail until a local metadata snapshot or sync status is imported.</p>') : ''}
   `;
 }
 
@@ -8315,12 +8410,13 @@ function renderSettingsEditSheet() {
 
 function renderEmailAccountsBlock() {
   const accounts = allMailAccounts();
+  const operatorAccounts = operatorMailAccounts();
   const activeAccount = selectedAccountFixture();
   const activeAccountId = activeAccount?.accountId || '';
   return `
     <div class="settings-accounts-block">
       <div class="inbox-form-actions">
-        <h3>Mail accounts (${accounts.length})</h3>
+        <h3>Mail accounts (${operatorAccounts.length} connected · ${accounts.length} total)</h3>
         <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
         <button class="inbox-action-btn" type="button" data-account-action="import-sync-status">Import sync status</button>
@@ -8349,7 +8445,7 @@ function renderEmailAccountsBlock() {
         <article class="account-switch-row ${account.accountId === activeAccountId ? 'is-active' : ''}">
           <div>
             <strong>${escapeHtml(account.displayName)}</strong>
-            <p>${escapeHtml(account.providerId)} · ${escapeHtml(accountSyncStatusLabel(account.syncState))}</p>
+            <p>${escapeHtml(account.providerId)} · <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>${isDemoFixtureMailAccount(account) ? ' · fixture threads only' : ''}</p>
             ${renderAccountStatusGrid(account)}
           </div>
           <div class="inbox-form-actions">
@@ -8361,7 +8457,7 @@ function renderEmailAccountsBlock() {
             <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
           </div>
         </article>
-      `).join('') : '<p class="lane-empty-state">No mail accounts yet. Add your Gmail address, then connect via the local adapter CLI.</p>'}
+      `).join('') : '<p class="lane-empty-state">No mail accounts yet. Add your Gmail address, then connect via the local adapter CLI or import sync status.</p>'}
     </div>
   `;
 }
