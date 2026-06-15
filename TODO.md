@@ -108,7 +108,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] GMAIL-002A-EXT-004-REPAIR — message-delete index safety + history pagination cursor (`docs/ui/reviews/gmail-002a-ext-004-repair-receipt.md` @ `b2a4b56`).
 - [x] CATCHUP-REVIEW-002 — peer review EXT-004 repair (`docs/ui/reviews/catchup-review-002-ext004-repair-peer-review.md`); **framework backfeed may start**; live history proof still deferred.
 - [x] FRAMEWORK-BACKFEED-001 — Inbox → `xi-io.net#239` freshness packet (`docs/ui/reviews/framework-backfeed-001-xi-io-net-239-receipt.md`).
-- [ ] ACC-SYNC-UI-001 — account factory + sync empty-state (local stash; separate slice).
+- [x] ACC-SYNC-UI-001 — account factory + sync empty-state (`docs/ui/reviews/acc-sync-ui-001-receipt.md`).
 
 ## ARCH-004: platform runtime and deployment envelope
 
