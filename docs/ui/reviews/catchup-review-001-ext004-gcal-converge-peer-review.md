@@ -10,7 +10,8 @@
 Repo: Vado42-chris/xi-io-Inbox
 Branch: ui-002/framework-derived-static-preview
 PR: #12 (draft, unmerged)
-Remote HEAD reviewed: 0d3619fb5182583e9953ce4b3630dfebe55773c4
+Remote HEAD reviewed: 0d3619f
+Review commit: `5635b9baaa82b069adbc1918a0487b1c3bbbdec8`b5182583e9953ce4b3630dfebe55773c4
 ```
 
 ## Reviewer role
