@@ -1260,7 +1260,9 @@ export async function runHistorySync({
       await upsertToMailIndex({ threads, messages, accountEmail });
     }
 
-    if (currentHistoryId) {
+    const isPaused = Boolean(pageToken);
+
+    if (currentHistoryId && !isPaused) {
       const updated = await loadMailIndex();
       setHistoryState(updated, {
         lastHistoryId: currentHistoryId,
@@ -1269,28 +1271,39 @@ export async function runHistorySync({
       await saveMailIndex(updated);
     }
 
-    writeSyncReceipt({
-      event: 'historyComplete',
-      details: {
-        startHistoryId: storedStart,
-        endHistoryId: currentHistoryId,
-        pagesFetched,
-        threadCount: threads.length,
-        messageCount: messages.length,
-      },
-    });
+    if (isPaused) {
+      writeSyncReceipt({
+        event: 'paused',
+        details: {
+          stoppedReason: 'maxPages',
+          pagesFetched,
+        },
+      });
+    } else {
+      writeSyncReceipt({
+        event: 'historyComplete',
+        details: {
+          startHistoryId: storedStart,
+          endHistoryId: currentHistoryId,
+          pagesFetched,
+          threadCount: threads.length,
+          messageCount: messages.length,
+        },
+      });
+    }
 
     return envelope({
       success: true,
       method: 'gmail.historySync.run',
       payload: {
         startHistoryId: storedStart,
-        endHistoryId: currentHistoryId,
+        endHistoryId: isPaused ? storedStart : currentHistoryId,
         pagesFetched,
         threadCount: threads.length,
         messageCount: messages.length,
         removedMessageCount: mutations.removedMessageIds.length,
         removedThreadCount: mutations.removedThreadIds.length,
+        paused: isPaused,
       },
     });
   } catch (err) {

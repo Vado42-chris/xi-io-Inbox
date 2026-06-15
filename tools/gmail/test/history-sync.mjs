@@ -25,7 +25,7 @@ const mutations = collectHistoryMutations([
 assert.deepEqual(mutations.threadIds.sort(), ['t1', 't2']);
 assert.deepEqual(mutations.messageIds.sort(), ['m1', 'm2']);
 assert.deepEqual(mutations.removedMessageIds, ['m3']);
-assert.deepEqual(mutations.removedThreadIds, ['t3']);
+assert.deepEqual(mutations.removedThreadIds, []);
 
 assert.equal(isHistoryIdNotFoundError({ code: 404 }), true);
 assert.equal(isHistoryIdNotFoundError({ message: 'History not found for startHistoryId' }), true);
@@ -63,6 +63,49 @@ try {
   assert.equal(afterRemove.messages.length, 0);
   assert.equal(afterRemove.threads.length, 0);
   assert.equal(afterRemove.historyState.lastHistoryId, '12345');
+
+  // Test empty thread pruning when only message ID is deleted
+  const thread2 = {
+    id: 't2',
+    messages: [
+      { id: 'm2a', threadId: 't2', labelIds: ['INBOX'], unread: true },
+      { id: 'm2b', threadId: 't2', labelIds: ['INBOX'], unread: true }
+    ],
+    messageIds: ['m2a', 'm2b'],
+    labelIds: ['INBOX'],
+    unread: true,
+  };
+
+  await upsertToMailIndex({
+    indexPath,
+    accountEmail: 'sample@example.com',
+    threads: [thread2],
+    messages: thread2.messages,
+  });
+
+  // Deleting only m2a leaves the thread with m2b
+  await removeFromMailIndex({
+    indexPath,
+    messageIds: ['m2a'],
+    threadIds: [],
+  });
+  const midState = await loadMailIndex({ indexPath });
+  assert.equal(midState.messages.length, 1);
+  assert.equal(midState.messages[0].id, 'm2b');
+  assert.equal(midState.threads.length, 1);
+  assert.equal(midState.threads[0].id, 't2');
+  assert.equal(midState.threads[0].messages.length, 1);
+  assert.equal(midState.threads[0].messages[0].id, 'm2b');
+
+  // Deleting m2b (the last message in thread t2) prunes the thread
+  await removeFromMailIndex({
+    indexPath,
+    messageIds: ['m2b'],
+    threadIds: [],
+  });
+  const endState = await loadMailIndex({ indexPath });
+  assert.equal(endState.messages.length, 0);
+  assert.equal(endState.threads.length, 0);
 } finally {
   await fs.rm(tempRoot, { recursive: true, force: true });
 }

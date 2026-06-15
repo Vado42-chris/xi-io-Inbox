@@ -345,7 +345,8 @@ export async function removeFromMailIndex({
         labelIds: [...new Set(messages.flatMap((message) => message.labelIds || []))],
         unread: messages.some((message) => message.unread),
       };
-    });
+    })
+    .filter((thread) => thread.messages.length > 0);
 
   await saveMailIndex(index, { indexPath });
   return index;

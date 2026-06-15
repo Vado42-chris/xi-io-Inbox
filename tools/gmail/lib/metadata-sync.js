@@ -114,7 +114,6 @@ export function collectHistoryMutations(historyRecords = []) {
     }
     for (const entry of record.messagesDeleted || []) {
       if (entry.message?.id) removedMessageIds.add(entry.message.id);
-      if (entry.message?.threadId) removedThreadIds.add(entry.message.threadId);
     }
   }
 
