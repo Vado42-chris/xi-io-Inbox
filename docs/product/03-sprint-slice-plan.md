@@ -87,9 +87,11 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 38. SLICE-GMAIL-002A-EXT-003 — sync status UI + Activity receipts — **complete** (`gmail-002a-ext-003-sync-status-activity-receipts-receipt.md`)
 39. SLICE-GMAIL-002A-EXT-004 — historyId incremental sync — **complete** (`gmail-002a-ext-004-history-sync-receipt.md`)
 40. SLICE-GCAL-001 — Calendar read-only import — **complete** (`gcal-001-calendar-readonly-import-receipt.md`)
-41. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **complete** (`ui-converge-001-route-table-receipt.md`)
-42. SLICE-FRAMEWORK-BACKFEED-001 — xi-io.net `#239` two-way freshness — **next**
-43. SLICE-UI-003E owner visual proof — **ready for owner** after UI-013C chrome tweak
+41. SLICE-UI-CONVERGE-001 — module skeleton + route-table contract — **complete + peer reviewed pass** (`ui-converge-001-route-table-receipt.md`, `catchup-review-001`)
+42. SLICE-CATCHUP-REVIEW-001 — peer review EXT-004 / GCAL-001 / CONVERGE-001 — **complete** (`catchup-review-001-ext004-gcal-converge-peer-review.md`)
+43. SLICE-GMAIL-002A-EXT-004-REPAIR — history delete + pagination cursor — **next**
+44. SLICE-FRAMEWORK-BACKFEED-001 — xi-io.net `#239` — **blocked until EXT-004-REPAIR re-review**
+45. SLICE-UI-003E owner visual proof — **ready for owner** (human only)
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 
