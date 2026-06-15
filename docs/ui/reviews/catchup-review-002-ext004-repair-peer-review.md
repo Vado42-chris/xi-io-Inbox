@@ -13,7 +13,7 @@ PR: #12 (draft, unmerged)
 Remote HEAD reviewed: eea905b7d13a8cd664d1e886c0958dd61ecb0072
 Repair commit: b2a4b568c0ce59b629ef2a6da8f65a42e7375ca3
 Receipt commit: eea905b7d13a8cd664d1e886c0958dd61ecb0072
-Review commit: (this document — pending commit)
+Review commit: `1089c822ddcbbdb20fdfcc6a48cb81435b730139`
 ```
 
 ## Reviewer role
