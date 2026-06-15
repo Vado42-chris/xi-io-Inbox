@@ -10,12 +10,12 @@
 
 ## Commit SHA (packet baseline)
 
-`05c9d35db69b0e774d5feb8d6e8212a93a73b320` (pre-push; 20 commits ahead of remote)
+`8b042677b9053cef71d903331721f19e3d5b9be1` (ACC-SYNC-UI-001 + FRAMEWORK-BACKFEED-001; CI pass)
 
 ## Classification
 
 ```text
-Agent structural verification: PASS
+Agent structural verification: PASS (2026-06-15 re-run — see receipt)
 Owner visual proof complete: NO (pending owner review)
 PR #12 merge readiness: BLOCKED
 GATE-UI-VISUAL-001: partial (ready for owner review)
@@ -212,6 +212,33 @@ UI_003E_PASS_OWNER_VISUAL_PROOF_COMPLETE
 ```
 
 Follow-up: UI-013C agent-side implementation pass complete, local checks passing, and cross-repo peer-review brief/design contract (`docs/ui/reviews/ibal-cross-repo-peer-review-request.md`) established (2026-06-14). Font stack updated to prefer "Outfit" and "Inter" for UI elements. Ready for owner's final review check.
+
+## Agent structural re-verification (2026-06-15)
+
+Receipt: `ui-003e-agent-structural-rereview-2026-06-15-receipt.md`
+
+| Check | Result |
+| --- | --- |
+| `npm run check` @ `8b04267` | **pass** (incl. acc-sync-ui-001, gmail history-sync, gcal) |
+| GitHub Static Preview Check @ `8b04267` | **pass** |
+| `git diff --check` | **pass** |
+| UI-003E packet integrity | **pass** (no owner PASS claims in classification) |
+| ACC-SYNC-UI-001 landed | yes — sync-status account factory; demo fixture separated |
+
+**Not UI-003E PASS.** Only the owner may sign `UI_003E_PASS_OWNER_VISUAL_PROOF_COMPLETE`.
+
+## Owner checklist — ACC-SYNC-UI-001 (add to session)
+
+After `npm run dev` → Settings → Accounts:
+
+- [ ] With no sync status imported: mail nav shows **No connected mail accounts** hint (demo fixture may appear under separate section)
+- [ ] Import sync status (sample or local): connected Gmail account row appears with email from status file (not a placeholder address)
+- [ ] Sync status panel shows OAuth/artifact summary; send/draft/mutation remain blocked
+- [ ] Clear sync status: connected account returns to queued/disconnected state
+
+## Owner session runbook
+
+Low-friction path: `docs/ui/reviews/ui-003e-owner-session-runbook.md` (15–20 min scoped review).
 
 ## Forbidden Until Owner PASS
 

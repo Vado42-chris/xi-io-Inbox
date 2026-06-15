@@ -20,6 +20,7 @@
     "check:ext003": "node scripts/gmail-002a-ext-003-model-check.mjs",
     "check:ext004": "node scripts/gmail-002a-ext-004-model-check.mjs",
     "check:acc-sync-ui": "node scripts/acc-sync-ui-001-model-check.mjs",
+    "check:ui003e-packet": "node scripts/ui-003e-packet-integrity-check.mjs",
     "check:route-table": "node scripts/route-table-check.mjs",
     "check:components": "node scripts/ui-016c-boundary-check.mjs",
     "check:quick": "node scripts/check-quick.mjs",
@@ -28,7 +29,7 @@
     "setup:gcal": "npm ci --prefix tools/gcal",
     "check:gcal": "npm run check --prefix tools/gcal",
     "check:gcal001": "node scripts/gcal-001-model-check.mjs",
-    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:mail && npm run check:ui012d && npm run check:ui012e && npm run check:ui013c && npm run check:ext003 && npm run check:ext004 && npm run check:acc-sync-ui && npm run check:gcal001 && npm run check:route-table && npm run check:components && npm run check:route && npm run check:gmail && npm run check:gcal"
+    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:mail && npm run check:ui012d && npm run check:ui012e && npm run check:ui013c && npm run check:ext003 && npm run check:ext004 && npm run check:acc-sync-ui && npm run check:ui003e-packet && npm run check:gcal001 && npm run check:route-table && npm run check:components && npm run check:route && npm run check:gmail && npm run check:gcal"
   },
   "devDependencies": {
     "playwright": "^1.49.1"
