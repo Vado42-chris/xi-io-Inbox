@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-Recorded at commit time (see final report).
+`3522dc4984fc0bc27f9b8ef405c1dcb9aa4e5bdb`
 
 ## Scope
 
