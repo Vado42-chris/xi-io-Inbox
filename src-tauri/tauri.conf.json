@@ -10,6 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "xi-io Inbox",
         "width": 1280,
         "height": 800,

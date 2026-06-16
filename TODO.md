@@ -124,8 +124,11 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [x] RUNTIME-001 — Gmail runtime provider spine (`src-tauri/`, sidecar commands, runtime store boundary; receipt `docs/ui/reviews/runtime-001-gmail-runtime-provider-service-receipt.md`). Live sync execution deferred to RUNTIME-001B.
 - [x] RUNTIME-001-PEER-REVIEW — spine reviewed (`docs/ui/reviews/runtime-001-peer-review-receipt.md`) → `RUNTIME_001_PEER_REVIEW_PASS_READY_FOR_RUNTIME_001B`.
 - [x] RUNTIME-001B — live Gmail connect/sync commands + hardening (`docs/ui/reviews/runtime-001b-live-gmail-runtime-execution-receipt.md`). Live OAuth proof operator-required.
-- [ ] RUNTIME-001B-PEER-REVIEW — narrow review before RUNTIME-002 UI binding.
-- [ ] RUNTIME-002 — Gmail live store + UI binding (blocked until RUNTIME-001B-PEER-REVIEW PASS).
+- [x] RUNTIME-001B-PEER-REVIEW — narrow review before UI binding (`docs/ui/reviews/runtime-001b-peer-review-receipt.md`).
+- [x] RUNTIME-002A — read-only mail index command + minimal Tauri JS bridge + capabilities ACL (`docs/ui/reviews/runtime-002a-mail-index-read-bridge-receipt.md`).
+- [ ] RUNTIME-002A-PEER-REVIEW — narrow review before connect/sync UI binding (**next**).
+- [ ] RUNTIME-002B — connect/sync orchestration + live-state copy (after 002A peer review).
+- [ ] RUNTIME-002C — minimal UI refresh loop + operator OAuth proof (after 002B).
 - [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
 - [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
@@ -139,7 +142,9 @@ Status: **complete** (docs/governance closeout 2026-06-10). Owner decision: `ARC
 - [x] Formalize ARCH-004 — Tauri local desktop runtime primary (`docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`).
 - [x] RUNTIME-001 spine — Tauri Gmail provider commands + runtime store boundary.
 - [x] RUNTIME-001B spine — connect + bounded live sync commands.
-- [ ] RUNTIME-001B-PEER-REVIEW — **next** before RUNTIME-002.
+- [x] RUNTIME-001B-PEER-REVIEW — **complete** → `RUNTIME_001B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002A`.
+- [x] RUNTIME-002A — read-only mail index + Tauri bridge (`docs/ui/reviews/runtime-002a-mail-index-read-bridge-receipt.md`).
+- [ ] RUNTIME-002A-PEER-REVIEW — **next** before RUNTIME-002B.
 
 ## ARCH-004: platform runtime and deployment envelope
 

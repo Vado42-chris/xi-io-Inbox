@@ -9,6 +9,12 @@ import {
   parseRouteIdFromHash,
   laneFromRouteId,
 } from './src/shell/route-table.js';
+import {
+  isTauriRuntime,
+  loadRuntimeMailIndex,
+  loadRuntimeStoreBoundary,
+  runtimeHostModeLabel,
+} from './src/runtime/gmail-runtime-bridge.js';
 
 const DATA_URL = './data/inbox-events.preview.json';
 const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
@@ -56,6 +62,10 @@ let gmailSyncStatus = null;
 let gmailSyncStatusSource = null;
 let gcalEventsSnapshot = null;
 let gcalEventsSnapshotSource = null;
+let gmailMailIndex = null;
+let gmailMailIndexSource = null;
+let runtimeHostMode = 'static-preview';
+let runtimeStoreBoundary = null;
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -967,6 +977,8 @@ function sectionByType(content, type) {
 }
 
 function inboxThreads() {
+  const indexThreads = mailIndexThreads();
+  if (indexThreads?.length) return indexThreads;
   const bodyThreads = bodySnapshotThreads();
   if (bodyThreads?.length) return bodyThreads;
   const metadataThreads = metadataSnapshotThreads();
@@ -3961,6 +3973,94 @@ function metadataSnapshotThreads() {
   return (gmailMetadataSnapshot.threads || []).map(mapMetadataThreadToPreview);
 }
 
+function threadIsUnread(thread) {
+  if (typeof thread?.unread === 'boolean') return thread.unread;
+  return (thread?.labelIds || []).map((id) => String(id).toUpperCase()).includes('UNREAD');
+}
+
+function isMailIndexSnapshot(value) {
+  return Boolean(
+    value
+    && value.schemaVersion === 1
+    && value.source === 'local-gmail-cli'
+    && value.mode === 'metadata-index'
+    && Array.isArray(value.threads)
+    && Array.isArray(value.blockedCapabilities)
+  );
+}
+
+function mapMailIndexThreadToPreview(thread, index) {
+  const head = thread.messages?.[0] || thread;
+  const sender = head.from || thread.from || 'Unknown sender';
+  const subject = head.subject || thread.subject || thread.snippet || '(no subject)';
+  const labelIds = (thread.labelIds || head.labelIds || []).map((id) => String(id));
+  const unread = threadIsUnread({ ...thread, labelIds, unread: thread.unread ?? head.unread });
+  const email = thread.accountEmail || gmailMailIndex?.accounts?.[0]?.accountEmail;
+  const accountId = email ? gmailAccountIdFromEmail(email) : 'gmail-mail-index';
+  const hasInbox = labelIds.map((id) => id.toUpperCase()).includes('INBOX');
+  const rawThreadId = thread.id || head.threadId || String(index);
+  return {
+    id: `gmail-index:${rawThreadId}`,
+    rawThreadId,
+    accountId,
+    mailbox: hasInbox ? 'inbox' : 'archive',
+    unread,
+    sender: sender.replace(/<[^>]+>/, '').trim() || sender,
+    receivedAt: head.date || thread.date || '',
+    title: subject,
+    summary: thread.snippet || head.snippet || 'Runtime mail index thread. Body read blocked.',
+    state: unread ? 'needs_review' : 'preview_only',
+    labels: labelIds.map((id) => id.toLowerCase()),
+    tags: ['metadata_index', 'provider_metadata_only'],
+    metadataOnly: true,
+    providerSource: 'gmail-runtime-index',
+    detailFields: [
+      { label: 'Source', value: 'Runtime mail index' },
+      { label: 'Mode', value: 'metadata-index' },
+      { label: 'Read state', value: unread ? 'Unread' : 'Read' },
+      { label: 'Body', value: 'blocked' },
+    ],
+  };
+}
+
+function mailIndexThreads() {
+  if (!isMailIndexSnapshot(gmailMailIndex)) return null;
+  return (gmailMailIndex.threads || [])
+    .map(mapMailIndexThreadToPreview)
+    .sort((a, b) => Date.parse(b.receivedAt || 0) - Date.parse(a.receivedAt || 0));
+}
+
+function applyRuntimeMailIndex(index, sourceLabel = 'runtime-store') {
+  if (!isMailIndexSnapshot(index)) return null;
+  gmailMailIndex = index;
+  gmailMailIndexSource = sourceLabel;
+  const email = index.accounts?.[0]?.accountEmail;
+  if (email) {
+    applyMetadataSnapshotToAccounts({
+      accountEmail: email,
+      mode: 'metadata-index',
+      labels: [],
+      threads: index.threads || [],
+      messages: [],
+      warnings: index.warnings || [],
+      blockedCapabilities: index.blockedCapabilities || [],
+      counts: {},
+    });
+  }
+  return index;
+}
+
+async function loadRuntimeMailArtifacts() {
+  runtimeHostMode = runtimeHostModeLabel();
+  if (!isTauriRuntime()) return { ok: false, mode: runtimeHostMode };
+  runtimeStoreBoundary = await loadRuntimeStoreBoundary();
+  const index = await loadRuntimeMailIndex();
+  if (index && applyRuntimeMailIndex(index)) {
+    return { ok: true, mode: runtimeHostMode, threadCount: index.threads?.length || 0 };
+  }
+  return { ok: false, mode: runtimeHostMode };
+}
+
 function metadataSnapshotLabels() {
   if (!isMetadataSnapshot(gmailMetadataSnapshot)) return [];
   return (gmailMetadataSnapshot.labels || []).map((entry) => ({
@@ -5403,6 +5503,12 @@ function activeProductWorkspace() {
 }
 
 function environmentStatusBadge() {
+  if (isTauriRuntime()) {
+    if (gmailMailIndexSource === 'runtime-store' && (gmailMailIndex?.threads?.length || 0) > 0) {
+      return 'Runtime · Local · Mail index';
+    }
+    return 'Runtime · Local · Metadata-only';
+  }
   if (gmailBodyBridgeActive()) {
     return gmailBodySnapshotSource === 'sample-file'
       ? 'Preview · Local · Read-only body sample'
@@ -11641,6 +11747,7 @@ async function init() {
   state.payload = await fetchJson(DATA_URL, {});
   ensureAccountDefaults();
   normalizeScopedObjects();
+  await loadRuntimeMailArtifacts();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
   await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_LOCAL_URL, 'local-file');

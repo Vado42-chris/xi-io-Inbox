@@ -68,6 +68,7 @@ Implementation: `tools/gmail/lib/runtime-paths.js`, `src-tauri/src/runtime_store
 | `gmail_provider_connect` | `connect` | Desktop OAuth loopback; tokens in app-data only |
 | `gmail_provider_sync_metadata` | `sync-metadata` | Bounded live metadata sync (default pages 1, max 25) |
 | `gmail_provider_sync_history` | `sync-history` | Bounded live history sync (CLI EXT-004 semantics) |
+| `gmail_provider_mail_index` | n/a (Rust read) | Read-only runtime mail index; thread headers only |
 
 Sidecar allowlist only: `status`, `sync-status`, `sync-plan`, `connect`, `sync-metadata`, `sync-history`.
 
@@ -85,8 +86,10 @@ automation_execution: blocked
 ## Migration notes
 
 - RUNTIME-001B adds connect + bounded live sync commands with sidecar allowlist and deep redaction.
-- RUNTIME-001B-PEER-REVIEW gates RUNTIME-002 UI binding.
-- RUNTIME-002 binds UI to runtime commands/stores instead of `fetch('./data/*.local.json')`.
+- RUNTIME-001B-PEER-REVIEW gates RUNTIME-002A (read bridge), not broad UI binding.
+- RUNTIME-002A adds read-only mail index command + minimal Tauri JS bridge + capabilities ACL.
+- RUNTIME-002B wires connect/sync orchestration; RUNTIME-002C adds refresh loop + operator proof.
+- Product path replaces `fetch('./data/*.local.json')` incrementally; static preview remains for CI.
 
 ## Related docs
 

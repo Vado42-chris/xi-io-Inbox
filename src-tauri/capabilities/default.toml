@@ -1,0 +1,7 @@
+identifier = "main-capability"
+description = "Main window capability for xi-io Inbox runtime read bridge (RUNTIME-002A)."
+windows = ["main"]
+permissions = [
+  "core:default",
+  "allow-gmail-runtime-read",
+]

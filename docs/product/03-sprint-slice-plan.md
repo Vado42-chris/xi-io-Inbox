@@ -41,7 +41,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 | SLICE-ARCH-004 | platform/runtime decision | decide runtime/platform envelope before Pass 4 | decision receipt covering storage, secrets, sync, local cloud, surfaces | implementation | UI proof, Android proof inputs where relevant | ARCH-004 decision receipt complete | architecture review | `docs/architecture/arch-004-runtime-host-decision.md` | unresolved platform/security boundary blocks runtime | complete | formal PASS 2026-06-10 | 1 to 2 passes |
 | SLICE-RUNTIME-NORTHSTAR-001 | connected cockpit capture | name product target vs scaffold; block agent drift | docs only | live Gmail/GitHub impl, UI polish | GMAIL-002 adapter proof | direction doc + receipt | doc review, npm check | `docs/ui/reviews/runtime-north-star-001-connected-runtime-capture-receipt.md` | if agents keep optimizing JSON bridge as product | complete | complete 2026-06-15 | 1 pass |
 | SLICE-RUNTIME-001 | Gmail runtime provider | promote CLI adapter to Tauri provider service | Tauri commands, token vault, sync/index | send, draft, mutation, browser OAuth | ARCH-004 formal PASS | connected sync without manual JSON import | Tauri smoke + adapter parity tests | `docs/product/runtime-001-gmail-provider-service-plan.md` | starting before ARCH-004 PASS | complete | spine 2026-06-10; live sync RUNTIME-001B | 2 to 4 passes |
-| SLICE-RUNTIME-002 | Gmail UI runtime binding | UI reads runtime store not JSON files | preview/Tauri UI invoke path | egress enablement | RUNTIME-001 | connected-state copy in UI | route smoke + owner proof | TBD | JSON import removed before parity | blocked | not started | 1 to 2 passes |
+| SLICE-RUNTIME-002A | Runtime mail index read + Tauri bridge | Read-only index command, JS bridge, capabilities ACL, static fallback | connect/sync orchestration, Mail polish | RUNTIME-001B peer review | thread load from runtime store in Tauri mode | runtime-002a check + cargo test | TBD | broad RUNTIME-002 mixed pass | complete | agent pass 2026-06-10 | 1 pass |
+| SLICE-RUNTIME-002B | Connect/sync UI orchestration | Wire connect + sync commands; live-state copy | refresh loop, operator proof | RUNTIME-002A | connect/sync from UI without JSON import | Tauri smoke | TBD | mixing read + sync + polish | blocked | not started | 1 pass |
+| SLICE-RUNTIME-002C | Refresh loop + operator proof | Minimal poll refresh; operator OAuth proof | Mail polish, egress | RUNTIME-002B | live mail visible end-to-end | owner proof | TBD | skipping 002A/002B | blocked | not started | 1 pass |
 | SLICE-GITHUB-001 | GitHub ingress | live notifications provider | runtime github module | repo mutation | ARCH-004, RUNTIME-001 recommended | notifications in store + Activity | provider smoke | `docs/product/github-001-notifications-ingress-plan.md` | wrong auth mode for notifications API | blocked | not started | 1 to 2 passes |
 | SLICE-IBAL-001 | Ibal over provider events | proposals from runtime events | Ibal module | execution | RUNTIME-001/002, GITHUB-001 | proposal-only over live events | Ibal scenario review | TBD | autonomous mutation | blocked | not started | 1 to 2 passes |
 | SLICE-EGRESS-001 | controlled egress gates | draft/send/mutation approval | egress module | silent mutation | RUNTIME ingress stable | gated writes with receipts | egress wargame | TBD | ungated send | blocked | not started | TBD |
@@ -106,10 +108,13 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 51. SLICE-ARCH-004 formal PASS — **complete** (`arch-004-tauri-runtime-host-formal-decision-receipt.md`) — `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`
 52. SLICE-RUNTIME-001 — Gmail runtime provider spine — **complete** (`runtime-001-gmail-runtime-provider-service-receipt.md`)
 53. SLICE-RUNTIME-001B — live Gmail connect/sync execution — **complete** (`runtime-001b-live-gmail-runtime-execution-receipt.md`)
-54. SLICE-RUNTIME-001B-PEER-REVIEW — **next** before RUNTIME-002 UI binding
-55. SLICE-RUNTIME-002 — Gmail UI runtime binding — **blocked until RUNTIME-001B-PEER-REVIEW PASS**
+54. SLICE-RUNTIME-001B-PEER-REVIEW — **complete** (`runtime-001b-peer-review-receipt.md`)
+55. SLICE-RUNTIME-002A — read-only mail index + Tauri bridge — **complete** (`runtime-002a-mail-index-read-bridge-receipt.md`)
+56. SLICE-RUNTIME-002A-PEER-REVIEW — **next**
+57. SLICE-RUNTIME-002B — connect/sync orchestration — blocked until 002A peer review
+58. SLICE-RUNTIME-002C — refresh loop + operator proof — blocked until 002B
 
-**Agent stop line:** RUNTIME-001B may start after peer review PASS. No Mail UI polish, merge prep, or GitHub until RUNTIME-001B + RUNTIME-002 spine. Do not pop unrelated stashed UX/Gmail edits.
+**Agent stop line:** Do not start broad RUNTIME-002 as one pass. No Mail UI polish, merge prep, or GitHub until RUNTIME-002A→002C spine. Do not pop unrelated stashed UX/Gmail edits.
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

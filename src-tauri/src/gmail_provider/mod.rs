@@ -1,4 +1,5 @@
 mod args;
+mod mail_index;
 mod redaction;
 mod sidecar;
 
@@ -106,6 +107,10 @@ pub fn sync_history(app: &AppHandle, options: SyncHistoryOptions) -> Result<Valu
         "History sync completed",
         LIVE_SYNC_EXECUTION,
     )
+}
+
+pub fn mail_index(app: &AppHandle) -> Result<Value, String> {
+    mail_index::read_mail_index(app)
 }
 
 fn attach_runtime_meta(
