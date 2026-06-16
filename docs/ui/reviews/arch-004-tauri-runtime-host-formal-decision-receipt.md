@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-Recorded at commit time (see final report).
+`56c33ae75a3756ba4e25b2c5152c8d81b8a07036`
 
 ## Owner decision token
 
