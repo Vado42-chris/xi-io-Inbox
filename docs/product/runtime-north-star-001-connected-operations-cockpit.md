@@ -6,9 +6,11 @@
 Type: product direction capture (docs only).
 Supersedes as user-facing product intent when documents conflict with
 "static preview + JSON import" as the destination model.
-Does not authorize live provider implementation in this slice.
+ARCH-004 formal PASS recorded: ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY (2026-06-10).
+Next implementation slice: RUNTIME-001 (Gmail runtime provider service).
 Receipt: docs/ui/reviews/runtime-north-star-001-connected-runtime-capture-receipt.md
 Companion: docs/architecture/arch-004-runtime-host-decision.md
+Formal closeout: docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md
 ```
 
 ## Product correction
@@ -142,12 +144,12 @@ When exporting patterns to `xi-io.net#239`:
 
 See addendum in `docs/product/framework-backfeed-001-inbox-to-xi-io-net-239-packet.md`.
 
-## Next slices (implementation order — not this pass)
+## Next slices (implementation order)
 
 | ID | Goal |
 | --- | --- |
-| ARCH-004 | Formal runtime host decision (provisional: Tauri — see arch-004 doc) |
-| RUNTIME-001 | Gmail runtime provider service (Tauri/Rust; promote CLI logic) |
+| ARCH-004 | **Formal PASS** — Tauri local desktop runtime primary (`ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`) |
+| RUNTIME-001 | **Next implementation slice** — Gmail runtime provider service (Tauri/Rust; promote CLI logic) |
 | RUNTIME-002 | Gmail live store + UI binding (replace JSON import path) |
 | GITHUB-001 | GitHub notifications/issues ingress plan + runtime provider |
 | IBAL-001 | Ibal proposal layer over provider events |

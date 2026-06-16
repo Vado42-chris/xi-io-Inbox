@@ -5,9 +5,11 @@
 ```text
 Gate: ARCH-004 (platform runtime and deployment envelope)
 Capture slice: RUNTIME-NORTHSTAR-001 (2026-06-15)
-Formal decision state: PROVISIONAL — owner-aligned; formal PASS receipt pending
-Expected formal outcome: ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY
+Formalize slice: ARCH-004-FORMALIZE (2026-06-10)
+Formal decision state: PASS — owner sign-off recorded
+Decision token: ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY
 Prior matrix: docs/architecture/platform-runtime-decision-matrix.md (still valid for options survey)
+Receipt: docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md
 ```
 
 ## Decision summary
@@ -91,7 +93,11 @@ References:
 ## OAuth approach
 
 - Google: desktop loopback redirect ([OAuth 2.0 for iOS & Desktop Apps](https://developers.google.com/identity/protocols/oauth2/native-app))
-- GitHub: user OAuth or PAT policy TBD in GITHUB-001; must respect notifications API token constraints ([GitHub REST notifications](https://docs.github.com/en/rest/activity/notifications))
+- GitHub: auth mode chosen deliberately in GITHUB-001. The authenticated-user
+  [notifications endpoint](https://docs.github.com/en/rest/activity/notifications)
+  does **not** work with GitHub App user access tokens, GitHub App installation
+  tokens, or fine-grained PATs. Do not assume the default GitHub App path covers
+  personal notifications without verifying endpoint constraints.
 
 ## Storage and secrets boundaries
 
@@ -112,18 +118,19 @@ References:
 
 | Gate | Effect |
 | --- | --- |
-| GATE-RUNTIME-001 | Unblocks after ARCH-004 formal PASS + RUNTIME-001 plan |
+| GATE-RUNTIME-001 | ARCH-004 formal PASS recorded; RUNTIME-001 implementation unblocked |
 | GATE-PROVIDER-001 | Live read ingress allowed in runtime; write still blocked |
 | GATE-UI-VISUAL-001 | UI-003E owner proof still required before merge-ready product claim |
 | Static preview checks | Remain; do not remove |
 
-## Open decisions (formal ARCH-004 closeout)
+## Open decisions (post–ARCH-004 formal PASS)
 
-- [ ] Confirm Tauri as primary (owner sign-off on this document)
+- [x] Confirm Tauri as primary runtime host (owner sign-off 2026-06-10)
 - [ ] Choose Rust mail store format (SQLite vs JSON envelope) in RUNTIME-001
 - [ ] Android companion role after ARCH-002
 - [ ] Local cloud/home server role (deferred)
 - [ ] Distribution/signing pipeline (deferred)
+- [ ] GitHub auth mode for notifications API (GITHUB-001 — not GitHub App installation token by default)
 
 ## Implementation sequence (post-decision)
 
@@ -136,6 +143,6 @@ References:
 ## Decision values
 
 ```text
-ARCH_004_PROVISIONAL_TAURI_LOCAL_RUNTIME_PRIMARY   (this capture pass)
-ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY          (formal closeout — next pass)
+ARCH_004_PROVISIONAL_TAURI_LOCAL_RUNTIME_PRIMARY   (RUNTIME-NORTHSTAR-001 capture)
+ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY          (ARCH-004-FORMALIZE — owner sign-off)
 ```

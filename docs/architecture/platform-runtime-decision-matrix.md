@@ -40,6 +40,13 @@ Authoritative capture:
 
 - `docs/product/runtime-north-star-001-connected-operations-cockpit.md`
 - `docs/architecture/arch-004-runtime-host-decision.md`
+- `docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`
+
+Formal decision (2026-06-10):
+
+```text
+ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY
+```
 
 ## Current known state
 

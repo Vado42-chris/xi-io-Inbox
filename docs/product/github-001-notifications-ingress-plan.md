@@ -4,7 +4,7 @@
 
 ```text
 Type: ingress plan (docs only — do not implement in RUNTIME-NORTHSTAR-001)
-Blocked by: ARCH-004 formal PASS, RUNTIME-001 spine recommended first
+Blocked by: RUNTIME-001 spine recommended first (ARCH-004 formal PASS recorded)
 Depends on: RUNTIME-NORTHSTAR-001, Integrations taxonomy (UI-011G)
 Receipt target: docs/ui/reviews/github-001-notifications-ingress-receipt.md (future)
 ```
@@ -25,10 +25,12 @@ Supported query dimensions to design for:
 - per-repository filtering
 - read/unread state
 
-**Auth constraints:** not all GitHub App installation tokens behave like user
-notification tokens. GITHUB-001 must document chosen auth mode (user OAuth,
-fine-grained PAT, or GitHub App user-to-server) against endpoint requirements
-before UI shows "Connected GitHub."
+**Auth constraints:** The authenticated-user notifications endpoint does **not**
+work with GitHub App user access tokens, GitHub App installation tokens, or
+fine-grained PATs ([GitHub REST notifications](https://docs.github.com/en/rest/activity/notifications)).
+GITHUB-001 must document chosen auth mode (classic user OAuth or other
+endpoint-compatible token) before UI shows "Connected GitHub." Do not assume the
+normal GitHub App path covers personal notifications.
 
 ## In scope (GITHUB-001)
 

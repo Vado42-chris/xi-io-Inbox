@@ -120,18 +120,25 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [x] ARCH-004 provisional decision — Tauri local desktop primary (`docs/architecture/arch-004-runtime-host-decision.md`).
 - [x] RUNTIME-001 plan — Gmail runtime provider service (`docs/product/runtime-001-gmail-provider-service-plan.md`).
 - [x] GITHUB-001 plan — GitHub notifications ingress (`docs/product/github-001-notifications-ingress-plan.md`).
-- [ ] ARCH-004 formal PASS — owner sign-off → `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`.
-- [ ] RUNTIME-001 — implement Gmail runtime provider (blocked until ARCH-004 formal PASS).
+- [x] ARCH-004 formal PASS — owner sign-off → `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY` (`docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`).
+- [ ] RUNTIME-001 — implement Gmail runtime provider (**unblocked** — next implementation slice).
 - [ ] RUNTIME-002 — Gmail live store + UI binding (blocked until RUNTIME-001).
 - [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
 - [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
 
-**Blocked until ARCH-004 formal PASS + RUNTIME-001:** Mail UI polish, merge prep, PR #12 ready-for-review, framework backfeed of JSON bridge as final pattern.
+**Blocked until RUNTIME-001 spine:** Mail UI polish, merge prep, PR #12 ready-for-review, framework backfeed of JSON bridge as final pattern.
+
+## ARCH-004-FORMALIZE: runtime host decision closeout
+
+Status: **complete** (docs/governance closeout 2026-06-10). Owner decision: `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`.
+
+- [x] Formalize ARCH-004 — Tauri local desktop runtime primary (`docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`).
+- [ ] RUNTIME-001 — **next** — implement Gmail runtime provider service.
 
 ## ARCH-004: platform runtime and deployment envelope
 
-Status: **provisional decision captured** (RUNTIME-NORTHSTAR-001). Formal PASS pending owner sign-off. See `docs/architecture/arch-004-runtime-host-decision.md`.
+Status: **formal PASS** (`ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`, ARCH-004-FORMALIZE 2026-06-10). See `docs/architecture/arch-004-runtime-host-decision.md` and `docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`.
 
 - [x] Create `ARCH-004` issue for platform/runtime decision gate.
 - [x] Add platform runtime decision matrix.

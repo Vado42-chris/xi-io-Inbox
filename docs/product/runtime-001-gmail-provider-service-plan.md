@@ -3,9 +3,10 @@
 ## Status
 
 ```text
-Type: implementation plan (docs only — do not implement in RUNTIME-NORTHSTAR-001)
-Blocked by: ARCH-004 formal PASS (provisional Tauri decision captured)
-Depends on: tools/gmail adapter (GMAIL-002A–EXT-004), RUNTIME-NORTHSTAR-001
+Type: next implementation slice (authorized after ARCH-004-FORMALIZE)
+Blocked by: none — ARCH-004 formal PASS recorded (ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY)
+Depends on: tools/gmail adapter (GMAIL-002A–EXT-004), RUNTIME-NORTHSTAR-001, ARCH-004
+Do not start until ARCH-004-FORMALIZE receipt is committed and pushed.
 Receipt target: docs/ui/reviews/runtime-001-gmail-provider-service-receipt.md (future)
 ```
 
@@ -80,4 +81,5 @@ Body fields appear only when readonly body gate passes and runtime store contain
 
 ## Estimate
 
-2–4 agent passes after ARCH-004 formal PASS (sidecar parity first).
+2–4 agent passes starting now (sidecar parity first). Do not implement in
+ARCH-004-FORMALIZE — that pass is docs/governance closeout only.
