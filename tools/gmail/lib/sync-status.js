@@ -12,11 +12,17 @@ import {
 import { readSyncReceiptEvents } from './receipts.js';
 import { resolveAdapterRoot, resolveDataDir } from './runtime-paths.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = resolveAdapterRoot();
 const DATA_DIR = resolveDataDir();
 
 export const SYNC_STATUS_SCHEMA_VERSION = 1;
+
+function resolveTokenStorageLabel() {
+  if (process.env.GMAIL_ADAPTER_DATA_DIR) {
+    return 'runtime-app-data (gitignored)';
+  }
+  return 'tools/gmail/data/token.json (gitignored)';
+}
 
 async function pathExists(filePath) {
   try {
@@ -174,7 +180,7 @@ export async function buildSyncStatus() {
       secretsConfigured,
       status: oauthStatus,
       tokenPresent,
-      tokenStorage: 'tools/gmail/data/token.json (gitignored)',
+      tokenStorage: resolveTokenStorageLabel(),
     },
     artifacts: {
       metadataSnapshot: {

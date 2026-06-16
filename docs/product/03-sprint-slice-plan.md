@@ -105,8 +105,9 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 50. SLICE-RUNTIME-NORTHSTAR-001 — connected operations cockpit capture — **complete** (`runtime-north-star-001-connected-runtime-capture-receipt.md`)
 51. SLICE-ARCH-004 formal PASS — **complete** (`arch-004-tauri-runtime-host-formal-decision-receipt.md`) — `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`
 52. SLICE-RUNTIME-001 — Gmail runtime provider spine — **complete** (`runtime-001-gmail-runtime-provider-service-receipt.md`)
-53. SLICE-RUNTIME-001B — live Gmail sync/connect execution — **next (implementation)** — peer review PASS
-54. SLICE-RUNTIME-002 — Gmail UI runtime binding — **blocked until RUNTIME-001B or owner directs status-only binding**
+53. SLICE-RUNTIME-001B — live Gmail connect/sync execution — **complete** (`runtime-001b-live-gmail-runtime-execution-receipt.md`)
+54. SLICE-RUNTIME-001B-PEER-REVIEW — **next** before RUNTIME-002 UI binding
+55. SLICE-RUNTIME-002 — Gmail UI runtime binding — **blocked until RUNTIME-001B-PEER-REVIEW PASS**
 
 **Agent stop line:** RUNTIME-001B may start after peer review PASS. No Mail UI polish, merge prep, or GitHub until RUNTIME-001B + RUNTIME-002 spine. Do not pop unrelated stashed UX/Gmail edits.
 

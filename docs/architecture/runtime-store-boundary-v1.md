@@ -57,14 +57,19 @@ Implementation: `tools/gmail/lib/runtime-paths.js`, `src-tauri/src/runtime_store
 - Provider send/draft/mutation from preview without egress gates
 - Treating manual JSON import as the connected product data path
 
-## Allowed Tauri command surface (RUNTIME-001)
+## Allowed Tauri command surface (RUNTIME-001B)
 
-| Command | Behavior |
-| --- | --- |
-| `runtime_store_boundary` | Returns runtime path contract + gate summary |
-| `gmail_provider_status` | Sidecar `status`; tokens stripped before UI payload |
-| `gmail_provider_sync_status` | Sidecar `sync-status` from runtime store |
-| `gmail_provider_plan_sync` | Sidecar `sync-plan` only; live execution deferred to RUNTIME-001B |
+| Command | Sidecar | Behavior |
+| --- | --- | --- |
+| `runtime_store_boundary` | n/a (Rust) | Returns runtime path contract + gate summary |
+| `gmail_provider_status` | `status` | Provider status; deep-redacted payload |
+| `gmail_provider_sync_status` | `sync-status` | Sync status from runtime store |
+| `gmail_provider_plan_sync` | `sync-plan` | Plan-only; no live API execution |
+| `gmail_provider_connect` | `connect` | Desktop OAuth loopback; tokens in app-data only |
+| `gmail_provider_sync_metadata` | `sync-metadata` | Bounded live metadata sync (default pages 1, max 25) |
+| `gmail_provider_sync_history` | `sync-history` | Bounded live history sync (CLI EXT-004 semantics) |
+
+Sidecar allowlist only: `status`, `sync-status`, `sync-plan`, `connect`, `sync-metadata`, `sync-history`.
 
 ## Egress gates (unchanged)
 
@@ -79,9 +84,9 @@ automation_execution: blocked
 
 ## Migration notes
 
-- RUNTIME-001 proves command wiring + runtime boundary; does not remove JSON import scaffold.
+- RUNTIME-001B adds connect + bounded live sync commands with sidecar allowlist and deep redaction.
+- RUNTIME-001B-PEER-REVIEW gates RUNTIME-002 UI binding.
 - RUNTIME-002 binds UI to runtime commands/stores instead of `fetch('./data/*.local.json')`.
-- RUNTIME-001B may add `gmail_provider_sync_metadata` / `gmail_provider_sync_history` execution.
 
 ## Related docs
 

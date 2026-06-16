@@ -1,7 +1,10 @@
 mod gmail_provider;
 mod runtime_store;
 
-use gmail_provider::{plan_sync, provider_status, sync_status};
+use gmail_provider::{
+    plan_sync, provider_connect, provider_status, sync_history, sync_metadata, sync_status,
+    GmailSyncHistoryRequest, GmailSyncMetadataRequest,
+};
 use runtime_store::RuntimeStoreBoundary;
 use tauri::AppHandle;
 
@@ -12,6 +15,9 @@ pub fn run() {
             gmail_provider_status,
             gmail_provider_sync_status,
             gmail_provider_plan_sync,
+            gmail_provider_connect,
+            gmail_provider_sync_metadata,
+            gmail_provider_sync_history,
             runtime_store_boundary,
         ])
         .run(tauri::generate_context!())
@@ -36,4 +42,25 @@ fn gmail_provider_sync_status(app: AppHandle) -> Result<serde_json::Value, Strin
 #[tauri::command(rename_all = "snake_case")]
 fn gmail_provider_plan_sync(app: AppHandle) -> Result<serde_json::Value, String> {
     plan_sync(&app)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn gmail_provider_connect(app: AppHandle) -> Result<serde_json::Value, String> {
+    provider_connect(&app)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn gmail_provider_sync_metadata(
+    app: AppHandle,
+    options: Option<GmailSyncMetadataRequest>,
+) -> Result<serde_json::Value, String> {
+    sync_metadata(&app, options.unwrap_or_default().into())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn gmail_provider_sync_history(
+    app: AppHandle,
+    options: Option<GmailSyncHistoryRequest>,
+) -> Result<serde_json::Value, String> {
+    sync_history(&app, options.unwrap_or_default().into())
 }

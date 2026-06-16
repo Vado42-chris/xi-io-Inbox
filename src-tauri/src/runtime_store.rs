@@ -68,7 +68,11 @@ pub fn boundary_for_app(app: &AppHandle) -> Result<RuntimeStoreBoundary, String>
 
 pub fn sidecar_env(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
     let boundary = boundary_for_app(app)?;
-    Ok(vec![
+    Ok(env_pairs_from_boundary(&boundary))
+}
+
+pub fn env_pairs_from_boundary(boundary: &RuntimeStoreBoundary) -> Vec<(String, String)> {
+    vec![
         (
             "GMAIL_ADAPTER_DATA_DIR".into(),
             boundary.gmail_data_dir.clone(),
@@ -81,5 +85,36 @@ pub fn sidecar_env(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
             "GMAIL_MAIL_INDEX_PATH".into(),
             boundary.gmail_mail_index_path.clone(),
         ),
-    ])
+    ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sidecar_env_contract_keys() {
+        let boundary = RuntimeStoreBoundary {
+            schema_version: 1,
+            runtime_host: "tauri-local-desktop",
+            store_kind: "filesystem-app-data",
+            browser_local_storage_tokens: "blocked",
+            browser_oauth: "blocked",
+            gmail_data_dir: "/tmp/runtime/gmail-provider/data".into(),
+            gmail_receipts_dir: "/tmp/runtime/gmail-provider/receipts".into(),
+            gmail_mail_index_path: "/tmp/runtime/gmail-provider/data/mail-index.json".into(),
+            static_preview_json_import: "scaffold-only",
+            egress_gates: EgressGates {
+                body_read: "gated",
+                draft_write: "blocked",
+                send: "blocked",
+                mutation: "blocked",
+                github_mutation: "blocked",
+                automation_execution: "blocked",
+            },
+        };
+        let pairs = env_pairs_from_boundary(&boundary);
+        assert_eq!(pairs.len(), 3);
+        assert!(pairs.iter().any(|(k, v)| k == "GMAIL_ADAPTER_DATA_DIR" && v.contains("gmail-provider/data")));
+    }
 }
