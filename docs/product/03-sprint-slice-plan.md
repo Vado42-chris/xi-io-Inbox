@@ -110,8 +110,8 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 53. SLICE-RUNTIME-001B — live Gmail connect/sync execution — **complete** (`runtime-001b-live-gmail-runtime-execution-receipt.md`)
 54. SLICE-RUNTIME-001B-PEER-REVIEW — **complete** (`runtime-001b-peer-review-receipt.md`)
 55. SLICE-RUNTIME-002A — read-only mail index + Tauri bridge — **complete** (`runtime-002a-mail-index-read-bridge-receipt.md`)
-56. SLICE-RUNTIME-002A-PEER-REVIEW — **next**
-57. SLICE-RUNTIME-002B — connect/sync orchestration — blocked until 002A peer review
+56. SLICE-RUNTIME-002A-PEER-REVIEW — **complete** (`runtime-002a-peer-review-receipt.md`)
+57. SLICE-RUNTIME-002B — connect/sync orchestration — **next**
 58. SLICE-RUNTIME-002C — refresh loop + operator proof — blocked until 002B
 
 **Agent stop line:** Do not start broad RUNTIME-002 as one pass. No Mail UI polish, merge prep, or GitHub until RUNTIME-002A→002C spine. Do not pop unrelated stashed UX/Gmail edits.
