@@ -1,11 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { wipeToken, tokenPath } from './token-store.js';
+import { resolveDataDir, resolveReceiptsDir } from './runtime-paths.js';
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const DATA_DIR = path.join(ROOT, 'data');
-const RECEIPTS_DIR = path.join(ROOT, 'receipts');
+const DATA_DIR = resolveDataDir();
+const RECEIPTS_DIR = resolveReceiptsDir();
 export const SNAPSHOT_PATH = path.join(DATA_DIR, 'metadata-snapshot.json');
 export const BODY_SNAPSHOT_PATH = path.join(DATA_DIR, 'readonly-body-snapshot.json');
 

@@ -121,20 +121,22 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [x] RUNTIME-001 plan — Gmail runtime provider service (`docs/product/runtime-001-gmail-provider-service-plan.md`).
 - [x] GITHUB-001 plan — GitHub notifications ingress (`docs/product/github-001-notifications-ingress-plan.md`).
 - [x] ARCH-004 formal PASS — owner sign-off → `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY` (`docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`).
-- [ ] RUNTIME-001 — implement Gmail runtime provider (**unblocked** — next implementation slice).
-- [ ] RUNTIME-002 — Gmail live store + UI binding (blocked until RUNTIME-001).
+- [x] RUNTIME-001 — Gmail runtime provider spine (`src-tauri/`, sidecar commands, runtime store boundary; receipt `docs/ui/reviews/runtime-001-gmail-runtime-provider-service-receipt.md`). Live sync execution deferred to RUNTIME-001B.
+- [ ] RUNTIME-001B — live Gmail sync/connect execution via runtime commands.
+- [ ] RUNTIME-002 — Gmail live store + UI binding (blocked until RUNTIME-001B or owner directs UI status binding first).
 - [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
 - [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
 
-**Blocked until RUNTIME-001 spine:** Mail UI polish, merge prep, PR #12 ready-for-review, framework backfeed of JSON bridge as final pattern.
+**Blocked until RUNTIME-001B + RUNTIME-002 spine:** Mail UI polish, merge prep, PR #12 ready-for-review, framework backfeed of JSON bridge as final pattern.
 
 ## ARCH-004-FORMALIZE: runtime host decision closeout
 
 Status: **complete** (docs/governance closeout 2026-06-10). Owner decision: `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`.
 
 - [x] Formalize ARCH-004 — Tauri local desktop runtime primary (`docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`).
-- [ ] RUNTIME-001 — **next** — implement Gmail runtime provider service.
+- [x] RUNTIME-001 spine — Tauri Gmail provider commands + runtime store boundary.
+- [ ] RUNTIME-001B — live sync/connect execution.
 
 ## ARCH-004: platform runtime and deployment envelope
 

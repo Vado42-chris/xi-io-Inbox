@@ -1,12 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { resolveReceiptsDir } from './runtime-paths.js';
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const DEFAULT_RECEIPTS_DIR = path.join(ROOT, 'receipts');
-const RECEIPTS_DIR = process.env.GMAIL_RECEIPTS_DIR
-  ? path.resolve(process.env.GMAIL_RECEIPTS_DIR)
-  : DEFAULT_RECEIPTS_DIR;
+const RECEIPTS_DIR = resolveReceiptsDir();
 
 function ensureDir() {
   if (!fs.existsSync(RECEIPTS_DIR)) fs.mkdirSync(RECEIPTS_DIR, { recursive: true });

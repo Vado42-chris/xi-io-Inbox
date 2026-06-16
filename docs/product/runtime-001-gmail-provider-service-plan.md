@@ -3,11 +3,11 @@
 ## Status
 
 ```text
-Type: next implementation slice (authorized after ARCH-004-FORMALIZE)
-Blocked by: none — ARCH-004 formal PASS recorded (ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY)
+Type: implementation slice (RUNTIME-001 spine complete 2026-06-10)
+Blocked by: none for RUNTIME-001B / RUNTIME-002 planning
 Depends on: tools/gmail adapter (GMAIL-002A–EXT-004), RUNTIME-NORTHSTAR-001, ARCH-004
-Do not start until ARCH-004-FORMALIZE receipt is committed and pushed.
-Receipt target: docs/ui/reviews/runtime-001-gmail-provider-service-receipt.md (future)
+Receipt: docs/ui/reviews/runtime-001-gmail-runtime-provider-service-receipt.md
+Next: RUNTIME-001B live sync/connect execution; RUNTIME-002 UI binding
 ```
 
 ## Goal

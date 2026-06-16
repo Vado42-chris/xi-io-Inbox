@@ -10,10 +10,11 @@ import {
   resolveMailIndexPath,
 } from './local-mail-index.js';
 import { readSyncReceiptEvents } from './receipts.js';
+import { resolveAdapterRoot, resolveDataDir } from './runtime-paths.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.dirname(__dirname);
-const DATA_DIR = path.join(ROOT, 'data');
+const ROOT = resolveAdapterRoot();
+const DATA_DIR = resolveDataDir();
 
 export const SYNC_STATUS_SCHEMA_VERSION = 1;
 

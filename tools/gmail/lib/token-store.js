@@ -1,11 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { resolveDataDir } from './runtime-paths.js';
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const DATA_DIR = path.join(ROOT, 'data');
-const TOKEN_PATH = path.join(DATA_DIR, 'token.json');
+const DATA_DIR = resolveDataDir();
 const DATA_DIR_MODE = 0o700;
+const TOKEN_PATH = path.join(DATA_DIR, 'token.json');
 const TOKEN_FILE_MODE = 0o600;
 
 async function ensureDataDir() {

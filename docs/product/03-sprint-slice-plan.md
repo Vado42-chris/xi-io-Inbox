@@ -40,7 +40,7 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 | SLICE-ARCH-002 | Android build proof | prove Thunderbird Android upstream build or classify failure | local upstream build proof, evidence comment | runtime import, fork identity implementation | existing ARCH-002 packet | build success or classified failure recorded | build proof receipt | `docs/reports/arch-002-build-proof-receipt.md` | if build cannot run, classify failure | planned | not started | 1 to 3 passes |
 | SLICE-ARCH-004 | platform/runtime decision | decide runtime/platform envelope before Pass 4 | decision receipt covering storage, secrets, sync, local cloud, surfaces | implementation | UI proof, Android proof inputs where relevant | ARCH-004 decision receipt complete | architecture review | `docs/architecture/arch-004-runtime-host-decision.md` | unresolved platform/security boundary blocks runtime | complete | formal PASS 2026-06-10 | 1 to 2 passes |
 | SLICE-RUNTIME-NORTHSTAR-001 | connected cockpit capture | name product target vs scaffold; block agent drift | docs only | live Gmail/GitHub impl, UI polish | GMAIL-002 adapter proof | direction doc + receipt | doc review, npm check | `docs/ui/reviews/runtime-north-star-001-connected-runtime-capture-receipt.md` | if agents keep optimizing JSON bridge as product | complete | complete 2026-06-15 | 1 pass |
-| SLICE-RUNTIME-001 | Gmail runtime provider | promote CLI adapter to Tauri provider service | Tauri commands, token vault, sync/index | send, draft, mutation, browser OAuth | ARCH-004 formal PASS | connected sync without manual JSON import | Tauri smoke + adapter parity tests | `docs/product/runtime-001-gmail-provider-service-plan.md` | starting before ARCH-004 PASS | ready | not started | 2 to 4 passes |
+| SLICE-RUNTIME-001 | Gmail runtime provider | promote CLI adapter to Tauri provider service | Tauri commands, token vault, sync/index | send, draft, mutation, browser OAuth | ARCH-004 formal PASS | connected sync without manual JSON import | Tauri smoke + adapter parity tests | `docs/product/runtime-001-gmail-provider-service-plan.md` | starting before ARCH-004 PASS | complete | spine 2026-06-10; live sync RUNTIME-001B | 2 to 4 passes |
 | SLICE-RUNTIME-002 | Gmail UI runtime binding | UI reads runtime store not JSON files | preview/Tauri UI invoke path | egress enablement | RUNTIME-001 | connected-state copy in UI | route smoke + owner proof | TBD | JSON import removed before parity | blocked | not started | 1 to 2 passes |
 | SLICE-GITHUB-001 | GitHub ingress | live notifications provider | runtime github module | repo mutation | ARCH-004, RUNTIME-001 recommended | notifications in store + Activity | provider smoke | `docs/product/github-001-notifications-ingress-plan.md` | wrong auth mode for notifications API | blocked | not started | 1 to 2 passes |
 | SLICE-IBAL-001 | Ibal over provider events | proposals from runtime events | Ibal module | execution | RUNTIME-001/002, GITHUB-001 | proposal-only over live events | Ibal scenario review | TBD | autonomous mutation | blocked | not started | 1 to 2 passes |
@@ -104,9 +104,11 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 49. SLICE-MERGE-PREP-001 — post-UI-003E agent runbook staged — **blocked until owner PASS + ARCH-004 + RUNTIME-001** (`merge-prep-001-post-ui-003e-agent-runbook.md`)
 50. SLICE-RUNTIME-NORTHSTAR-001 — connected operations cockpit capture — **complete** (`runtime-north-star-001-connected-runtime-capture-receipt.md`)
 51. SLICE-ARCH-004 formal PASS — **complete** (`arch-004-tauri-runtime-host-formal-decision-receipt.md`) — `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`
-52. SLICE-RUNTIME-001 — Gmail runtime provider — **next (implementation)** — unblocked after ARCH-004 formal PASS
+52. SLICE-RUNTIME-001 — Gmail runtime provider spine — **complete** (`runtime-001-gmail-runtime-provider-service-receipt.md`)
+53. SLICE-RUNTIME-001B — live Gmail sync/connect execution — **next (implementation)**
+54. SLICE-RUNTIME-002 — Gmail UI runtime binding — **blocked until RUNTIME-001B or owner directs status-only binding**
 
-**Agent stop line:** No Mail UI polish, merge prep, or GitHub implementation until RUNTIME-001 Gmail runtime spine lands. Do not include unrelated uncommitted UX/Gmail edits in RUNTIME-001.
+**Agent stop line:** No Mail UI polish, merge prep, or GitHub implementation until RUNTIME-001B + RUNTIME-002. Do not include unrelated stashed UX/Gmail edits.
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 

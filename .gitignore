@@ -8,3 +8,4 @@ tools/gmail/data/
 tools/gmail/receipts/
 tools/gcal/data/
 tools/gcal/receipts/
+src-tauri/target/

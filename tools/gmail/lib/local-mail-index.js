@@ -1,12 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.dirname(__dirname);
+import { resolveDataDir, resolveMailIndexPath as resolveIndexPathFromRuntime } from './runtime-paths.js';
 
 export const MAIL_INDEX_SCHEMA_VERSION = 1;
-export const DEFAULT_MAIL_INDEX_PATH = path.join(ROOT, 'data', 'mail-index.json');
+export const DEFAULT_MAIL_INDEX_PATH = resolveIndexPathFromRuntime();
 /** @deprecated Prefer resolveMailIndexPath() — kept for compatibility checks only. */
 export const MAIL_INDEX_PATH = DEFAULT_MAIL_INDEX_PATH;
 
@@ -22,9 +19,7 @@ export class MailIndexError extends Error {
 }
 
 export function resolveMailIndexPath(indexPath) {
-  if (indexPath) return path.resolve(indexPath);
-  if (process.env.GMAIL_MAIL_INDEX_PATH) return path.resolve(process.env.GMAIL_MAIL_INDEX_PATH);
-  return DEFAULT_MAIL_INDEX_PATH;
+  return resolveIndexPathFromRuntime(indexPath);
 }
 
 export function createEmptyMailIndex() {
