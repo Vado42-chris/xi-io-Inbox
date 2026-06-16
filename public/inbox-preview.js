@@ -14,6 +14,10 @@ import {
   loadRuntimeMailIndex,
   loadRuntimeStoreBoundary,
   runtimeHostModeLabel,
+  connectGmailProvider,
+  syncGmailMetadata,
+  syncGmailHistory,
+  refreshRuntimeMail,
 } from './src/runtime/gmail-runtime-bridge.js';
 
 const DATA_URL = './data/inbox-events.preview.json';
@@ -66,6 +70,14 @@ let gmailMailIndex = null;
 let gmailMailIndexSource = null;
 let runtimeHostMode = 'static-preview';
 let runtimeStoreBoundary = null;
+let runtimeOrchestration = {
+  busy: false,
+  phase: 'idle',
+  lastError: null,
+  lastSyncAt: null,
+  indexError: null,
+  connected: null,
+};
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -4053,12 +4065,211 @@ function applyRuntimeMailIndex(index, sourceLabel = 'runtime-store') {
 async function loadRuntimeMailArtifacts() {
   runtimeHostMode = runtimeHostModeLabel();
   if (!isTauriRuntime()) return { ok: false, mode: runtimeHostMode };
-  runtimeStoreBoundary = await loadRuntimeStoreBoundary();
-  const index = await loadRuntimeMailIndex();
-  if (index && applyRuntimeMailIndex(index)) {
-    return { ok: true, mode: runtimeHostMode, threadCount: index.threads?.length || 0 };
+  try {
+    runtimeStoreBoundary = await loadRuntimeStoreBoundary();
+    const bundle = await refreshRuntimeMail();
+    applyRuntimeRefreshBundle(bundle);
+    const threadCount = gmailMailIndex?.threads?.length || 0;
+    return {
+      ok: !runtimeOrchestration.indexError,
+      mode: runtimeHostMode,
+      threadCount,
+      indexError: runtimeOrchestration.indexError,
+    };
+  } catch (error) {
+    runtimeOrchestration.indexError = String(error?.message || error || 'Runtime mail load failed');
+    return { ok: false, mode: runtimeHostMode, indexError: runtimeOrchestration.indexError };
   }
-  return { ok: false, mode: runtimeHostMode };
+}
+
+function applyRuntimeSyncStatusEnvelope(status, sourceLabel = 'runtime-store') {
+  if (!isGmailSyncStatusSnapshot(status)) return false;
+  gmailSyncStatus = status;
+  gmailSyncStatusSource = sourceLabel;
+  applySyncStatusToAccounts(status);
+  runtimeOrchestration.connected = String(status.oauth?.status || '').toLowerCase() === 'connected';
+  if (status.lastSync?.at) runtimeOrchestration.lastSyncAt = status.lastSync.at;
+  return true;
+}
+
+function applyRuntimeRefreshBundle(bundle) {
+  if (!bundle || bundle.mode !== 'tauri-runtime') return { ok: false };
+  if (bundle.boundary?.ok && bundle.boundary.data) {
+    runtimeStoreBoundary = bundle.boundary.data;
+  }
+  if (bundle.syncStatus?.ok && bundle.syncStatus.data) {
+    applyRuntimeSyncStatusEnvelope(bundle.syncStatus.data, 'runtime-store');
+  }
+  if (bundle.mailIndex?.ok && bundle.mailIndex.data) {
+    runtimeOrchestration.indexError = null;
+    if (applyRuntimeMailIndex(bundle.mailIndex.data, 'runtime-store')) {
+      return { ok: true, threadCount: bundle.mailIndex.data.threads?.length || 0 };
+    }
+  }
+  if (bundle.mailIndex && bundle.mailIndex.ok === false) {
+    runtimeOrchestration.indexError = bundle.mailIndex.error || 'Runtime mail index unavailable';
+    gmailMailIndex = null;
+    gmailMailIndexSource = null;
+  }
+  return { ok: !runtimeOrchestration.indexError };
+}
+
+async function reloadRuntimeMailIndexAfterSync() {
+  const bundle = await refreshRuntimeMail();
+  applyRuntimeRefreshBundle(bundle);
+}
+
+function runtimeHistorySyncAvailable() {
+  return Boolean(gmailSyncStatus?.artifacts?.mailIndex?.historyState?.lastHistoryId);
+}
+
+function runtimeOrchestrationStatusLabel() {
+  if (!isTauriRuntime()) return PRODUCT_GATE_COPY.browserNotConnected;
+  if (runtimeOrchestration.busy) {
+    if (runtimeOrchestration.phase === 'connecting') return 'Runtime · connecting Gmail…';
+    if (runtimeOrchestration.phase === 'syncing_history') return 'Runtime · syncing history…';
+    return 'Runtime · syncing metadata…';
+  }
+  if (runtimeOrchestration.indexError) return 'Runtime · mail index error';
+  if (runtimeOrchestration.lastError) return 'Runtime · sync failed';
+  if (runtimeOrchestration.connected || gmailSyncStatus?.oauth?.status === 'connected') {
+    return runtimeHistorySyncAvailable()
+      ? 'Runtime · connected · history ready'
+      : 'Runtime · connected · metadata sync required';
+  }
+  return 'Runtime · not connected';
+}
+
+function runtimeOrchestrationPhaseClass() {
+  if (runtimeOrchestration.busy) return 'is-syncing';
+  if (runtimeOrchestration.lastError || runtimeOrchestration.indexError) return 'is-failed';
+  if (runtimeOrchestration.connected || gmailSyncStatus?.oauth?.status === 'connected') return 'is-connected';
+  return 'is-disconnected';
+}
+
+async function runRuntimeGmailConnect(accountId) {
+  if (!isTauriRuntime()) {
+    setStatusMessage('Gmail runtime connect requires npm run tauri:dev.');
+    return;
+  }
+  runtimeOrchestration.busy = true;
+  runtimeOrchestration.phase = 'connecting';
+  runtimeOrchestration.lastError = null;
+  renderShell();
+  const result = await connectGmailProvider();
+  runtimeOrchestration.busy = false;
+  runtimeOrchestration.phase = 'idle';
+  if (!result.ok) {
+    runtimeOrchestration.lastError = result.error || 'Connect failed';
+    addAccountReceipt({
+      type: 'runtime_connect',
+      title: 'Gmail runtime connect failed',
+      summary: runtimeOrchestration.lastError,
+      limitations: 'Body read, draft write, send, and mutation remain blocked.',
+    });
+    setStatusMessage(`Runtime connect failed: ${runtimeOrchestration.lastError}`);
+    saveState();
+    renderShell();
+    return;
+  }
+  runtimeOrchestration.connected = Boolean(result.data?.payload?.connected ?? result.data?.success);
+  await reloadRuntimeMailIndexAfterSync();
+  addAccountReceipt({
+    type: 'runtime_connect',
+    title: 'Gmail runtime connect attempted',
+    summary: runtimeOrchestration.connected
+      ? 'Connected via local runtime OAuth loopback.'
+      : 'Connect finished; verify sync status before syncing mail.',
+    limitations: 'Operator OAuth proof remains deferred to RUNTIME-002C.',
+  });
+  setStatusMessage(runtimeOrchestration.connected
+    ? 'Gmail connected via local runtime. Use Sync now to populate the mail index.'
+    : 'Runtime connect finished. Sync now after OAuth completes.');
+  if (accountId) switchPreviewAccount(accountId);
+  saveState();
+  renderShell();
+}
+
+async function runRuntimeGmailSyncNow(accountId) {
+  if (!isTauriRuntime()) {
+    setStatusMessage('Runtime sync requires npm run tauri:dev.');
+    return;
+  }
+  runtimeOrchestration.busy = true;
+  runtimeOrchestration.phase = 'syncing_metadata';
+  runtimeOrchestration.lastError = null;
+  renderShell();
+  const result = await syncGmailMetadata({ job: 'inbox_recent' });
+  runtimeOrchestration.busy = false;
+  runtimeOrchestration.phase = 'idle';
+  if (!result.ok) {
+    runtimeOrchestration.lastError = result.error || 'Metadata sync failed';
+    addAccountReceipt({
+      type: 'runtime_sync',
+      title: 'Gmail runtime metadata sync failed',
+      summary: runtimeOrchestration.lastError,
+      limitations: 'Body read, draft write, send, and mutation remain blocked.',
+    });
+    setStatusMessage(`Runtime sync failed: ${runtimeOrchestration.lastError}`);
+    saveState();
+    renderShell();
+    return;
+  }
+  runtimeOrchestration.lastSyncAt = new Date().toISOString();
+  await reloadRuntimeMailIndexAfterSync();
+  addAccountReceipt({
+    type: 'runtime_sync',
+    title: 'Gmail runtime metadata sync completed',
+    summary: `${gmailMailIndex?.threads?.length || 0} threads in runtime mail index · metadata-only`,
+    limitations: 'Body read, draft write, send, and mutation remain blocked.',
+  });
+  setStatusMessage(`Runtime metadata sync completed · ${gmailMailIndex?.threads?.length || 0} threads in index.`);
+  if (accountId) switchPreviewAccount(accountId);
+  saveState();
+  renderShell();
+}
+
+async function runRuntimeGmailSyncHistory(accountId) {
+  if (!isTauriRuntime()) {
+    setStatusMessage('Runtime history sync requires npm run tauri:dev.');
+    return;
+  }
+  if (!runtimeHistorySyncAvailable()) {
+    setStatusMessage('History sync unavailable until a full metadata sync stores historyId.');
+    return;
+  }
+  runtimeOrchestration.busy = true;
+  runtimeOrchestration.phase = 'syncing_history';
+  runtimeOrchestration.lastError = null;
+  renderShell();
+  const result = await syncGmailHistory({ job: 'inbox_recent' });
+  runtimeOrchestration.busy = false;
+  runtimeOrchestration.phase = 'idle';
+  if (!result.ok) {
+    runtimeOrchestration.lastError = result.error || 'History sync failed';
+    addAccountReceipt({
+      type: 'runtime_sync',
+      title: 'Gmail runtime history sync failed',
+      summary: runtimeOrchestration.lastError,
+      limitations: 'Body read, draft write, send, and mutation remain blocked.',
+    });
+    setStatusMessage(`Runtime history sync failed: ${runtimeOrchestration.lastError}`);
+    saveState();
+    renderShell();
+    return;
+  }
+  runtimeOrchestration.lastSyncAt = new Date().toISOString();
+  await reloadRuntimeMailIndexAfterSync();
+  addAccountReceipt({
+    type: 'runtime_sync',
+    title: 'Gmail runtime history sync completed',
+    summary: `${gmailMailIndex?.threads?.length || 0} threads in runtime mail index · history partial sync`,
+    limitations: 'Body read, draft write, send, and mutation remain blocked.',
+  });
+  setStatusMessage(`Runtime history sync completed · ${gmailMailIndex?.threads?.length || 0} threads in index.`);
+  if (accountId) switchPreviewAccount(accountId);
+  saveState();
+  renderShell();
 }
 
 function metadataSnapshotLabels() {
@@ -4442,7 +4653,46 @@ function gmailSyncStatusActive() {
   return isGmailSyncStatusSnapshot(gmailSyncStatus);
 }
 
+function renderRuntimeGmailOrchestrationPanel({ compact = false } = {}) {
+  const oauth = gmailSyncStatus?.oauth?.status || (runtimeOrchestration.connected ? 'connected' : 'disconnected');
+  const indexThreads = gmailMailIndex?.threads?.length ?? gmailSyncStatus?.artifacts?.mailIndex?.threadCount ?? 0;
+  const history = gmailSyncStatus?.artifacts?.mailIndex?.historyState;
+  const rows = [
+    ['Host', 'Tauri local runtime · not browser OAuth'],
+    ['Connection', label(oauth)],
+    ['Orchestration', runtimeOrchestrationStatusLabel()],
+    ['Mail index', runtimeOrchestration.indexError
+      ? `error · ${runtimeOrchestration.indexError}`
+      : (indexThreads ? `${indexThreads} threads` : 'empty · sync to populate')],
+    ['History cursor', history?.lastHistoryId ? `${history.lastSyncMode || 'sync'} · id ${history.lastHistoryId}` : 'none stored'],
+    ['Last sync', runtimeOrchestration.lastSyncAt || gmailSyncStatus?.lastSync?.at || 'none recorded'],
+    ['Body read', label(gmailSyncStatus?.gates?.bodyRead || 'blocked')],
+    ['Draft write', label(gmailSyncStatus?.gates?.draftWrite || 'blocked')],
+    ['Send', label(gmailSyncStatus?.gates?.send || 'blocked')],
+  ];
+  return `
+    <aside class="gmail-sync-status-panel trust-affordance trust-affordance-warn ${compact ? 'is-compact' : ''}" role="note" aria-label="Gmail runtime orchestration status">
+      <p class="gmail-sync-status-eyebrow">Gmail runtime orchestration · local desktop · metadata-only</p>
+      ${runtimeOrchestration.lastError ? `<p class="form-hint"><strong>Sync error:</strong> ${escapeHtml(runtimeOrchestration.lastError)}</p>` : ''}
+      ${runtimeOrchestration.indexError ? `<p class="form-hint"><strong>Index error:</strong> ${escapeHtml(runtimeOrchestration.indexError)} · static JSON fallback remains available outside Tauri.</p>` : ''}
+      <dl class="gmail-sync-status-grid">
+        ${rows.map(([term, value]) => `<div><dt>${escapeHtml(term)}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}
+      </dl>
+      ${compact ? '' : `
+        <div class="inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-connect-gmail" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
+          <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-metadata" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
+          <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-history" ${runtimeOrchestration.busy || !runtimeHistorySyncAvailable() ? 'disabled' : ''} title="${runtimeHistorySyncAvailable() ? 'Partial history sync when historyId is stored' : 'Run metadata sync first to store historyId'}">Sync history</button>
+        </div>
+      `}
+    </aside>
+  `;
+}
+
 function renderGmailSyncStatusPanel({ compact = false } = {}) {
+  if (isTauriRuntime()) {
+    return renderRuntimeGmailOrchestrationPanel({ compact });
+  }
   if (!gmailSyncStatusActive()) {
     return `
       <aside class="gmail-sync-status-panel trust-affordance trust-affordance-warn" role="note" aria-label="Gmail metadata sync status">
@@ -5504,10 +5754,15 @@ function activeProductWorkspace() {
 
 function environmentStatusBadge() {
   if (isTauriRuntime()) {
+    if (runtimeOrchestration.busy) return runtimeOrchestrationStatusLabel();
+    if (runtimeOrchestration.indexError) return 'Runtime · Local · Index error';
     if (gmailMailIndexSource === 'runtime-store' && (gmailMailIndex?.threads?.length || 0) > 0) {
       return 'Runtime · Local · Mail index';
     }
-    return 'Runtime · Local · Metadata-only';
+    if (runtimeOrchestration.connected || gmailSyncStatus?.oauth?.status === 'connected') {
+      return 'Runtime · Local · Connected';
+    }
+    return 'Runtime · Local · Not connected';
   }
   if (gmailBodyBridgeActive()) {
     return gmailBodySnapshotSource === 'sample-file'
@@ -5523,6 +5778,7 @@ function environmentStatusBadge() {
 }
 
 function providerAccountStatusSummary() {
+  if (isTauriRuntime()) return runtimeOrchestrationStatusLabel();
   const bridge = metadataBridgeStatusLabel();
   if (bridge) return bridge;
   const account = selectedAccountFixture();
@@ -8534,7 +8790,9 @@ function renderEmailAccountsBlock() {
         ${gmailSyncStatusActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-sync-status">Clear sync status</button>' : ''}
         ${gcalEventsSnapshotActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-calendar-snapshot">Clear calendar snapshot</button>' : ''}
       </div>
-      <p class="form-hint">${escapeHtml(gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Mail accounts use the local Gmail CLI outside the browser. GitHub and other integrations live under Integrations — not Mail accounts.')}</p>
+      <p class="form-hint">${escapeHtml(isTauriRuntime()
+    ? 'Tauri runtime uses local desktop OAuth and bounded sync commands. Static JSON import remains a scaffold fallback outside Tauri.'
+    : (gmailBodyBridgeActive() ? metadataBridgeStatusLabel() : gmailMetadataBridgeActive() ? metadataBridgeStatusLabel() : 'Mail accounts use the local Gmail CLI outside the browser. GitHub and other integrations live under Integrations — not Mail accounts.'))}</p>
       ${renderGmailSyncStatusPanel()}
       ${state.account.accountFormOpen ? `
         <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
@@ -8558,8 +8816,14 @@ function renderEmailAccountsBlock() {
             <button class="inbox-action-btn ${account.accountId === activeAccountId ? '' : 'is-primary'}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
               ${account.accountId === activeAccountId ? 'Active' : 'Switch'}
             </button>
+            ${isTauriRuntime() ? `
+            <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-connect-gmail" data-account-id="${escapeHtml(account.accountId)}" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
+            <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-metadata" data-account-id="${escapeHtml(account.accountId)}" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
+            <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-history" data-account-id="${escapeHtml(account.accountId)}" ${runtimeOrchestration.busy || !runtimeHistorySyncAvailable() ? 'disabled' : ''}>Sync history</button>
+            ` : `
             <button class="inbox-action-btn" type="button" data-account-action="connect-gmail" data-account-id="${escapeHtml(account.accountId)}">CLI connect steps</button>
             <button class="inbox-action-btn is-blocked" type="button" disabled title="Browser OAuth blocked">Connect in browser blocked</button>
+            `}
             <button class="inbox-action-btn is-danger" type="button" data-account-action="remove-account" data-account-id="${escapeHtml(account.accountId)}">Remove</button>
           </div>
         </article>
@@ -10230,10 +10494,26 @@ function handleAccountAction(action, accountId) {
     return;
   }
   if (action === 'connect-gmail') {
+    if (isTauriRuntime()) {
+      runRuntimeGmailConnect(accountId);
+      return;
+    }
     window.alert(gmailConnectInstructions());
     setStatusMessage('Gmail connect runs in tools/gmail CLI. Metadata only; send blocked.');
     saveState();
     renderShell();
+    return;
+  }
+  if (action === 'runtime-connect-gmail') {
+    runRuntimeGmailConnect(accountId);
+    return;
+  }
+  if (action === 'runtime-sync-metadata') {
+    runRuntimeGmailSyncNow(accountId);
+    return;
+  }
+  if (action === 'runtime-sync-history') {
+    runRuntimeGmailSyncHistory(accountId);
     return;
   }
   if (action === 'connect-gcal') {

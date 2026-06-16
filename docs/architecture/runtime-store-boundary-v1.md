@@ -88,7 +88,8 @@ automation_execution: blocked
 - RUNTIME-001B adds connect + bounded live sync commands with sidecar allowlist and deep redaction.
 - RUNTIME-001B-PEER-REVIEW gates RUNTIME-002A (read bridge), not broad UI binding.
 - RUNTIME-002A adds read-only mail index command + minimal Tauri JS bridge + capabilities ACL.
-- RUNTIME-002B wires connect/sync orchestration; RUNTIME-002C adds refresh loop + operator proof.
+- RUNTIME-002B adds connect/sync UI orchestration with separate live capability ACL (`allow-gmail-runtime-sync`).
+- RUNTIME-002C adds refresh loop + operator proof.
 - Product path replaces `fetch('./data/*.local.json')` incrementally; static preview remains for CI.
 
 ## Related docs

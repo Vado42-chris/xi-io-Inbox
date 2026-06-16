@@ -1,1 +1,1 @@
-{"main-capability":{"identifier":"main-capability","description":"Main window capability for xi-io Inbox runtime read bridge (RUNTIME-002A).","local":true,"windows":["main"],"permissions":["core:default","allow-gmail-runtime-read"]}}
+{"main-capability":{"identifier":"main-capability","description":"Main window capability for xi-io Inbox runtime read + connect/sync orchestration (RUNTIME-002A/002B).","local":true,"windows":["main"],"permissions":["core:default","allow-gmail-runtime-read","allow-gmail-runtime-sync"]}}

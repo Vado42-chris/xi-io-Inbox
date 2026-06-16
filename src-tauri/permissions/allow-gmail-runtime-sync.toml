@@ -1,0 +1,11 @@
+[[permission]]
+identifier = "allow-gmail-runtime-sync"
+description = "Live Gmail runtime connect/sync for RUNTIME-002B (orchestration; no body/draft/send/mutation)."
+commands.allow = [
+  "gmail_provider_connect",
+  "gmail_provider_sync_metadata",
+  "gmail_provider_sync_history",
+  "gmail_provider_sync_status",
+  "gmail_provider_mail_index",
+  "runtime_store_boundary",
+]

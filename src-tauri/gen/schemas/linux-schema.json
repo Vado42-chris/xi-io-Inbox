@@ -183,6 +183,12 @@
           "markdownDescription": "Read-only Gmail runtime store access for RUNTIME-002A (mail index + boundary)."
         },
         {
+          "description": "Live Gmail runtime connect/sync for RUNTIME-002B (orchestration; no body/draft/send/mutation).",
+          "type": "string",
+          "const": "allow-gmail-runtime-sync",
+          "markdownDescription": "Live Gmail runtime connect/sync for RUNTIME-002B (orchestration; no body/draft/send/mutation)."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",
