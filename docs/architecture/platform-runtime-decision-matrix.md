@@ -30,6 +30,17 @@ Core framework rule:
 A preview surface is not a platform decision.
 ```
 
+## Current correction (RUNTIME-NORTHSTAR-001)
+
+As of 2026-06-15, the **product target** is a connected local Tauri runtime with live
+Gmail and GitHub providers. The static preview JSON bridge is a **development scaffold**,
+not the framework export destination.
+
+Authoritative capture:
+
+- `docs/product/runtime-north-star-001-connected-operations-cockpit.md`
+- `docs/architecture/arch-004-runtime-host-decision.md`
+
 ## Current known state
 
 - `xi-io Inbox` is a unified ingress, analysis, and controlled-egress command center.

@@ -70,6 +70,26 @@ Evidence: `gcal-001-calendar-readonly-import-receipt.md`.
 - Preview and CLI adapters emit gate receipts (`bodyWithheld`, `draftWriteBlocked`, `sendBlocked`, `mutationBlocked`).
 - Consumer contract alignment: `workbench-ui-consumer-contract-v1.md`.
 
+## RUNTIME-NORTHSTAR-001 addendum (2026-06-15)
+
+**Do not export the static JSON import bridge as the final product integration pattern.**
+
+| Export to framework | Do not export |
+| --- | --- |
+| Provider receipt/event model | Manual `public/data/*.local.json` import as final UX |
+| OAuth/token/browser separation | Browser OAuth in static preview |
+| Staged Gmail scope map (metadata → readonly → compose → send) | "Local snapshot product" framing |
+| Egress gate vocabulary | Pub/Sub push as default desktop sync |
+| Poll-based `historyId` sync contract | CLI-only as final user workflow |
+
+**Next-phase target for framework docs:** Tauri (or equivalent) **runtime provider**
+pattern — UI invokes local commands; providers write to runtime stores.
+
+Static preview bridge remains valid as **scaffold / CI harness** only.
+
+See: `docs/product/runtime-north-star-001-connected-operations-cockpit.md`,
+`docs/architecture/arch-004-runtime-host-decision.md`.
+
 ## Patterns explicitly withheld (do not export yet)
 
 | Pattern | Reason |
@@ -79,7 +99,7 @@ Evidence: `gcal-001-calendar-readonly-import-receipt.md`.
 | IBAL-001 real concierge | Placeholder shell only |
 | Gmail draft write / send | Gates blocked; not proven |
 | Live OAuth / history proof | Operator-deferred |
-| ARCH-004 runtime decision | Platform envelope open (`xi-io.net#240`) |
+| ARCH-004 runtime decision | Provisional Tauri capture complete; formal PASS pending (`arch-004-runtime-host-decision.md`) |
 | SQLite/LMDB storage | Not decided; JSON index bridge only |
 | Monolith renderers / ui-016c debt | Extraction incomplete |
 

@@ -112,9 +112,26 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] FRAMEWORK-BACKFEED-001 — Inbox → `xi-io.net#239` freshness packet (`docs/ui/reviews/framework-backfeed-001-xi-io-net-239-receipt.md`).
 - [x] ACC-SYNC-UI-001 — account factory + sync empty-state (`docs/ui/reviews/acc-sync-ui-001-receipt.md`).
 
+## RUNTIME-NORTHSTAR-001: connected operations cockpit (product correction)
+
+Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON import is a **development scaffold**, not the product destination. Live Gmail and GitHub in a **Tauri local runtime** is the provisional next phase.
+
+- [x] RUNTIME-NORTHSTAR-001 — product direction capture (`docs/product/runtime-north-star-001-connected-operations-cockpit.md`, `docs/ui/reviews/runtime-north-star-001-connected-runtime-capture-receipt.md`).
+- [x] ARCH-004 provisional decision — Tauri local desktop primary (`docs/architecture/arch-004-runtime-host-decision.md`).
+- [x] RUNTIME-001 plan — Gmail runtime provider service (`docs/product/runtime-001-gmail-provider-service-plan.md`).
+- [x] GITHUB-001 plan — GitHub notifications ingress (`docs/product/github-001-notifications-ingress-plan.md`).
+- [ ] ARCH-004 formal PASS — owner sign-off → `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`.
+- [ ] RUNTIME-001 — implement Gmail runtime provider (blocked until ARCH-004 formal PASS).
+- [ ] RUNTIME-002 — Gmail live store + UI binding (blocked until RUNTIME-001).
+- [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
+- [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
+- [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
+
+**Blocked until ARCH-004 formal PASS + RUNTIME-001:** Mail UI polish, merge prep, PR #12 ready-for-review, framework backfeed of JSON bridge as final pattern.
+
 ## ARCH-004: platform runtime and deployment envelope
 
-Status: platform/runtime decision gate created after review found UI-002 could be mistaken for product-platform testing. End-product runtime is not yet decided. Cross-product framework contract and tracking now exist in `xi-io.net`.
+Status: **provisional decision captured** (RUNTIME-NORTHSTAR-001). Formal PASS pending owner sign-off. See `docs/architecture/arch-004-runtime-host-decision.md`.
 
 - [x] Create `ARCH-004` issue for platform/runtime decision gate.
 - [x] Add platform runtime decision matrix.
@@ -125,6 +142,8 @@ Status: platform/runtime decision gate created after review found UI-002 could b
 - [x] Add framework platform/runtime envelope contract in `xi-io.net`.
 - [x] Open framework tracking issue `xi-io.net#240`.
 - [x] Sync Inbox platform matrix back to the framework contract and issue.
+- [x] Capture provisional primary runtime: **Tauri local desktop** (`docs/architecture/arch-004-runtime-host-decision.md`).
+- [ ] Owner formal PASS: `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`.
 - [ ] Decide primary first runtime surface.
 - [ ] Decide whether first desktop/control-room shell is local web, Tauri, or another path.
 - [ ] Decide Android role after local Android mail spine proof.
