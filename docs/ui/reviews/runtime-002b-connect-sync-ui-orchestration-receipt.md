@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-Recorded at commit time (see git log for this receipt file).
+`a0c010fe64596413d1ec07cc7a2be0d2f2740f01`
 
 ## Scope
 
