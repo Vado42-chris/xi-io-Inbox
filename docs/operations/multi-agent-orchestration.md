@@ -24,6 +24,7 @@ module boundaries, and hard gates are explicit.
 | Capability agents | one primary destination module each: Calendar, Tasks, Automations, Activity, Integrations | shell nav and adapter code |
 | Ibal agent | `public/src/ibal/` concierge drawer and command entry | route ownership or provider mutation |
 | Spine/Adapter agent | `tools/gmail/`, `schemas/`, `public/src/lib/`, fixtures | UI rendering |
+| Runtime agent | `src-tauri/`, `public/src/runtime/`, capability ACL, runtime receipts | Mail UI polish, monolith CSS |
 | QA/Security reviewer | receipts, smoke, privacy, no-silent-green, draft-only egress | feature authorship |
 
 ## Required gates for every slice

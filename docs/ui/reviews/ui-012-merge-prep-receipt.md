@@ -33,13 +33,16 @@ Merge-prep checklist after ACC-SYNC-UI-001 + FRAMEWORK-BACKFEED-001. **Does not 
 | Framework backfeed | `framework-backfeed-001-xi-io-net-239-receipt.md` |
 | Secrets | no `secrets/`, tokens, or local OAuth JSON staged |
 
-## Still blocked
+## Still blocked (updated 2026-06-10 @ `29fcb8a`)
 
-- **UI-003E** owner visual proof (human)
-- **ARCH-004** runtime decision
+- **RUNTIME-002B-PEER-REVIEW** (agent — next runtime gate)
+- **RUNTIME-002C** operator live-mail proof (after 002B peer review PASS)
+- **UI-003E** owner visual proof — scaffold only (human)
 - **IBAL-001** real implementation
-- Live OAuth persistence proof (operator)
+- Mail UI polish and PR ready-for-review
 - PR #12 remains **draft**
+
+Resolved since original merge-prep: **ARCH-004** formal PASS (`ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`); RUNTIME-001/001B/002A/002B spine landed on branch.
 
 ## Operator sequence (only after owner PASS)
 

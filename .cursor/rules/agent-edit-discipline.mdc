@@ -28,6 +28,9 @@ This repo often lives on external/slow paths (`/media/.../Storage 22/`). Large b
 
 ```bash
 npm run check:quick    # after each edit batch (~5s)
-npm run check          # before merge-prep / receipt close (~30s)
+npm run check          # before slice close / merge prep
+npm run check:runtime002a   # read bridge changes
+npm run check:runtime002b   # connect/sync orchestration changes
+cargo test --manifest-path src-tauri/Cargo.toml   # Tauri Rust changes
 git diff --check       # whitespace
 ```
