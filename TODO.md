@@ -122,7 +122,8 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [x] GITHUB-001 plan — GitHub notifications ingress (`docs/product/github-001-notifications-ingress-plan.md`).
 - [x] ARCH-004 formal PASS — owner sign-off → `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY` (`docs/ui/reviews/arch-004-tauri-runtime-host-formal-decision-receipt.md`).
 - [x] RUNTIME-001 — Gmail runtime provider spine (`src-tauri/`, sidecar commands, runtime store boundary; receipt `docs/ui/reviews/runtime-001-gmail-runtime-provider-service-receipt.md`). Live sync execution deferred to RUNTIME-001B.
-- [ ] RUNTIME-001B — live Gmail sync/connect execution via runtime commands.
+- [x] RUNTIME-001-PEER-REVIEW — spine reviewed (`docs/ui/reviews/runtime-001-peer-review-receipt.md`) → `RUNTIME_001_PEER_REVIEW_PASS_READY_FOR_RUNTIME_001B`.
+- [ ] RUNTIME-001B — live Gmail sync/connect execution via runtime commands (**unblocked after peer review PASS**).
 - [ ] RUNTIME-002 — Gmail live store + UI binding (blocked until RUNTIME-001B or owner directs UI status binding first).
 - [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
