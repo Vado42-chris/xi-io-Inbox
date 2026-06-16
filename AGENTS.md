@@ -107,10 +107,10 @@ Do not implement GitHub, Ibal, body read, draft write, send, or provider mutatio
 
 Capability rule: read-only webview ACL (`allow-gmail-runtime-read`) must stay separate from live connect/sync ACL (`allow-gmail-runtime-sync`). Do not expand read capability with live commands.
 
-## Current gate (verified 2026-06-10 @ `09d197a`)
+## Current gate (see `docs/operations/branch-truth.md` for HEAD SHA)
 
 ```text
-Remote HEAD: ui-002/framework-derived-static-preview @ 09d197a1c5a011206f17c8fa951569b2d25113d9
+Remote HEAD: ui-002/framework-derived-static-preview (run git rev-parse HEAD)
 PR #12: open, draft, unmerged
 CI: Static Preview Check (see GitHub Actions on branch)
 ```

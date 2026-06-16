@@ -36,7 +36,7 @@ checked out `ui-002/framework-derived-static-preview`.
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   09d197a1c5a011206f17c8fa951569b2d25113d9
+HEAD:   run `git rev-parse HEAD` after fetch (governance refresh @ 47e66e1)
 PR:     #12 (open, draft, unmerged)
 CI:     Static Preview Check — see GitHub Actions on branch
 ```

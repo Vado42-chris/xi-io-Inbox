@@ -326,4 +326,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-10 @ `09d197a`): RUNTIME-002B **complete** · **RUNTIME-002B-PEER-REVIEW next** · RUNTIME-002C blocked until 002B peer review PASS · UI-003E owner scaffold proof **NOT passed** · MERGE-PREP-001 blocked until UI-003E PASS · PR #12 draft · `npm run check` pass on clean tree.
+Current estimated work (2026-06-10): RUNTIME-002B **complete** · **RUNTIME-002B-PEER-REVIEW next** · RUNTIME-002C blocked until 002B peer review PASS · UI-003E owner scaffold proof **NOT passed** · MERGE-PREP-001 blocked until UI-003E PASS · PR #12 draft · confirm HEAD with `git rev-parse HEAD`.
