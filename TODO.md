@@ -110,6 +110,7 @@ Status: complete for review, plan updates, and GMAIL-HARDEN-001 implementation. 
 - [x] GMAIL-002A-EXT-004-REPAIR — message-delete index safety + history pagination cursor (`docs/ui/reviews/gmail-002a-ext-004-repair-receipt.md` @ `b2a4b56`).
 - [x] CATCHUP-REVIEW-002 — peer review EXT-004 repair (`docs/ui/reviews/catchup-review-002-ext004-repair-peer-review.md`); **framework backfeed may start**; live history proof still deferred.
 - [x] FRAMEWORK-BACKFEED-001 — Inbox → `xi-io.net#239` freshness packet (`docs/ui/reviews/framework-backfeed-001-xi-io-net-239-receipt.md`).
+- [x] FRAMEWORK-BACKFEED-002 — FIX-BATCH-001 Mail owner-mode freshness packet + xi-io.net#239 addendum (`docs/product/framework-backfeed-002-fix-batch-001-mail-owner-mode-packet.md`).
 - [x] ACC-SYNC-UI-001 — account factory + sync empty-state (`docs/ui/reviews/acc-sync-ui-001-receipt.md`).
 
 ## RUNTIME-NORTHSTAR-001: connected operations cockpit (product correction)
@@ -338,9 +339,10 @@ Owner screenshot pass across all primary nav workspaces. Systematic review for c
 
 - [x] UI-PEER-REVIEW-PROGRAM — runbook, global findings, component drift register, owner vs scaffold mode (`docs/ui/reviews/peer-review/`).
 - [x] UI-PEER-REVIEW-FIX-BATCH-001 — Mail owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-001-mail-owner-mode-receipt.md`).
+- [ ] UI-PEER-REVIEW-FIX-BATCH-002 — Account drawer owner-mode cleanup (next product batch).
 - [ ] UI-PEER-REVIEW-002 Mail — owner retest at `:4488` after FIX-BATCH-001.
 - [ ] UI-PEER-REVIEW-009 Account drawer — owner-simple connect surface.
 - [ ] UI-PEER-REVIEW-001 Home — fixture attention + inspector collapse.
 - [ ] UI-PEER-REVIEW-003 … 008 — Calendar, Tasks, Automations, Activity, Integrations, Ibal.
 
-Current estimated work (2026-06-17): RUNTIME spine complete · GOV-REFRESH-001 complete · **UI-PEER-REVIEW active** · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
+Current estimated work (2026-06-17): RUNTIME spine complete · GOV-REFRESH-001 complete · FIX-BATCH-001 Mail complete · FRAMEWORK-BACKFEED-002 complete · **FIX-BATCH-002 Account drawer next** · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
