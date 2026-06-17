@@ -13,6 +13,10 @@ on:
       - ".github/workflows/tauri-runtime-check.yml"
   workflow_dispatch:
 
+concurrency:
+  group: tauri-runtime-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
