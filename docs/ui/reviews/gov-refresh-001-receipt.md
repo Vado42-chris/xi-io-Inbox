@@ -10,7 +10,7 @@
 
 ## Commit SHA
 
-(record at commit)
+`22efabf`
 
 ## Scope
 
@@ -61,14 +61,16 @@ Reconcile stale governance surfaces after RUNTIME-002C peer review and CI fix:
 
 ## CI result
 
-**Pending push verification**
+**Pass**
 
-- Static Preview Check: `npm run check` (no cargo) — green @ `63b0a69`; re-verify on this commit after push
-- TAURI-CI-001: `.github/workflows/tauri-runtime-check.yml` added — cargo test + gate with `TAURI_CI=1`
+- Static Preview Check — success @ `22efabf` ([run 27691174908](https://github.com/Vado42-chris/xi-io-Inbox/actions/runs/27691174908))
+- Tauri Runtime Check — success @ `22efabf` ([run 27691175095](https://github.com/Vado42-chris/xi-io-Inbox/actions/runs/27691175095))
 
 ## PR #12 body result
 
-**Pending** — refresh via `gh pr edit` after push
+**Pass**
+
+- Updated via `gh pr edit` to HEAD `22efabf` and current gate status
 
 ## Validation result
 
