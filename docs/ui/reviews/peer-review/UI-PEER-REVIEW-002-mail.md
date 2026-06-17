@@ -2,7 +2,7 @@
 
 ## Status
 
-Captured 2026-06-17 · Partial code fix (OWNER_MAIL_UX) · Retest pending
+Captured 2026-06-17 · UI-PEER-REVIEW-FIX-BATCH-001 landed · Owner retest pending
 
 ## Pass A — Purpose
 
@@ -19,13 +19,13 @@ Captured 2026-06-17 · Partial code fix (OWNER_MAIL_UX) · Retest pending
 | Region | Finding | Sev | Code status |
 | --- | --- | --- | --- |
 | Left rail | Was Drafts/Approvals/Imported snapshots noise | P1 | Fixed — owner folders only |
-| Main header | Was badge row + 3 banners | P1 | Partial — one setup guide |
-| Main header | Partial import (25/12470) still prominent | P0 | Open |
+| Main header | Was badge row + 3 banners | P1 | Fixed — one setup guide |
+| Main header | Partial import (25/12470) still prominent | P0 | Fixed — warn only when partial; hidden when loaded |
 | Toolbar | Compose + search OK | — | OK |
-| Thread list | Row overlap / unreadability in screenshots | P0 | Partial CSS |
-| Reading pane | Metadata spec sheet not message view | P1 | Open |
-| Reading pane | “NOT LIVE GMAIL” + blocked action row | P1 | Open |
-| Inspector | Full template duplicate of Mail context | P1 | Open |
+| Thread list | Row overlap / unreadability in screenshots | P0 | Fixed — owner single-column rows |
+| Reading pane | Metadata spec sheet not message view | P1 | Fixed — message-first owner pane |
+| Reading pane | “NOT LIVE GMAIL” + blocked action row | P1 | Fixed — demoted to Advanced |
+| Inspector | Full template duplicate of Mail context | P1 | Fixed — thread-only slim rail |
 
 ## Pass C — Tags
 

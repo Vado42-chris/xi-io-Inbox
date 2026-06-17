@@ -103,6 +103,17 @@ async function main() {
       ['integrations', false],
     ]) {
       await page.locator(`[data-product-workspace="${workspace}"]`).click();
+      const ownerMailUx = workspace === 'mail' && (await page.locator('.is-owner-mail-ux').count()) > 0;
+      if (ownerMailUx) {
+        await page.waitForSelector('.mail-list-pane', { timeout: 10000 });
+        await page.locator('.mail-list-pane .thread-row').first().click();
+        await page.waitForSelector('.is-owner-message-view, .mail-reading-pane', { timeout: 10000 });
+        if (shouldClickHandoff) {
+          const actionCount = await page.locator('[data-inbox-action="task-proposal"], [data-inbox-action="toggle-reply"], [data-ibal-action="toggle-open"]').count();
+          if (actionCount < 1) throw new Error(`${workspace} owner mail missing primary actions`);
+        }
+        continue;
+      }
       await page.waitForSelector('.related-suite-zone', { timeout: 10000 });
       const cards = page.locator('.related-suite-card');
       const cardCount = await cards.count();
@@ -121,6 +132,10 @@ async function main() {
 
     for (const workspace of ['mail', 'calendar', 'tasks', 'activity']) {
       await page.locator(`[data-product-workspace="${workspace}"]`).click();
+      if (workspace === 'mail' && (await page.locator('.is-owner-mail-ux').count()) > 0) {
+        await page.waitForSelector('.mail-list-pane', { timeout: 10000 });
+        continue;
+      }
       await page.waitForSelector('.scope-lens', { timeout: 10000 });
       const options = page.locator('.scope-lens-option');
       const optionCount = await options.count();
@@ -164,12 +179,12 @@ async function main() {
 
     await page.locator('.mail-list-pane .thread-row').first().click();
     const readingText = await page.locator('.mail-reading-stack').innerText();
-    if (!/Body not imported|Read-only body snapshot|Select a conversation/i.test(readingText)) {
+    if (!/Body not imported|Read-only body snapshot|Select a conversation|not enabled in this build/i.test(readingText)) {
       throw new Error('mail reading pane missing expected metadata/body honesty copy');
     }
 
     const blockedCopy = await page.locator('body').innerText();
-    if (!/Send blocked|Send remains blocked|blocked/i.test(blockedCopy)) {
+    if (!/Send blocked|Send remains blocked|not enabled in this build|blocked/i.test(blockedCopy)) {
       throw new Error('blocked send copy not found on mail workspace');
     }
 

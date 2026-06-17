@@ -337,7 +337,8 @@ Current estimated work to reach buildable Android proof: 5 to 7 remaining passes
 Owner screenshot pass across all primary nav workspaces. Systematic review for component framework drift, scaffold noise, and owner vs agent UX.
 
 - [x] UI-PEER-REVIEW-PROGRAM — runbook, global findings, component drift register, owner vs scaffold mode (`docs/ui/reviews/peer-review/`).
-- [ ] UI-PEER-REVIEW-002 Mail — fix batches B3/B6/B7 · retest (partial OWNER_MAIL_UX in code).
+- [x] UI-PEER-REVIEW-FIX-BATCH-001 — Mail owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-001-mail-owner-mode-receipt.md`).
+- [ ] UI-PEER-REVIEW-002 Mail — owner retest at `:4488` after FIX-BATCH-001.
 - [ ] UI-PEER-REVIEW-009 Account drawer — owner-simple connect surface.
 - [ ] UI-PEER-REVIEW-001 Home — fixture attention + inspector collapse.
 - [ ] UI-PEER-REVIEW-003 … 008 — Calendar, Tasks, Automations, Activity, Integrations, Ibal.

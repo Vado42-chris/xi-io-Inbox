@@ -1009,6 +1009,7 @@ function mailSetupGuideKind() {
   if (!operatorMailAccounts().length && !hasRealMailBridge()) return 'add-account';
   const counts = metadataSnapshotInboxCounts();
   if (counts && counts.loaded < counts.total) return 'partial-import';
+  if (mailThreadCount() > 0) return null;
   return 'browser-desktop';
 }
 
@@ -1066,9 +1067,9 @@ function renderMailSetupGuide() {
     return `
       <aside class="mail-setup-guide is-warn" role="note">
         <p class="mail-setup-guide-title">Showing ${counts.loaded} of ${counts.total.toLocaleString()} inbox threads</p>
-        <p class="mail-setup-guide-copy">This browser view uses an old import file. For live mail, open the desktop app and tap Sync now.</p>
+        <p class="mail-setup-guide-copy">This view loaded a saved import, not your full live inbox. Open the desktop app and sync to load more conversations.</p>
         <div class="mail-setup-guide-actions inbox-form-actions">
-          <button class="inbox-action-btn" type="button" data-account-action="open-settings-accounts">Account settings</button>
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="open-settings-accounts">Set up sync</button>
         </div>
       </aside>
     `;
@@ -1076,7 +1077,10 @@ function renderMailSetupGuide() {
 
   return `
     <aside class="mail-setup-guide is-compact" role="note">
-      <p class="mail-setup-guide-copy">Browser preview shows a saved copy of mail, not live Gmail. For automatic inbox sync, use the desktop app (<code>npm run tauri:dev</code>).</p>
+      <p class="mail-setup-guide-copy">Connect Gmail in the desktop app to load and sync your inbox. This browser preview shows saved mail only.</p>
+      <div class="mail-setup-guide-actions inbox-form-actions">
+        <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+      </div>
     </aside>
   `;
 }
@@ -1124,6 +1128,9 @@ function renderOwnerMailContextNav() {
 }
 
 function renderThreadListMeta(thread) {
+  if (ownerMailUxEnabled()) {
+    return thread?.unread ? '<span class="thread-unread-dot" aria-label="Unread"></span>' : '';
+  }
   if (thread?.metadataOnly) {
     return thread.unread ? '<span class="thread-state-chip is-unread">Unread</span>' : '';
   }
@@ -6048,6 +6055,20 @@ function activeProductWorkspace() {
   return workspaceForLane(state.laneId);
 }
 
+function mailOwnerEnvironmentLine() {
+  if (isTauriRuntime()) {
+    if (runtimeOrchestration.busy) return runtimeOrchestrationStatusLabel();
+    if (runtimeOrchestration.connected) return 'Desktop · Connected';
+    return 'Desktop · Not connected';
+  }
+  const counts = metadataSnapshotInboxCounts();
+  if (counts && counts.loaded < counts.total) {
+    return `Preview · ${counts.loaded} of ${counts.total.toLocaleString()} threads`;
+  }
+  if (mailThreadCount() > 0) return 'Preview · Saved mail';
+  return 'Preview · Not connected';
+}
+
 function environmentStatusBadge() {
   if (isTauriRuntime()) {
     if (runtimeOrchestration.busy) return runtimeOrchestrationStatusLabel();
@@ -6339,7 +6360,7 @@ function renderTopBar() {
           <div class="brand-mark" aria-hidden="true"><span>XI</span></div>
           <div class="brand-copy">
             <h1 class="product-title">XI-IO Inbox</h1>
-            <span class="env-status-badge">${escapeHtml(environmentStatusBadge())}</span>
+            <span class="env-status-badge">${escapeHtml(ownerMailUxEnabled() && activeProductWorkspace() === 'mail' ? mailOwnerEnvironmentLine() : environmentStatusBadge())}</span>
           </div>
         </section>
       </div>
@@ -6827,6 +6848,131 @@ function renderMailWorkspaceHeader() {
   `;
 }
 
+function renderOwnerMetadataReadingPane(thread) {
+  const threadId = thread?.id || '';
+  return `
+    <section class="inbox-reading-pane mail-reading-pane is-owner-message-view is-metadata-only" aria-label="Message preview">
+      <header class="mail-reading-head is-owner-simple">
+        <h3>${escapeHtml(demoteMailDisplayText(thread.title))}</h3>
+        <p class="inbox-reading-meta">${escapeHtml(demoteMailDisplayText(thread.sender || ''))} · ${escapeHtml(formatMailDate(thread.receivedAt))}</p>
+      </header>
+      <article class="mail-message-preview" aria-label="Message preview">
+        <p class="mail-message-body is-snippet">${escapeHtml(demoteMailDisplayText(threadSnippetText(thread)))}</p>
+        <p class="mail-message-preview-note">Body not imported yet. This preview shows headers and snippet from a saved mail import, not live Gmail.</p>
+      </article>
+      <div class="mail-reading-actions is-owner-primary" role="toolbar" aria-label="Message actions">
+        <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="task-proposal" data-thread-id="${escapeHtml(threadId)}">Create task</button>
+      </div>
+      <details class="inbox-reading-details mail-owner-advanced">
+        <summary>More options</summary>
+        ${renderMailLabelChips(thread.labels)}
+        <p class="form-hint">Reply, send, and provider changes are not enabled in this build.</p>
+        <dl class="thread-metadata-grid mail-metadata-grid">
+          <div><dt>From</dt><dd>${escapeHtml(demoteMailDisplayText(thread.sender || ''))}</dd></div>
+          <div><dt>Date</dt><dd>${escapeHtml(formatMailDate(thread.receivedAt))}</dd></div>
+          ${(thread.detailFields || []).map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(demoteMailDisplayText(field.value))}</dd></div>`).join('')}
+        </dl>
+        <div class="mail-reading-actions is-owner-advanced" role="toolbar" aria-label="Blocked message actions">
+          <button class="inbox-action-btn is-blocked" type="button" disabled title="Draft write blocked">Draft reply blocked</button>
+          <button class="inbox-action-btn is-blocked" type="button" disabled title="Send blocked">Send blocked</button>
+        </div>
+      </details>
+    </section>
+  `;
+}
+
+function renderOwnerFixtureReadingPane(thread) {
+  const threadId = thread?.id || '';
+  const messages = thread?.messages || [];
+  const evidence = thread?.evidence || [];
+  const attachments = thread?.attachments || [];
+  const reply = replyDraftFor(threadId) || {};
+  return `
+    <section class="inbox-reading-pane mail-reading-pane is-owner-message-view" aria-label="Message preview">
+      <header class="mail-reading-head is-owner-simple">
+        <h3>${escapeHtml(demoteMailDisplayText(thread.title))}</h3>
+        <p class="inbox-reading-meta">${escapeHtml(demoteMailDisplayText(thread.sender || ''))} · ${escapeHtml(formatMailDate(thread.receivedAt))}</p>
+      </header>
+      ${renderMailLabelChips(thread.labels)}
+      <div class="message-stack" aria-label="Conversation">
+        ${messages.length ? messages.map((message) => `
+          <article class="message-row">
+            <header class="message-row-head">
+              <strong>${escapeHtml(demoteMailDisplayText(message.from))}</strong>
+              ${formatMessageMeta(message.meta) ? `<small>${escapeHtml(formatMessageMeta(message.meta))}</small>` : ''}
+            </header>
+            <p class="message-body">${escapeHtml(demoteMailDisplayText(message.summary))}</p>
+          </article>
+        `).join('') : `
+          <article class="message-row">
+            <p class="message-body">${escapeHtml(demoteMailDisplayText(threadSnippetText(thread)))}</p>
+          </article>
+        `}
+      </div>
+      <div class="mail-reading-actions is-owner-primary" role="toolbar" aria-label="Message actions">
+        <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
+        <button class="inbox-action-btn" type="button" data-inbox-action="toggle-compose">New draft</button>
+        <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
+      </div>
+      ${state.inbox.replyOpen ? `
+        <form class="inbox-draft-form inbox-reply-sheet" data-inbox-form="reply" aria-label="Reply draft">
+          <label for="reply-to">To</label>
+          <input id="reply-to" name="to" type="text" autocomplete="off" value="${escapeHtml(reply.to || demoteMailDisplayText(thread.sender || ''))}" />
+          <label for="reply-subject">Subject</label>
+          <input id="reply-subject" name="subject" type="text" autocomplete="off" value="${escapeHtml(reply.subject || (thread.title ? `Re: ${demoteMailDisplayText(thread.title)}` : ''))}" />
+          <label for="reply-body">Message</label>
+          <textarea id="reply-body" name="body" rows="6">${escapeHtml(reply.body || '')}</textarea>
+          <div class="inbox-form-actions">
+            <button class="inbox-action-btn is-primary" type="submit" data-inbox-action="reply-save" data-thread-id="${escapeHtml(threadId)}">Save draft</button>
+            <button class="inbox-action-btn" type="button" data-inbox-action="reply-clear" data-thread-id="${escapeHtml(threadId)}">Discard</button>
+          </div>
+          <p class="form-hint">Saved as a local draft. Send is not enabled in this build.</p>
+        </form>
+      ` : ''}
+      ${attachments.length ? `
+        <details class="inbox-reading-details mail-attachment-details">
+          <summary>Attachments (${attachments.length})</summary>
+          <ul class="mail-attachment-list" aria-label="Attachments">
+            ${attachments.map((item) => `<li><strong>${escapeHtml(item.label)}</strong> · ${escapeHtml(label(item.state || 'not_loaded'))}</li>`).join('')}
+          </ul>
+        </details>
+      ` : ''}
+      <details class="inbox-reading-details mail-owner-advanced">
+        <summary>More about this conversation</summary>
+        <p class="form-hint">Preview data only. Live mail sync and send are not enabled.</p>
+        <dl class="thread-metadata-grid">
+          ${(thread.fields || thread.detailFields || []).map((field) => `
+            <div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(demoteMailDisplayText(field.value))}</dd></div>
+          `).join('')}
+        </dl>
+        ${evidence.length ? `<ul class="detail-list">${evidence.map((item) => `<li>${escapeHtml(item.label)}: ${escapeHtml(demoteMailDisplayText(item.summary))}</li>`).join('')}</ul>` : ''}
+        <button class="inbox-action-btn is-blocked" type="button" disabled title="Send remains blocked in this preview">Send blocked</button>
+      </details>
+      ${(localReceiptsForThread(threadId).length || localProposalsForThread(threadId).length) ? `
+        <details class="inbox-reading-details">
+          <summary>Activity and receipts</summary>
+          ${renderLocalReceiptsPanel(threadId)}
+        </details>
+      ` : ''}
+    </section>
+  `;
+}
+
+function renderOwnerMailReadingPane(thread) {
+  if (!thread) {
+    return `
+      <section class="inbox-reading-pane is-empty mail-reading-pane is-owner-message-view" aria-label="Message preview">
+        <p class="inbox-empty-state is-interactive-hint">Select a conversation to read it here.</p>
+      </section>
+    `;
+  }
+  if (thread.metadataOnly && !gmailBodyBridgeActive()) {
+    return renderOwnerMetadataReadingPane(thread);
+  }
+  return renderOwnerFixtureReadingPane(thread);
+}
+
 function renderMetadataReadingPane(thread) {
   const threadId = thread?.id || '';
   return `
@@ -6868,6 +7014,9 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
   const attachments = thread?.attachments || [];
   if (state.inbox.mailboxView === 'drafts' || state.inbox.mailboxView === 'approval-queue') {
     return renderDraftReadingPane(selectedDraft());
+  }
+  if (ownerMailUxEnabled()) {
+    return renderOwnerMailReadingPane(thread);
   }
   if (!thread) {
     return `
@@ -6958,6 +7107,21 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
 
 function renderThreadListRow(thread, selected) {
   const unread = thread.unread === true;
+  if (ownerMailUxEnabled()) {
+    return `
+    <button class="thread-row mail-thread-row is-owner-row ${selected?.id === thread.id ? 'is-selected' : ''} ${unread ? 'is-unread' : ''}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
+      <div class="thread-row-main">
+        <div class="thread-row-top">
+          ${unread ? '<span class="thread-unread-dot" aria-label="Unread"></span>' : ''}
+          <strong class="thread-sender">${escapeHtml(demoteMailDisplayText(thread.sender || thread.title))}</strong>
+          <time class="thread-time" datetime="${escapeHtml(thread.receivedAt || '')}">${escapeHtml(formatMailDate(thread.receivedAt))}</time>
+        </div>
+        <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
+        <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(threadSnippetText(thread)))}</p>
+      </div>
+    </button>
+  `;
+  }
   return `
     <button class="thread-row mail-thread-row ${selected?.id === thread.id ? 'is-selected' : ''} ${unread ? 'is-unread' : ''} ${thread.metadataOnly ? 'is-metadata-only' : 'is-fixture'}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
       <div class="thread-row-main">
@@ -10422,9 +10586,52 @@ function renderInboxCommandRail(mode, inspector) {
   return '';
 }
 
+function ownerMailInspectorRailMode() {
+  if (!ownerMailUxEnabled() || state.laneId !== 'inbox') return null;
+  if (['drafts', 'approval-queue'].includes(state.inbox.mailboxView || 'inbox')) return 'scaffold';
+  return state.threadId ? 'thread' : 'idle';
+}
+
+function renderOwnerMailInspector(inspector) {
+  const mode = ownerMailInspectorRailMode();
+  if (mode === 'idle') {
+    return `
+      <aside class="right-inspector context-command-rail is-owner-mail-rail is-rail-idle" aria-label="Message actions">
+        <p class="owner-mail-rail-hint">Select a conversation to see quick actions.</p>
+      </aside>
+    `;
+  }
+  if (mode !== 'thread') return '';
+  const thread = selectedInboxThread();
+  return `
+    <aside class="right-inspector context-command-rail is-owner-mail-rail is-rail-thread" aria-label="Message actions" data-rail-mode="thread">
+      <header class="inspector-title is-owner-compact">
+        <h2 class="inspector-selected-title">${escapeHtml(demoteMailDisplayText(thread?.title || 'Conversation'))}</h2>
+      </header>
+      <section class="inspector-block inspector-commands">
+        <h3 class="visually-hidden">Actions</h3>
+        ${renderInboxCommandRail('thread', inspector)}
+      </section>
+      <details class="inspector-meta-collapsed">
+        <summary>Advanced</summary>
+        <div class="inspector-ibal-actions">
+          <button class="inbox-action-btn" type="button" data-ibal-action="toggle-open">Ask Ibal</button>
+        </div>
+        <section class="inspector-block">
+          <h3>Blocked actions</h3>
+          <p class="form-hint">${escapeHtml(inspector.blocked || 'Send, forward, delete, and provider mutation remain blocked in this build.')}</p>
+        </section>
+        ${renderInspectorBlock('Sources', demoteMailDisplayText(inspector.evidence || 'No linked sources.'))}
+      </details>
+    </aside>
+  `;
+}
+
 function renderInspector() {
   const lane = activeLane();
   const inspector = activeInspectorModel();
+  const ownerMailInspector = renderOwnerMailInspector(inspector);
+  if (ownerMailInspector) return ownerMailInspector;
   const railMode = inspector.mode || inboxCommandRailMode() || inspector.kind || 'lane';
   const inboxRail = state.laneId === 'inbox' ? renderInboxCommandRail(railMode, inspector) : '';
   const mailRailCompact = state.laneId === 'inbox' && !state.threadId && !['drafts', 'approval-queue'].includes(state.inbox.mailboxView || 'inbox');

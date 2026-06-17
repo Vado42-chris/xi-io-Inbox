@@ -3300,10 +3300,18 @@ textarea:focus-visible,
 .receipt-ledger-head,
 .receipt-ledger-row {
   display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1.4fr) 9rem 7rem;
+  grid-template-columns: 5.5rem minmax(0, 1.4fr) minmax(0, 9rem) 6.5rem;
   gap: 0.75rem;
   align-items: center;
   padding: 0.65rem 0.85rem;
+}
+
+.receipt-ledger-row strong,
+.receipt-ledger-row span[role="cell"] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .receipt-ledger-head {
@@ -6337,6 +6345,137 @@ body {
 
 .mail-setup-guide-actions {
   margin-top: 0.65rem;
+}
+
+/* UI-PEER-REVIEW-FIX-BATCH-001 — Mail owner-mode surface */
+.is-owner-mail-ux.is-mail-workbench .app-frame {
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(0, 0);
+}
+
+.is-owner-mail-ux.is-mail-workbench .app-frame:has(.is-rail-thread) {
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(10rem, 12rem);
+}
+
+.is-owner-mail-ux .thread-unread-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(121, 216, 255, 0.18);
+}
+
+.is-owner-mail-ux .mail-list-pane .thread-row.mail-thread-row.is-owner-row {
+  display: block;
+  grid-template-columns: none;
+}
+
+.is-owner-mail-ux .mail-list-pane .thread-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.is-owner-mail-ux .mail-list-pane .thread-row-top .thread-sender {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-owner-mail-ux .mail-list-pane .thread-row-top .thread-time {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.mail-message-preview {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chrome);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mail-message-body.is-snippet {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.mail-message-preview-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.mail-reading-head.is-owner-simple h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.mail-reading-actions.is-owner-primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.mail-reading-actions.is-owner-advanced {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.mail-owner-advanced summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.right-inspector.is-owner-mail-rail.is-rail-idle {
+  display: none;
+}
+
+.right-inspector.is-owner-mail-rail.is-rail-thread {
+  border-left: 1px solid var(--line);
+  background: rgba(12, 14, 18, 0.55);
+  padding: 0.65rem 0.75rem;
+}
+
+.right-inspector.is-owner-mail-rail .inspector-title.is-owner-compact {
+  margin-bottom: 0.55rem;
+}
+
+.right-inspector.is-owner-mail-rail .inspector-title.is-owner-compact .inspector-selected-title {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.right-inspector.is-owner-mail-rail .inspector-block h3 {
+  font-size: 0.78rem;
+}
+
+.owner-mail-rail-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1280px) {
+  .is-owner-mail-ux.is-mail-workbench .app-frame:has(.is-rail-thread) {
+    grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr) minmax(9rem, 11rem);
+  }
 }
 
 .lane-nav.is-owner-mail-nav {
