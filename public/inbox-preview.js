@@ -6910,6 +6910,7 @@ function renderOwnerFixtureReadingPane(thread) {
           </article>
         `}
       </div>
+      <p class="mail-message-preview-note">Preview only — not live Gmail. Full sync and send are not enabled in this build.</p>
       <div class="mail-reading-actions is-owner-primary" role="toolbar" aria-label="Message actions">
         <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-reply" aria-expanded="${state.inbox.replyOpen ? 'true' : 'false'}">Reply</button>
         <button class="inbox-action-btn" type="button" data-inbox-action="toggle-compose">New draft</button>
@@ -12575,7 +12576,7 @@ async function init() {
   state.payload = await fetchJson(DATA_URL, {});
   await loadRuntimeMailArtifacts();
   syncRuntimeRefreshLoop();
-  await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
+  await importGmailMetadataSnapshot({ preferLocal: true, recordReceipt: false });
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
   await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_LOCAL_URL, 'local-file');
   ensureAccountDefaults();

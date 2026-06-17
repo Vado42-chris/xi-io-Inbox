@@ -178,9 +178,10 @@ async function main() {
     if (threadCount < 1) throw new Error('mail thread list empty');
 
     await page.locator('.mail-list-pane .thread-row').first().click();
+    await page.locator('.mail-reading-stack .mail-reading-pane, .mail-reading-stack .inbox-reading-pane').first().waitFor({ timeout: 10000 });
     const readingText = await page.locator('.mail-reading-stack').innerText();
-    if (!/Body not imported|Read-only body snapshot|Select a conversation|not enabled in this build/i.test(readingText)) {
-      throw new Error('mail reading pane missing expected metadata/body honesty copy');
+    if (!/Body not imported|Read-only body snapshot|Select a conversation|not enabled in this build|Preview only|not live Gmail|saved mail import/i.test(readingText)) {
+      throw new Error(`mail reading pane missing expected metadata/body honesty copy: ${readingText.slice(0, 240)}`);
     }
 
     const blockedCopy = await page.locator('body').innerText();
