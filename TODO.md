@@ -128,8 +128,9 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [x] RUNTIME-002A — read-only mail index command + minimal Tauri JS bridge + capabilities ACL (`docs/ui/reviews/runtime-002a-mail-index-read-bridge-receipt.md`).
 - [x] RUNTIME-002A-PEER-REVIEW — narrow review before connect/sync UI binding (`docs/ui/reviews/runtime-002a-peer-review-receipt.md`).
 - [x] RUNTIME-002B — connect/sync orchestration + live-state copy (`docs/ui/reviews/runtime-002b-connect-sync-ui-orchestration-receipt.md`).
-- [ ] RUNTIME-002B-PEER-REVIEW — narrow review before refresh loop (**next**).
-- [ ] RUNTIME-002C — minimal UI refresh loop + operator OAuth proof (after 002B).
+- [x] RUNTIME-002B-PEER-REVIEW — narrow review before refresh loop (`docs/ui/reviews/runtime-002b-peer-review-receipt.md`).
+- [x] OLLAMA-PEER-REVIEW-001 — governance AI harness (`docs/ui/reviews/ollama-peer-review-001-receipt.md` · `npm run peer-review:ollama`).
+- [x] RUNTIME-002C — refresh loop + operator OAuth proof runbook (`docs/ui/reviews/runtime-002c-refresh-loop-operator-proof-receipt.md` · owner proof pending).
 - [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
 - [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
@@ -147,7 +148,8 @@ Status: **complete** (docs/governance closeout 2026-06-10). Owner decision: `ARC
 - [x] RUNTIME-002A — read-only mail index + Tauri bridge (`docs/ui/reviews/runtime-002a-mail-index-read-bridge-receipt.md`).
 - [x] RUNTIME-002A-PEER-REVIEW — **complete** → `RUNTIME_002A_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002B`.
 - [x] RUNTIME-002B — connect/sync orchestration (`docs/ui/reviews/runtime-002b-connect-sync-ui-orchestration-receipt.md`).
-- [ ] RUNTIME-002B-PEER-REVIEW — **next** before RUNTIME-002C.
+- [x] RUNTIME-002B-PEER-REVIEW — **complete** → `RUNTIME_002B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002C`.
+- [x] RUNTIME-002C — refresh loop packaging (`docs/ui/reviews/runtime-002c-refresh-loop-operator-proof-receipt.md` · owner OAuth proof pending).
 
 ## ARCH-004: platform runtime and deployment envelope
 
@@ -326,4 +328,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-10): RUNTIME-002B **complete** · **RUNTIME-002B-PEER-REVIEW next** · RUNTIME-002C blocked until 002B peer review PASS · UI-003E owner scaffold proof **NOT passed** · MERGE-PREP-001 blocked until UI-003E PASS · PR #12 draft · confirm HEAD with `git rev-parse HEAD`.
+Current estimated work (2026-06-17): RUNTIME-002C packaging **complete** · **owner operator OAuth proof pending** · RUNTIME-002C-PEER-REVIEW next · UI-003E owner scaffold proof **NOT passed** · MERGE-PREP-001 blocked until UI-003E PASS · PR #12 draft · confirm HEAD with `git rev-parse HEAD`.

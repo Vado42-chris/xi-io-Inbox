@@ -60,6 +60,10 @@ Static preview is not connected live mail. Tauri runtime is not a substitute for
 | `npm run check:runtime001` | Tauri spine / sidecar allowlist changes |
 | `npm run check:runtime002a` | Read-only mail index bridge changes |
 | `npm run check:runtime002b` | Connect/sync orchestration changes |
+| `npm run check:runtime002c` | Refresh loop + operator proof packaging |
+| `npm run check:ollama-peer-review` | Ollama governance harness files |
+| `npm run peer-review:ollama -- --slice <id> --dry-run` | Baked peer-review bundle (no API call) |
+| `npm run peer-review:ollama -- --slice <id> --write` | Ollama draft peer review receipt |
 | `npm run check:route` | Browser smoke (in full check) |
 | `npm run check` | Before slice close / merge prep |
 | `cargo test --manifest-path src-tauri/Cargo.toml` | Tauri Rust changes |
@@ -71,6 +75,10 @@ Schema metaschema (when `schemas/` change):
 `python3 -m check_jsonschema --check-metaschema schemas/*.json`
 
 Review committed SHA on a clean tree. Stash unrelated WIP before peer review or slice-close validation.
+
+### Governance peer review (token economics)
+
+Prefer the baked Ollama harness before re-typing peer review prompts in Cursor when a slice profile exists. See `docs/ai/ollama-peer-review-runbook.md` and `.cursor/rules/ollama-peer-review.mdc`. Draft output is not final until checks pass and the canonical `*-peer-review-receipt.md` is written. Product provider Settings shape: `docs/ai/provider-settings-contract.md`.
 
 ## Anti-stall (external storage)
 
@@ -119,14 +127,15 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | --- | --- |
 | RUNTIME-002A + RUNTIME-002A-PEER-REVIEW | complete |
 | RUNTIME-002B connect/sync UI orchestration | complete (`a0c010f`) |
-| **RUNTIME-002B-PEER-REVIEW** | **next** |
-| RUNTIME-002C refresh loop + operator OAuth proof | blocked until 002B peer review PASS |
+| **RUNTIME-002B-PEER-REVIEW** | **complete** |
+| **RUNTIME-002C** refresh loop + operator OAuth proof packaging | **complete — owner proof pending** |
 | UI-003E owner visual proof (scaffold) | **human gate — NOT passed** |
 | MERGE-PREP-001 execution | blocked until owner UI-003E PASS |
 
 Decision tokens in flight (see receipts — do not invent new ones):
 
-- `RUNTIME_002B_PASS_READY_FOR_RUNTIME_002B_PEER_REVIEW`
+- `RUNTIME_002B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002C`
+- `RUNTIME_002C_PASS_READY_FOR_OPERATOR_PROOF_AND_PEER_REVIEW`
 - UI-003E: not passed
 
 Owner session (scaffold): `docs/ui/reviews/ui-003e-owner-session-runbook.md`

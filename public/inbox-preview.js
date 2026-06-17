@@ -19,6 +19,9 @@ import {
   syncGmailHistory,
   refreshRuntimeMail,
 } from './src/runtime/gmail-runtime-bridge.js';
+import { createRuntimeRefreshLoop } from './src/runtime/gmail-runtime-refresh-loop.js';
+
+const RUNTIME_REFRESH_INTERVAL_MS = 60_000;
 
 const DATA_URL = './data/inbox-events.preview.json';
 const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
@@ -75,9 +78,54 @@ let runtimeOrchestration = {
   phase: 'idle',
   lastError: null,
   lastSyncAt: null,
+  lastRefreshAt: null,
   indexError: null,
   connected: null,
 };
+
+function runtimeRefreshLoopShouldRun() {
+  if (!isTauriRuntime() || runtimeOrchestration.busy) return false;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+  return Boolean(
+    runtimeOrchestration.connected
+    || String(gmailSyncStatus?.oauth?.status || '').toLowerCase() === 'connected',
+  );
+}
+
+async function runRuntimeRefreshTick({ reason = 'manual' } = {}) {
+  if (!isTauriRuntime()) {
+    return { ok: false, error: 'Tauri runtime unavailable', reason };
+  }
+  const bundle = await refreshRuntimeMail();
+  const applied = applyRuntimeRefreshBundle(bundle);
+  runtimeOrchestration.lastRefreshAt = new Date().toISOString();
+  if (applied.ok) {
+    renderShell();
+  }
+  return { ok: applied.ok, reason, error: runtimeOrchestration.indexError || null };
+}
+
+const runtimeRefreshLoop = createRuntimeRefreshLoop({
+  intervalMs: RUNTIME_REFRESH_INTERVAL_MS,
+  isActive: runtimeRefreshLoopShouldRun,
+  onRefresh: runRuntimeRefreshTick,
+});
+
+function syncRuntimeRefreshLoop() {
+  if (runtimeRefreshLoopShouldRun()) {
+    runtimeRefreshLoop.start();
+    return;
+  }
+  runtimeRefreshLoop.stop();
+}
+
+function runtimeRefreshStatusLabel() {
+  if (!isTauriRuntime()) return 'static preview';
+  const status = runtimeRefreshLoop.getStatus();
+  if (status.refreshing) return 'refreshing…';
+  if (!status.running) return 'paused';
+  return `every ${Math.round(status.intervalMs / 1000)}s`;
+}
 
 const SETTINGS_USER_SECTIONS = [
   { id: 'user:profile', label: 'Profile / Workspace', badge: 'you', summary: 'Display density and workspace context' },
@@ -4070,6 +4118,7 @@ async function loadRuntimeMailArtifacts() {
     const bundle = await refreshRuntimeMail();
     applyRuntimeRefreshBundle(bundle);
     const threadCount = gmailMailIndex?.threads?.length || 0;
+    syncRuntimeRefreshLoop();
     return {
       ok: !runtimeOrchestration.indexError,
       mode: runtimeHostMode,
@@ -4174,13 +4223,14 @@ async function runRuntimeGmailConnect(accountId) {
   }
   runtimeOrchestration.connected = Boolean(result.data?.payload?.connected ?? result.data?.success);
   await reloadRuntimeMailIndexAfterSync();
+  syncRuntimeRefreshLoop();
   addAccountReceipt({
     type: 'runtime_connect',
     title: 'Gmail runtime connect attempted',
     summary: runtimeOrchestration.connected
       ? 'Connected via local runtime OAuth loopback.'
       : 'Connect finished; verify sync status before syncing mail.',
-    limitations: 'Operator OAuth proof remains deferred to RUNTIME-002C.',
+    limitations: 'Body read, draft write, send, and mutation remain blocked. Record operator proof via RUNTIME-002C runbook.',
   });
   setStatusMessage(runtimeOrchestration.connected
     ? 'Gmail connected via local runtime. Use Sync now to populate the mail index.'
@@ -4217,6 +4267,7 @@ async function runRuntimeGmailSyncNow(accountId) {
   }
   runtimeOrchestration.lastSyncAt = new Date().toISOString();
   await reloadRuntimeMailIndexAfterSync();
+  syncRuntimeRefreshLoop();
   addAccountReceipt({
     type: 'runtime_sync',
     title: 'Gmail runtime metadata sync completed',
@@ -4260,6 +4311,7 @@ async function runRuntimeGmailSyncHistory(accountId) {
   }
   runtimeOrchestration.lastSyncAt = new Date().toISOString();
   await reloadRuntimeMailIndexAfterSync();
+  syncRuntimeRefreshLoop();
   addAccountReceipt({
     type: 'runtime_sync',
     title: 'Gmail runtime history sync completed',
@@ -4666,6 +4718,8 @@ function renderRuntimeGmailOrchestrationPanel({ compact = false } = {}) {
       : (indexThreads ? `${indexThreads} threads` : 'empty · sync to populate')],
     ['History cursor', history?.lastHistoryId ? `${history.lastSyncMode || 'sync'} · id ${history.lastHistoryId}` : 'none stored'],
     ['Last sync', runtimeOrchestration.lastSyncAt || gmailSyncStatus?.lastSync?.at || 'none recorded'],
+    ['Auto refresh', runtimeRefreshStatusLabel()],
+    ['Last refresh', runtimeOrchestration.lastRefreshAt || runtimeRefreshLoop.getStatus().lastRefreshAt || 'none recorded'],
     ['Body read', label(gmailSyncStatus?.gates?.bodyRead || 'blocked')],
     ['Draft write', label(gmailSyncStatus?.gates?.draftWrite || 'blocked')],
     ['Send', label(gmailSyncStatus?.gates?.send || 'blocked')],
@@ -4683,6 +4737,7 @@ function renderRuntimeGmailOrchestrationPanel({ compact = false } = {}) {
           <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-connect-gmail" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
           <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-metadata" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
           <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-history" ${runtimeOrchestration.busy || !runtimeHistorySyncAvailable() ? 'disabled' : ''} title="${runtimeHistorySyncAvailable() ? 'Partial history sync when historyId is stored' : 'Run metadata sync first to store historyId'}">Sync history</button>
+          <button class="inbox-action-btn" type="button" data-account-action="runtime-refresh-now" ${runtimeOrchestration.busy ? 'disabled' : ''}>Refresh now</button>
         </div>
       `}
     </aside>
@@ -10516,6 +10571,17 @@ function handleAccountAction(action, accountId) {
     runRuntimeGmailSyncHistory(accountId);
     return;
   }
+  if (action === 'runtime-refresh-now') {
+    runRuntimeRefreshTick({ reason: 'manual' }).then(() => {
+      syncRuntimeRefreshLoop();
+      setStatusMessage(runtimeOrchestration.indexError
+        ? `Runtime refresh failed: ${runtimeOrchestration.indexError}`
+        : `Runtime refresh completed · ${gmailMailIndex?.threads?.length || 0} threads in index.`);
+      saveState();
+      renderShell();
+    });
+    return;
+  }
   if (action === 'connect-gcal') {
     window.alert(gcalConnectInstructions());
     setStatusMessage('Google Calendar connect runs in tools/gcal CLI. Read-only metadata; event write blocked.');
@@ -12028,6 +12094,7 @@ async function init() {
   ensureAccountDefaults();
   normalizeScopedObjects();
   await loadRuntimeMailArtifacts();
+  syncRuntimeRefreshLoop();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
   await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_LOCAL_URL, 'local-file');
@@ -12040,6 +12107,12 @@ async function init() {
 }
 
 bindEvents();
+window.addEventListener('beforeunload', () => {
+  runtimeRefreshLoop.stop();
+});
+document.addEventListener('visibilitychange', () => {
+  syncRuntimeRefreshLoop();
+});
 init();
 
 window.xiioInboxPreview = { state, renderShell, init };

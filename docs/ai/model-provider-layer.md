@@ -86,3 +86,15 @@ Every model call that influences a user-visible proposal should record:
 - Do not scrape browser sessions.
 - Do not require one vendor subscription.
 - Do not assume phone-local LLM inference for MVP.
+
+## Settings contract
+
+Product Settings UI and IBAL-001 must implement the adapter/profile shape in
+`docs/ai/provider-settings-contract.md` (AI-agnostic profiles, Tauri vault, local-first routing).
+
+## Governance peer review (dev ring)
+
+Automatic slice peer review for token economics lives outside product Settings:
+
+- Runbook: `docs/ai/ollama-peer-review-runbook.md`
+- Command: `npm run peer-review:ollama -- --slice <profile> --write`
