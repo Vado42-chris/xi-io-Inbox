@@ -6,7 +6,7 @@
 | --- | --- |
 | Date | 2026-06-17 |
 | Branch | `ui-002/framework-derived-static-preview` |
-| Commit SHA | `eacb4199eb3cc152c674c1815ee4cb173aaa54b7` |
+| Commit SHA | `7c9fda054852d2cb3f3da33df6408d71e270145e` |
 | PR | #12 (draft, unmerged) |
 
 ## Source peer-review docs
