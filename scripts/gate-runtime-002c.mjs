@@ -23,7 +23,7 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const cargoManifest = path.join(root, 'src-tauri/Cargo.toml');
-  const skipCargo = process.env.CI === 'true' || process.env.SKIP_CARGO_GATE === '1';
+  const skipCargo = process.env.CI === 'true' && process.env.TAURI_CI !== '1';
 
   const steps = [
     runStep(root, 'refresh loop unit tests', process.execPath, [

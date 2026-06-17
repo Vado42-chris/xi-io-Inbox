@@ -136,7 +136,7 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
 - [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
 
-**Blocked until RUNTIME-001B + RUNTIME-002 spine:** Mail UI polish, merge prep, PR #12 ready-for-review, framework backfeed of JSON bridge as final pattern.
+**Blocked until UI-003E PASS:** merge prep, PR #12 ready-for-review, Mail UI polish. RUNTIME spine 002A→002C complete.
 
 ## ARCH-004-FORMALIZE: runtime host decision closeout
 
@@ -150,7 +150,7 @@ Status: **complete** (docs/governance closeout 2026-06-10). Owner decision: `ARC
 - [x] RUNTIME-002A-PEER-REVIEW — **complete** → `RUNTIME_002A_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002B`.
 - [x] RUNTIME-002B — connect/sync orchestration (`docs/ui/reviews/runtime-002b-connect-sync-ui-orchestration-receipt.md`).
 - [x] RUNTIME-002B-PEER-REVIEW — **complete** → `RUNTIME_002B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002C`.
-- [x] RUNTIME-002C — refresh loop packaging (`docs/ui/reviews/runtime-002c-refresh-loop-operator-proof-receipt.md` · owner OAuth proof pending).
+- [x] RUNTIME-002C — refresh loop packaging (`docs/ui/reviews/runtime-002c-refresh-loop-operator-proof-receipt.md`).
 
 ## ARCH-004: platform runtime and deployment envelope
 
@@ -166,12 +166,13 @@ Status: **formal PASS** (`ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`, ARCH-004-F
 - [x] Open framework tracking issue `xi-io.net#240`.
 - [x] Sync Inbox platform matrix back to the framework contract and issue.
 - [x] Capture provisional primary runtime: **Tauri local desktop** (`docs/architecture/arch-004-runtime-host-decision.md`).
-- [ ] Owner formal PASS: `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY`.
-- [ ] Decide primary first runtime surface.
-- [ ] Decide whether first desktop/control-room shell is local web, Tauri, or another path.
+- [x] Owner formal PASS: `ARCH_004_PASS_TAURI_LOCAL_RUNTIME_PRIMARY` (see ARCH-004-FORMALIZE above).
+- [x] Primary first runtime surface: **Tauri local desktop** (ARCH-004 formal PASS).
+- [ ] ~~Decide primary first runtime surface.~~ superseded by ARCH-004 formal PASS.
+- [ ] ~~Decide whether first desktop/control-room shell is local web, Tauri, or another path.~~ superseded — Tauri primary; static preview for scaffold.
 - [ ] Decide Android role after local Android mail spine proof.
 - [ ] Decide local cloud/home server role and security boundary.
-- [ ] Decide storage, provider secret, sync, backup, distribution, and offline behavior boundaries.
+- [ ] Decide storage, provider secret, sync, backup, distribution, and offline behavior boundaries (Pass 4 / product phases).
 
 ## PLAN-001: product delivery governance and backlog
 
@@ -329,4 +330,6 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-17): RUNTIME spine **002A→002C peer review complete** · optional OAuth marker · **GOV-REFRESH-001** next · UI-003E **NOT passed** · PR #12 draft.
+- [x] GOV-REFRESH-001 — fixture/TODO/hydration/owner gate chart/PR body/TAURI-CI (`docs/ui/reviews/gov-refresh-001-receipt.md`).
+
+Current estimated work (2026-06-17): RUNTIME spine complete · GOV-REFRESH-001 complete · **UI-003E owner visual proof** (open http://localhost:4488) · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.

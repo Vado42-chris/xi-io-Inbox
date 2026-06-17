@@ -32,27 +32,25 @@ checked out `ui-002/framework-derived-static-preview`.
 | PR #19 | `ui-002/framework-derived-static-preview` | Merged — branch-truth, north-star, orchestration, app peer review. |
 | PR #20 | `ui-002/framework-derived-static-preview` | Open — see `docs/ui/reviews/pr-20-full-peer-review-2026-06-14.md`. |
 
-## Current remote truth (verified 2026-06-10)
+## Current remote truth
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   run `git rev-parse HEAD` after fetch (governance refresh @ 47e66e1)
+HEAD:   run `git rev-parse HEAD` after fetch
 PR:     #12 (open, draft, unmerged)
-CI:     Static Preview Check — see GitHub Actions on branch
+CI:     Static Preview Check (npm run check) + Tauri Runtime Check (cargo test + gate)
+Owner:  docs/operations/owner-gate-chart.md
 ```
 
 ### Active gate (agent work order)
 
 | Step | Status |
 | --- | --- |
-| RUNTIME-002A + peer review | complete |
-| RUNTIME-002B connect/sync orchestration | complete |
-| RUNTIME-002B-PEER-REVIEW | complete |
-| **RUNTIME-002C** + peer review | **complete** |
-| Optional live OAuth marker | owner when ready |
-| **GOV-REFRESH-001** | per sprint ledger |
-| UI-003E owner visual proof (scaffold, `:4488`) | **NOT passed** (human) |
-| MERGE-PREP-001 execution | blocked until owner UI-003E PASS |
+| RUNTIME-002A → RUNTIME-002C + peer reviews | complete |
+| GOV-REFRESH-001 | complete |
+| TAURI-CI-001 | complete |
+| **UI-003E owner visual proof** (`:4488`) | **NOT passed — owner eyes required** |
+| MERGE-PREP-001 | blocked until UI-003E PASS |
 
 Authoritative slice ledger: `TODO.md` · `docs/product/03-sprint-slice-plan.md` · `AGENTS.md`.
 

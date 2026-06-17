@@ -18,10 +18,11 @@ Verify branch before auditing. See `docs/operations/branch-truth.md`.
 ## Required reading (UI/product)
 
 1. `docs/operations/branch-truth.md`
-2. `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md`
-3. `docs/ui/ui-north-star-and-convergence-plan.md`
-4. `docs/operations/multi-agent-orchestration.md`
-5. `TODO.md` · `docs/product/03-sprint-slice-plan.md`
+2. `docs/operations/owner-gate-chart.md` (plain-language gates for owner)
+3. `docs/ui/reviews/app-peer-review-plan-alignment-2026-06-13.md`
+4. `docs/ui/ui-north-star-and-convergence-plan.md`
+5. `docs/operations/multi-agent-orchestration.md`
+6. `TODO.md` · `docs/product/03-sprint-slice-plan.md`
 
 North-star supersedes conflicting UI-003 lane-first docs when they disagree.
 
@@ -136,14 +137,16 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | **RUNTIME-002B-PEER-REVIEW** | **complete** |
 | **RUNTIME-002C** + automated gate + peer review | **complete** |
 | Optional live OAuth marker | owner when ready (`secrets/runtime-002c-oauth-consent.complete`) |
-| **GOV-REFRESH-001** / downstream ingress | per sprint ledger |
-| UI-003E owner visual proof (scaffold) | **human gate — NOT passed** |
-| MERGE-PREP-001 execution | blocked until owner UI-003E PASS |
+| **GOV-REFRESH-001** | complete |
+| **TAURI-CI-001** | complete (`.github/workflows/tauri-runtime-check.yml`) |
+| **UI-003E owner visual proof** (scaffold `:4488`) | **NOT passed — owner only** |
+| MERGE-PREP-001 | blocked until UI-003E PASS |
 
 Decision tokens in flight (see receipts — do not invent new ones):
 
 - `RUNTIME_002B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002C`
 - `RUNTIME_002C_PEER_REVIEW_PASS_READY_FOR_DOWNSTREAM`
+- `GOV_REFRESH_001_PASS_TRUTH_SURFACES_ALIGNED`
 - UI-003E: not passed
 
 Owner session (scaffold): `docs/ui/reviews/ui-003e-owner-session-runbook.md`

@@ -33,7 +33,7 @@
       "metrics": [
         { "label": "Provider gates", "value": "4 blocked", "note": "Email, calendar, tasks, and local server remain gated." },
         { "label": "Draft egress", "value": "draft only", "note": "Send, forward, delete, disclose, publish, deploy, and mutation disabled." },
-        { "label": "Runtime", "value": "undecided", "note": "ARCH-004 remains open." }
+        { "label": "Runtime", "value": "Tauri spine", "note": "ARCH-004 PASS · live Gmail connect runs in desktop app (npm run tauri:dev), not in browser preview." }
       ],
       "sections": [
         {
@@ -44,7 +44,7 @@
           "items": [
             { "rank": "1", "title": "Review urgent transport thread", "summary": "Sensitive family logistics preview needs human review before any draft is trusted.", "tags": ["inbox", "human_required", "draft_only"] },
             { "rank": "2", "title": "Confirm provider gate policy", "summary": "No real Gmail, calendar, task, or GitHub provider may connect before gates are defined.", "tags": ["provider_blocked", "settings"] },
-            { "rank": "3", "title": "Keep PR #12 draft", "summary": "UI proof remains incomplete until redesigned owner/framework visual review passes.", "tags": ["receipts", "not_started"] }
+            { "rank": "3", "title": "Owner visual proof (UI-003E)", "summary": "Review scaffold at http://localhost:4488 before merge prep. PR #12 stays draft until PASS.", "tags": ["receipts", "owner_gate"] }
           ]
         },
         {
