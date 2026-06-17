@@ -133,15 +133,16 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | RUNTIME-002A + RUNTIME-002A-PEER-REVIEW | complete |
 | RUNTIME-002B connect/sync UI orchestration | complete (`a0c010f`) |
 | **RUNTIME-002B-PEER-REVIEW** | **complete** |
-| **RUNTIME-002C** refresh loop + automated gate | **complete — OAuth consent marker optional** |
-| RUNTIME-002C-PEER-REVIEW | next (`peer-review:ollama -- --slice runtime-002c`) |
+| **RUNTIME-002C** + automated gate + peer review | **complete** |
+| Optional live OAuth marker | owner when ready (`secrets/runtime-002c-oauth-consent.complete`) |
+| **GOV-REFRESH-001** / downstream ingress | per sprint ledger |
 | UI-003E owner visual proof (scaffold) | **human gate — NOT passed** |
 | MERGE-PREP-001 execution | blocked until owner UI-003E PASS |
 
 Decision tokens in flight (see receipts — do not invent new ones):
 
 - `RUNTIME_002B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002C`
-- `RUNTIME_002C_PASS_READY_FOR_OPERATOR_PROOF_AND_PEER_REVIEW`
+- `RUNTIME_002C_PEER_REVIEW_PASS_READY_FOR_DOWNSTREAM`
 - UI-003E: not passed
 
 Owner session (scaffold): `docs/ui/reviews/ui-003e-owner-session-runbook.md`

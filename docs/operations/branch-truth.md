@@ -48,9 +48,9 @@ CI:     Static Preview Check — see GitHub Actions on branch
 | RUNTIME-002A + peer review | complete |
 | RUNTIME-002B connect/sync orchestration | complete |
 | RUNTIME-002B-PEER-REVIEW | complete |
-| **RUNTIME-002C** packaging + automated gate | **complete** |
-| RUNTIME-002C live OAuth consent | optional marker file (human click once) |
-| RUNTIME-002C-PEER-REVIEW | next |
+| **RUNTIME-002C** + peer review | **complete** |
+| Optional live OAuth marker | owner when ready |
+| **GOV-REFRESH-001** | per sprint ledger |
 | UI-003E owner visual proof (scaffold, `:4488`) | **NOT passed** (human) |
 | MERGE-PREP-001 execution | blocked until owner UI-003E PASS |
 

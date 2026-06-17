@@ -14,7 +14,7 @@ AUTO-GENERATED — do not hand-edit decision tokens without re-running the gate.
 
 ## Commit SHA
 
-`241b693c28dcefa2e692cad97518c1d91a992afc`
+`858d431868e302864314d311c97235e4e753b970`
 
 ## Automated checks
 
