@@ -34,14 +34,27 @@ if (!bridgeJs.includes('export async function refreshRuntimeMail')) {
   process.exit(1);
 }
 
-if (!pkg.includes('check:runtime002c')) {
-  console.error('runtime-002c-model-check: package.json missing check:runtime002c');
+for (const script of [
+  'scripts/gate-runtime-002c.mjs',
+  'scripts/test/runtime-002c-refresh-loop.test.mjs',
+  'scripts/lib/automated-gate/runtime-002c.mjs',
+]) {
+  if (!fs.existsSync(path.join(root, script))) {
+    console.error(`runtime-002c-model-check: missing ${script}`);
+    process.exit(1);
+  }
+}
+
+if (!pkg.includes('gate:runtime002c')) {
+  console.error('runtime-002c-model-check: package.json missing gate:runtime002c');
   process.exit(1);
 }
 
 for (const doc of [
   'docs/ui/reviews/runtime-002c-refresh-loop-operator-proof-receipt.md',
   'docs/ui/reviews/runtime-002c-operator-oauth-proof-runbook.md',
+  'docs/operations/automated-gates-runbook.md',
+  '.cursor/rules/automated-gates.mdc',
 ]) {
   if (!fs.existsSync(path.join(root, doc))) {
     console.error(`runtime-002c-model-check: missing ${doc}`);

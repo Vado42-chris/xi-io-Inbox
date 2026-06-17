@@ -130,7 +130,8 @@ Status: **complete** (docs capture pass 2026-06-15). Static preview + JSON impor
 - [x] RUNTIME-002B — connect/sync orchestration + live-state copy (`docs/ui/reviews/runtime-002b-connect-sync-ui-orchestration-receipt.md`).
 - [x] RUNTIME-002B-PEER-REVIEW — narrow review before refresh loop (`docs/ui/reviews/runtime-002b-peer-review-receipt.md`).
 - [x] OLLAMA-PEER-REVIEW-001 — governance AI harness (`docs/ui/reviews/ollama-peer-review-001-receipt.md` · `npm run peer-review:ollama`).
-- [x] RUNTIME-002C — refresh loop + operator OAuth proof runbook (`docs/ui/reviews/runtime-002c-refresh-loop-operator-proof-receipt.md` · owner proof pending).
+- [x] RUNTIME-002C — refresh loop + automated gate (`docs/operations/automated-gates-runbook.md` · optional OAuth marker).
+- [ ] RUNTIME-002C-PEER-REVIEW — `npm run peer-review:ollama -- --slice runtime-002c --write`.
 - [ ] GITHUB-001 — implement GitHub runtime ingress (blocked until RUNTIME-001 spine).
 - [ ] IBAL-001 — Ibal proposals over provider events (blocked until provider stores exist).
 - [ ] EGRESS-001 — approval-gated draft/write/send/mutation (unchanged sequencing).
@@ -328,4 +329,4 @@ Current estimated work to reach repo-ready MVP planning state: reopened for UI-0
 
 Current estimated work to reach buildable Android proof: 5 to 7 remaining passes, depending on local Thunderbird build complexity and upstream configuration requirements.
 
-Current estimated work (2026-06-17): RUNTIME-002C packaging **complete** · **owner operator OAuth proof pending** · RUNTIME-002C-PEER-REVIEW next · UI-003E owner scaffold proof **NOT passed** · MERGE-PREP-001 blocked until UI-003E PASS · PR #12 draft · confirm HEAD with `git rev-parse HEAD`.
+Current estimated work (2026-06-17): RUNTIME-002C automated gate **live** · optional OAuth marker · RUNTIME-002C-PEER-REVIEW next · UI-003E owner scaffold proof **NOT passed** · PR #12 draft.

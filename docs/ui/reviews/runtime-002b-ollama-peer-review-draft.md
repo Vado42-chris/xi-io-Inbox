@@ -1,12 +1,12 @@
 <!--
   AUTO-GENERATED DRAFT — do not treat as final until validated.
   Validate checks locally, then rename/copy to the canonical *-peer-review-receipt.md if approved.
--- Generated: 2026-06-17
--- Slice profile: RUNTIME-002B
--- Reviewed SHA: 1779b3a5cd63673b06c4399c02feaa86f41cc492
--- Model: qwen3-coder:480b-cloud
--- Host: https://ollama.com
--- Key source: secrets/API Key/olamma-api-xi-io.txt
+  Generated: 2026-06-17
+  Slice profile: RUNTIME-002B
+  Reviewed SHA: 241b693c28dcefa2e692cad97518c1d91a992afc
+  Model: qwen3-coder:480b-cloud
+  Host: https://ollama.com
+  Key source: secrets/API Key/olamma-api-xi-io.txt
 -->
 # RUNTIME-002B — Peer Review
 
@@ -20,7 +20,7 @@
 
 ## Reviewed commit SHA
 
-`1779b3a5cd63673b06c4399c02feaa86f41cc492`
+`241b693c28dcefa2e692cad97518c1d91a992afc`
 
 ## Scope
 
@@ -61,69 +61,58 @@ Narrow connect/sync UI orchestration after RUNTIME-002A peer review PASS:
 ## Capability split result
 
 **Pass**
-
-- ACLs correctly separated: `allow-gmail-runtime-read` (read-only) and `allow-gmail-runtime-sync` (live commands)
-- Live commands (`gmail_provider_connect`, `gmail_provider_sync_metadata`, `gmail_provider_sync_history`) properly excluded from read permission
-- Main window capability binds both permissions as required
-- No forbidden commands (body/draft/send/mutation/GitHub/automation) found in either permission set
+- Live connect/sync commands are properly separated into `allow-gmail-runtime-sync.toml`
+- Read-only commands remain in `allow-gmail-runtime-read.toml`
+- Main window capability correctly binds both permissions
+- No body/draft/send/mutation commands found in either permission file
 
 ## JS bridge orchestration result
 
 **Pass**
-
-- `safeInvokeRuntime()` correctly gates all runtime invokes with static-preview fallback
-- Required functions present: `getRuntimeStatus`, `getRuntimeSyncStatus`, `connectGmailProvider`, `syncGmailMetadata`, `syncGmailHistory`, `refreshRuntimeMail`
-- Tauri runtime gate (`if (!isTauriRuntime())`) correctly implemented
-- Static preview returns structured non-invoke failures as expected
+- `safeInvokeRuntime()` properly gates all invoke paths with Tauri runtime checks
+- All required helper functions present: `getRuntimeStatus`, `getRuntimeSyncStatus`, `connectGmailProvider`, `syncGmailMetadata`, `syncGmailHistory`, `refreshRuntimeMail`
+- Static preview correctly returns structured failure responses without attempting invokes
 
 ## Connect UI result
 
 **Pass**
-
-- `runRuntimeGmailConnect()` correctly triggers `gmail_provider_connect` only in Tauri runtime
-- Static preview path shows appropriate CLI instructions without invoking runtime
-- Account action handlers correctly route to runtime connect when in Tauri mode
+- Connect Gmail action properly triggers `gmail_provider_connect` only in Tauri runtime
+- Static preview mode correctly shows CLI instructions instead of attempting runtime invoke
+- Error handling and status updates properly implemented
 
 ## Sync UI result
 
 **Pass**
-
-- `runRuntimeGmailSyncNow()` correctly calls bounded `gmail_provider_sync_metadata` with `inbox_recent` job
-- `runRuntimeGmailSyncHistory()` gated by `runtimeHistorySyncAvailable()` which checks for `historyId`
-- Honest disabled copy shown when history sync unavailable due to missing `historyId`
+- Sync now correctly calls `gmail_provider_sync_metadata` with bounded parameters
+- Sync history properly gated by `historyId` availability
+- Honest disabled copy shown when history sync unavailable
 
 ## Post-sync refresh result
 
 **Pass**
-
 - `reloadRuntimeMailIndexAfterSync()` correctly called after successful connect/sync operations
-- `refreshRuntimeMail()` properly reloads boundary, sync status, and mail index
-- `applyRuntimeRefreshBundle()` correctly applies refreshed data to UI state
+- `refreshRuntimeMail()` properly refreshes boundary, sync status, and mail index
+- UI state properly updated after refresh
 
 ## Static fallback result
 
 **Pass**
-
-- `npm run dev` remains unchanged with static preview JSON paths preserved
-- `isTauriRuntime()` correctly gates all runtime orchestration UI and actions
-- No runtime-specific behavior leaks into static preview mode
+- `npm run dev` unchanged and functional
+- JSON paths preserved for static preview
+- `isTauriRuntime()` properly gates all runtime orchestration
 
 ## Error handling result
 
 **Pass**
-
 - `safeInvokeRuntime()` properly catches and structures invoke failures
-- Corrupt/invalid mail index sets `runtimeOrchestration.indexError` without crashing initialization
-- Error states properly reflected in UI status indicators
-- Static fallback remains available when runtime errors occur
+- Corrupt index sets `runtimeOrchestration.indexError` without crashing initialization
+- Static fallback remains available when runtime unavailable
 
 ## Egress gate result
 
 **Pass**
-
-- No body read, draft write, send, mutation, GitHub, or automation commands exposed
-- All exposed commands align with documented boundary (connect/sync/metadata only)
-- Runtime store boundary correctly enforces egress gates as per contract
+- No body/draft/send/mutation/GitHub/automation exposure found
+- All egress gates remain properly blocked as specified
 
 ## Validation result
 
@@ -140,13 +129,12 @@ None.
 
 ## Non-blocking findings
 
-- Consider adding more specific error categorization in `safeInvokeRuntime()` for better UX diagnostics
-- The `runtimeOrchestration` state object could benefit from TypeScript typing for improved maintainability
-- Minor redundancy in duplicate `runRuntimeGmailConnect` matches in inbox-preview.js (lines 4150, 10498, 10508) - likely due to diff extraction
+- Minor cleanup opportunity: package.json manifest-path arguments were removed but this doesn't affect functionality
+- Consider adding more specific error messaging for different failure scenarios in the UI
 
 ## Next recommended pass
 
-**RUNTIME-002B-PEER-REVIEW** — verify capability split, orchestration scope, post-sync refresh, error handling, and no accidental egress/body/draft/send exposure before RUNTIME-002C.
+RUNTIME-002B-PEER-REVIEW — verify capability split, orchestration scope, post-sync refresh, error handling, and no accidental egress/body/draft/send exposure before RUNTIME-002C.
 
 ## Decision value
 

@@ -63,6 +63,7 @@ Static preview is not connected live mail. Tauri runtime is not a substitute for
 | `npm run check:runtime002c` | Refresh loop + operator proof packaging |
 | `npm run check:ollama-peer-review` | Ollama governance harness files |
 | `npm run peer-review:ollama -- --slice <id> --dry-run` | Baked peer-review bundle (no API call) |
+| `npm run gate:runtime002c -- --write-evidence` | Automated RUNTIME-002C structural gate + evidence |
 | `npm run peer-review:ollama -- --slice <id> --write` | Ollama draft peer review receipt |
 | `npm run check:route` | Browser smoke (in full check) |
 | `npm run check` | Before slice close / merge prep |
@@ -79,6 +80,10 @@ Review committed SHA on a clean tree. Stash unrelated WIP before peer review or 
 ### Governance peer review (token economics)
 
 Prefer the baked Ollama harness before re-typing peer review prompts in Cursor when a slice profile exists. See `docs/ai/ollama-peer-review-runbook.md` and `.cursor/rules/ollama-peer-review.mdc`. Draft output is not final until checks pass and the canonical `*-peer-review-receipt.md` is written. Product provider Settings shape: `docs/ai/provider-settings-contract.md`.
+
+### Automated structural gates
+
+Run `npm run gate:runtime002c -- --write-evidence` after RUNTIME-002C work — no human checklist. See `docs/operations/automated-gates-runbook.md` and `.cursor/rules/automated-gates.mdc`. Live Google OAuth is the only RUNTIME-002C human step (consent click + gitignored marker file). UI-003E remains owner-only.
 
 ## Anti-stall (external storage)
 
@@ -128,7 +133,8 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | RUNTIME-002A + RUNTIME-002A-PEER-REVIEW | complete |
 | RUNTIME-002B connect/sync UI orchestration | complete (`a0c010f`) |
 | **RUNTIME-002B-PEER-REVIEW** | **complete** |
-| **RUNTIME-002C** refresh loop + operator OAuth proof packaging | **complete — owner proof pending** |
+| **RUNTIME-002C** refresh loop + automated gate | **complete — OAuth consent marker optional** |
+| RUNTIME-002C-PEER-REVIEW | next (`peer-review:ollama -- --slice runtime-002c`) |
 | UI-003E owner visual proof (scaffold) | **human gate — NOT passed** |
 | MERGE-PREP-001 execution | blocked until owner UI-003E PASS |
 

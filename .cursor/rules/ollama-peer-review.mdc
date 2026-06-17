@@ -17,8 +17,9 @@ After an **implementation slice** is complete and structural checks pass, before
 
 ## Slice profile map
 
-| Gate | Profile id |
+| Slice | Profile id |
 | --- | --- |
+| RUNTIME-002C peer review | `runtime-002c` |
 | RUNTIME-002B peer review | `runtime-002b` |
 | RUNTIME-002A peer review | `runtime-002a` |
 | Ad-hoc / new slice | `generic` + `--files` |

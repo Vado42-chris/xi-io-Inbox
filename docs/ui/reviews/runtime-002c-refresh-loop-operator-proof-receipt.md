@@ -74,13 +74,14 @@ After RUNTIME-002B peer review PASS:
 
 ## Next recommended pass
 
-1. **Owner** — complete `runtime-002c-operator-oauth-proof-runbook.md`
-2. **RUNTIME-002C-PEER-REVIEW** — verify refresh loop bounds + no egress expansion
+1. **Automated** — `npm run gate:runtime002c -- --write-evidence` (included in `npm run check`)
+2. **Optional human** — OAuth consent + marker file (see `docs/operations/automated-gates-runbook.md`)
+3. **RUNTIME-002C-PEER-REVIEW** — `npm run peer-review:ollama -- --slice runtime-002c --write`
 
 ## Decision value
 
 ```text
-RUNTIME_002C_PASS_READY_FOR_OPERATOR_PROOF_AND_PEER_REVIEW
+RUNTIME_002C_PASS_READY_FOR_AUTOMATED_GATE_AND_PEER_REVIEW
 ```
 
-Refresh loop packaged. Operator OAuth proof remains a human gate.
+Refresh loop packaged. Structural proof is automated; live OAuth is one consent click + marker file.
