@@ -23,6 +23,7 @@ const knownProviderBanners = ['renderCalendarProviderBanner', 'renderTasksProvid
 const knownDetailGridClasses = ['extensions-detail-grid', 'settings-detail-grid', 'activity-detail-grid'];
 const knownContextNavRenderers = [
   'renderMailContextNav',
+  'renderOwnerMailContextNav',
   'renderDraftsContextNav',
   'renderApprovalsContextNav',
   'renderCalendarContextNav',

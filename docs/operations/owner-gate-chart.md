@@ -64,6 +64,7 @@ cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && np
 
 ## Related
 
+- `docs/ui/reviews/peer-review/README.md` — workspace peer review (component + IA)
 - `docs/ui/reviews/ui-003e-owner-session-runbook.md`
 - `docs/operations/automated-gates-runbook.md`
 - `docs/operations/branch-truth.md`

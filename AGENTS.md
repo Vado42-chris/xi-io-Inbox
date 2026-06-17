@@ -40,8 +40,9 @@ Do not re-derive polish rules here. Read before any visual or interaction pass:
 
 1. `docs/ui/polish/ui-012-visual-polish-governance.md`
 2. `docs/ui/ui-013-level-2-visual-experience-system.md`
+3. **`docs/ui/reviews/peer-review/README.md`** — active workspace peer review program (owner screenshots 2026-06-17)
 
-Polish is **blocked** until RUNTIME-002C operator proof and explicit owner direction. See **Agent stop line** below.
+Polish is **blocked** until workspace peer review batches land and owner UI-003E PASS. See **Agent stop line** below.
 
 ## Host modes (do not conflate)
 
@@ -139,6 +140,7 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | Optional live OAuth marker | owner when ready (`secrets/runtime-002c-oauth-consent.complete`) |
 | **GOV-REFRESH-001** | complete |
 | **TAURI-CI-001** | complete (`.github/workflows/tauri-runtime-check.yml`) |
+| **UI-PEER-REVIEW program** | **active** — `docs/ui/reviews/peer-review/` · start Mail (002) |
 | **UI-003E owner visual proof** (scaffold `:4488`) | **NOT passed — owner only** |
 | MERGE-PREP-001 | blocked until UI-003E PASS |
 
@@ -147,6 +149,7 @@ Decision tokens in flight (see receipts — do not invent new ones):
 - `RUNTIME_002B_PEER_REVIEW_PASS_READY_FOR_RUNTIME_002C`
 - `RUNTIME_002C_PEER_REVIEW_PASS_READY_FOR_DOWNSTREAM`
 - `GOV_REFRESH_001_PASS_TRUTH_SURFACES_ALIGNED`
+- `UI_PEER_REVIEW_PROGRAM_OPEN_WORKSPACE_REVIEW_ACTIVE`
 - UI-003E: not passed
 
 Owner session (scaffold): `docs/ui/reviews/ui-003e-owner-session-runbook.md`

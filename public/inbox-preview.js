@@ -22,6 +22,13 @@ import {
 import { createRuntimeRefreshLoop } from './src/runtime/gmail-runtime-refresh-loop.js';
 
 const RUNTIME_REFRESH_INTERVAL_MS = 60_000;
+const RUNTIME_SYNC_DEFAULT_OPTIONS = {
+  job: 'inbox_recent',
+  max_threads: 500,
+  max_pages: 10,
+};
+/** Owner-facing Mail: hide egress/draft scaffold and show one next-step at a time. */
+const OWNER_MAIL_UX = true;
 
 const DATA_URL = './data/inbox-events.preview.json';
 const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
@@ -630,6 +637,7 @@ function applyPreviewEnvelope(stored) {
   }
   syncInboxCalendarProposals();
   syncInboxTaskProposals();
+  pruneSampleDraftsForOwnerUx();
   seedSampleDraftsIfNeeded();
   seedCalendarFixtureProposalsIfNeeded();
   seedPlanningFixturesIfNeeded();
@@ -947,6 +955,187 @@ function renderPillRow(items) {
   `;
 }
 
+function metadataSnapshotInboxCounts() {
+  if (!isMetadataSnapshot(gmailMetadataSnapshot)) return null;
+  const counts = gmailMetadataSnapshot.counts || {};
+  const inbox = counts.INBOX
+    || (gmailMetadataSnapshot.labels || []).find((entry) => String(entry.id || entry.name || '').toUpperCase() === 'INBOX');
+  const loaded = (gmailMetadataSnapshot.threads || []).length;
+  const total = inbox?.threadsTotal ?? loaded;
+  return { loaded, total };
+}
+
+function renderMetadataThreadCapBanner() {
+  const counts = metadataSnapshotInboxCounts();
+  if (!counts || counts.loaded >= counts.total) return '';
+  const resyncCommand = 'cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox/tools/gmail" && node cli.js sync-metadata --job inbox_recent --max 500 --max-pages 20 && node cli.js export-metadata-snapshot && cp data/metadata-snapshot.json ../../public/data/gmail-metadata.local.json';
+  return `
+    <aside class="gmail-sync-status-panel trust-affordance trust-affordance-warn is-thread-cap" role="note" aria-label="Partial inbox import">
+      <p class="gmail-sync-status-eyebrow">Partial inbox import · browser preview</p>
+      <p>Showing <strong>${counts.loaded}</strong> imported threads. Your Gmail INBOX has about <strong>${counts.total.toLocaleString()}</strong>. This is the CLI export cap (default 25), not a UI bug — re-sync with a higher limit, then refresh this page.</p>
+      <p class="mail-thread-cap-command">Re-import command:<code>${escapeHtml(resyncCommand)}</code></p>
+    </aside>
+  `;
+}
+
+function renderBrowserLiveMailRequiredBanner() {
+  if (isTauriRuntime()) return '';
+  return `
+    <aside class="gmail-sync-status-panel trust-affordance trust-affordance-warn is-thread-cap" role="note" aria-label="Live Gmail requires desktop app">
+      <p class="gmail-sync-status-eyebrow">Browser preview is not live Gmail</p>
+      <p>This page loads a <strong>static metadata snapshot</strong> (subject, sender, snippet only). It does not auto-sync after you attach an account here. For native live mail, use the desktop app:</p>
+      <p class="mail-thread-cap-command"><code>cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run tauri:dev</code></p>
+      <p class="form-hint">In the desktop window: Settings → Accounts → Connect Gmail → Sync now. Thread headers refresh automatically; full message bodies stay blocked until a separate read-only body gate passes.</p>
+    </aside>
+  `;
+}
+
+function ownerMailUxEnabled() {
+  return OWNER_MAIL_UX && state.settings?.userPrefs?.showWorkflowScaffold !== true;
+}
+
+function mailThreadCount() {
+  return inboxThreads().length;
+}
+
+function mailSetupGuideKind() {
+  if (isTauriRuntime()) {
+    if (runtimeOrchestration.busy) return 'working';
+    const indexCount = gmailMailIndex?.threads?.length || 0;
+    if (!runtimeOrchestration.connected && indexCount === 0) return 'connect';
+    if (indexCount === 0) return 'sync';
+    return null;
+  }
+  if (!operatorMailAccounts().length && !hasRealMailBridge()) return 'add-account';
+  const counts = metadataSnapshotInboxCounts();
+  if (counts && counts.loaded < counts.total) return 'partial-import';
+  return 'browser-desktop';
+}
+
+function renderMailSetupGuide() {
+  const kind = mailSetupGuideKind();
+  if (!kind) return '';
+
+  if (kind === 'working') {
+    return `
+      <aside class="mail-setup-guide" role="status">
+        <p class="mail-setup-guide-title">Working…</p>
+        <p class="mail-setup-guide-copy">${escapeHtml(runtimeOrchestrationStatusLabel())}</p>
+      </aside>
+    `;
+  }
+
+  if (kind === 'connect') {
+    return `
+      <aside class="mail-setup-guide" role="region" aria-label="Connect mail">
+        <p class="mail-setup-guide-title">Connect your Gmail</p>
+        <p class="mail-setup-guide-copy">Sign in once to load your inbox here. Headers and snippets sync automatically; full message bodies come later.</p>
+        <div class="mail-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-connect-gmail" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (kind === 'sync') {
+    return `
+      <aside class="mail-setup-guide" role="region" aria-label="Sync mail">
+        <p class="mail-setup-guide-title">Sync your inbox</p>
+        <p class="mail-setup-guide-copy">You're connected. Pull your latest conversations into Mail.</p>
+        <div class="mail-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-sync-metadata" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (kind === 'add-account') {
+    return `
+      <aside class="mail-setup-guide" role="region" aria-label="Add mail account">
+        <p class="mail-setup-guide-title">Add your Gmail account</p>
+        <p class="mail-setup-guide-copy">Start here — we'll walk you through connect and sync.</p>
+        <div class="mail-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (kind === 'partial-import') {
+    const counts = metadataSnapshotInboxCounts();
+    return `
+      <aside class="mail-setup-guide is-warn" role="note">
+        <p class="mail-setup-guide-title">Showing ${counts.loaded} of ${counts.total.toLocaleString()} inbox threads</p>
+        <p class="mail-setup-guide-copy">This browser view uses an old import file. For live mail, open the desktop app and tap Sync now.</p>
+        <div class="mail-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn" type="button" data-account-action="open-settings-accounts">Account settings</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  return `
+    <aside class="mail-setup-guide is-compact" role="note">
+      <p class="mail-setup-guide-copy">Browser preview shows a saved copy of mail, not live Gmail. For automatic inbox sync, use the desktop app (<code>npm run tauri:dev</code>).</p>
+    </aside>
+  `;
+}
+
+function renderOwnerMailFolderList(accountId) {
+  return `
+    <div class="mail-owner-folders">
+      ${renderAccountMailboxButton({ accountId, view: 'inbox', label: 'Inbox', count: countMailThreads({ mailboxView: 'inbox', accountFilter: accountId }), icon: 'inbox' })}
+      ${renderAccountMailboxButton({ accountId, view: 'inbox', label: 'Unread', count: baseThreadsForFilters().filter((thread) => thread.accountId === accountId && thread.unread).length, icon: 'unread', smartView: 'mail-unread' })}
+      ${renderAccountMailboxButton({ accountId, view: 'sent', label: 'Sent', count: countMailThreads({ mailboxView: 'sent', accountFilter: accountId }), icon: 'sent' })}
+      ${renderAccountMailboxButton({ accountId, view: 'archive', label: 'Archive', count: countMailThreads({ mailboxView: 'archive', accountFilter: accountId }), icon: 'archive' })}
+    </div>
+  `;
+}
+
+function renderMailAccountQuickActions() {
+  return `
+    <div class="mail-account-quick-actions inbox-form-actions">
+      <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+      ${isTauriRuntime() ? `
+        <button class="inbox-action-btn" type="button" data-account-action="runtime-connect-gmail" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
+        <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-metadata" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
+      ` : `
+        <button class="inbox-action-btn" type="button" data-account-action="open-settings-accounts">Accounts settings</button>
+      `}
+    </div>
+  `;
+}
+
+function renderOwnerMailContextNav() {
+  const account = operatorMailAccounts()[0] || allMailAccounts()[0] || null;
+  const accountId = account?.accountId || null;
+  return `
+    <div class="mail-owner-sidebar">
+      ${account ? `
+        <p class="mail-owner-account-label">${escapeHtml(account.displayName || account.email || 'Mail account')}</p>
+        ${renderOwnerMailFolderList(accountId)}
+      ` : `
+        <p class="mail-owner-account-label">No account</p>
+        <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+      `}
+      <button class="mail-owner-settings-link inbox-link-btn" type="button" data-account-action="open-settings-accounts">Account settings</button>
+    </div>
+  `;
+}
+
+function renderThreadListMeta(thread) {
+  if (thread?.metadataOnly) {
+    return thread.unread ? '<span class="thread-state-chip is-unread">Unread</span>' : '';
+  }
+  const unread = thread.unread === true;
+  const sourceBadge = threadSourceBadge(thread);
+  return `
+    <span class="thread-source-chip">${escapeHtml(sourceBadge)}</span>
+    ${unread ? '<span class="thread-state-chip is-unread">Unread</span>' : ''}
+    ${renderThreadStatusChip(thread.state || 'preview_only')}
+  `;
+}
+
 function renderThreadStatusChip(state) {
   const normalized = String(state || 'preview_only');
   const tone = ['needs_review', 'human_required', 'urgent_thread'].includes(normalized) ? 'is-urgent' : 'is-neutral';
@@ -1192,11 +1381,24 @@ function isDemoFixtureMailAccount(account) {
   return String(account.syncState || '').toLowerCase() === 'demo_fixture';
 }
 
+function hasRealMailBridge() {
+  return gmailMetadataBridgeActive()
+    || gmailBodyBridgeActive()
+    || isMailIndexSnapshot(gmailMailIndex);
+}
+
+function shouldHideDemoFixtures() {
+  if (hasRealMailBridge()) return true;
+  return allPreviewAccounts().some((entry) => isMailProviderId(entry.providerId)
+    && String(entry.syncState || '').toLowerCase() !== 'demo_fixture');
+}
+
 function operatorMailAccounts() {
   return allMailAccounts().filter((account) => !isDemoFixtureMailAccount(account));
 }
 
 function demoFixtureMailAccounts() {
+  if (shouldHideDemoFixtures()) return [];
   return allMailAccounts().filter(isDemoFixtureMailAccount);
 }
 
@@ -2783,7 +2985,11 @@ function allMailAccounts() {
   for (const account of allPreviewAccounts().filter((entry) => isMailProviderId(entry.providerId))) {
     map.set(account.accountId, enrichMailAccount(account));
   }
-  return [...map.values()];
+  let accounts = [...map.values()];
+  if (shouldHideDemoFixtures()) {
+    accounts = accounts.filter((account) => !isDemoFixtureMailAccount(account));
+  }
+  return accounts;
 }
 
 function mailAccountById(accountId) {
@@ -2829,6 +3035,15 @@ function threadSourceBadge(thread) {
   if (thread?.metadataOnly || thread?.providerSource === 'gmail-metadata') return 'Local snapshot';
   if (thread?.tags?.includes('metadata_snapshot')) return 'Local snapshot';
   return 'Fixture preview';
+}
+
+function threadSnippetText(thread) {
+  const summary = String(thread?.summary || '').trim();
+  if (!summary) return '';
+  if (thread?.metadataOnly && /^metadata-only thread snapshot\. body read blocked\.?$/i.test(summary)) {
+    return '';
+  }
+  return summary;
 }
 
 function mailNavIcon(kind) {
@@ -2976,7 +3191,18 @@ function isValidEmailAddress(email) {
   return parts.length === 2 && parts[0].length > 0 && parts[1].includes('.');
 }
 
+function pruneSampleDraftsForOwnerUx() {
+  if (!ownerMailUxEnabled()) return;
+  const sampleIds = new Set(['draft-sample-compose', 'draft-sample-reply', 'draft-sample-approved']);
+  const items = allDraftItems();
+  if (items.length && items.every((draft) => sampleIds.has(draft.id))) {
+    state.drafts.items = [];
+    state.drafts.selectedDraftId = null;
+  }
+}
+
 function seedSampleDraftsIfNeeded() {
+  if (ownerMailUxEnabled()) return;
   if (allDraftItems().length) return;
   const now = new Date().toISOString();
   state.drafts.items = [
@@ -3166,8 +3392,18 @@ function ensureAccountDefaults() {
     state.account.workspaceId = workspaceOptions()[0]?.id || null;
   }
   state.account.previewAccounts = allPreviewAccounts().filter((entry) => isMailProviderId(entry.providerId));
-  if (!state.account.activeAccountId && allMailAccounts()[0]) {
-    state.account.activeAccountId = allMailAccounts()[0].accountId;
+  const accounts = allMailAccounts();
+  const preferred = accounts.find((entry) => !isDemoFixtureMailAccount(entry)) || accounts[0];
+  if (!state.account.activeAccountId && preferred) {
+    state.account.activeAccountId = preferred.accountId;
+  } else if (shouldHideDemoFixtures() && isDemoFixtureMailAccount(mailAccountById(state.account.activeAccountId))) {
+    state.account.activeAccountId = preferred?.accountId || null;
+  }
+  if (ownerMailUxEnabled() && preferred?.accountId) {
+    state.inbox.accountFilter = preferred.accountId;
+    if (!MAIL_SYSTEM_VIEWS.includes(state.inbox.mailboxView) || ['drafts', 'approval-queue'].includes(state.inbox.mailboxView)) {
+      state.inbox.mailboxView = 'inbox';
+    }
   }
 }
 
@@ -4222,25 +4458,25 @@ async function runRuntimeGmailConnect(accountId) {
     return;
   }
   runtimeOrchestration.connected = Boolean(result.data?.payload?.connected ?? result.data?.success);
+  if (runtimeOrchestration.connected) {
+    await performRuntimeGmailSync(accountId);
+    return;
+  }
   await reloadRuntimeMailIndexAfterSync();
   syncRuntimeRefreshLoop();
   addAccountReceipt({
     type: 'runtime_connect',
     title: 'Gmail runtime connect attempted',
-    summary: runtimeOrchestration.connected
-      ? 'Connected via local runtime OAuth loopback.'
-      : 'Connect finished; verify sync status before syncing mail.',
+    summary: 'Connect finished; verify sync status before syncing mail.',
     limitations: 'Body read, draft write, send, and mutation remain blocked. Record operator proof via RUNTIME-002C runbook.',
   });
-  setStatusMessage(runtimeOrchestration.connected
-    ? 'Gmail connected via local runtime. Use Sync now to populate the mail index.'
-    : 'Runtime connect finished. Sync now after OAuth completes.');
+  setStatusMessage('Runtime connect finished. Sync now after OAuth completes.');
   if (accountId) switchPreviewAccount(accountId);
   saveState();
   renderShell();
 }
 
-async function runRuntimeGmailSyncNow(accountId) {
+async function performRuntimeGmailSync(accountId) {
   if (!isTauriRuntime()) {
     setStatusMessage('Runtime sync requires npm run tauri:dev.');
     return;
@@ -4249,7 +4485,7 @@ async function runRuntimeGmailSyncNow(accountId) {
   runtimeOrchestration.phase = 'syncing_metadata';
   runtimeOrchestration.lastError = null;
   renderShell();
-  const result = await syncGmailMetadata({ job: 'inbox_recent' });
+  const result = await syncGmailMetadata(RUNTIME_SYNC_DEFAULT_OPTIONS);
   runtimeOrchestration.busy = false;
   runtimeOrchestration.phase = 'idle';
   if (!result.ok) {
@@ -4266,18 +4502,23 @@ async function runRuntimeGmailSyncNow(accountId) {
     return;
   }
   runtimeOrchestration.lastSyncAt = new Date().toISOString();
+  runtimeOrchestration.connected = true;
   await reloadRuntimeMailIndexAfterSync();
   syncRuntimeRefreshLoop();
   addAccountReceipt({
     type: 'runtime_sync',
     title: 'Gmail runtime metadata sync completed',
-    summary: `${gmailMailIndex?.threads?.length || 0} threads in runtime mail index · metadata-only`,
+    summary: `${gmailMailIndex?.threads?.length || 0} threads in runtime mail index · metadata-only headers/snippets`,
     limitations: 'Body read, draft write, send, and mutation remain blocked.',
   });
   setStatusMessage(`Runtime metadata sync completed · ${gmailMailIndex?.threads?.length || 0} threads in index.`);
   if (accountId) switchPreviewAccount(accountId);
   saveState();
   renderShell();
+}
+
+async function runRuntimeGmailSyncNow(accountId) {
+  await performRuntimeGmailSync(accountId);
 }
 
 async function runRuntimeGmailSyncHistory(accountId) {
@@ -4293,7 +4534,7 @@ async function runRuntimeGmailSyncHistory(accountId) {
   runtimeOrchestration.phase = 'syncing_history';
   runtimeOrchestration.lastError = null;
   renderShell();
-  const result = await syncGmailHistory({ job: 'inbox_recent' });
+  const result = await syncGmailHistory(RUNTIME_SYNC_DEFAULT_OPTIONS);
   runtimeOrchestration.busy = false;
   runtimeOrchestration.phase = 'idle';
   if (!result.ok) {
@@ -5918,7 +6159,7 @@ function renderMailContextNav() {
     ? renderContextNavSection('Demo fixture', demoAccounts.map((account) => renderMailAccountAccordion(account)).join(''))
     : '';
   return `
-    ${renderContextNavSection('Mail accounts', operatorSection)}
+    ${renderContextNavSection('Mail accounts', `${renderMailAccountQuickActions()}${operatorSection}`)}
     ${demoSection}
     ${searchQuery ? renderContextNavSection('Search', contextNavButton('Search results', 'mail-search-results', threadsForMailboxView().length, true)) : ''}
     ${gmailMetadataBridgeActive() ? renderContextNavSection('Imported snapshots', `<p class="form-hint mail-nav-hint"><span class="mail-nav-icon" aria-hidden="true">${mailNavIcon('snapshot')}</span>${escapeHtml(metadataBridgeStatusLabel())} · not live Gmail</p>`) : ''}
@@ -6063,7 +6304,11 @@ function renderContextualLeftRail() {
   const workspace = activeProductWorkspace();
   let body = '';
   if (workspace === 'home') body = `<p class="form-hint mail-nav-hint">Home is the cross-account overview. Use primary nav for Mail, Calendar, Tasks, Automations, Activity, and Integrations.</p>`;
-  else if (workspace === 'mail') body = `${renderMailContextNav()}${renderDraftsContextNav()}${renderApprovalsContextNav()}`;
+  else if (workspace === 'mail') {
+    body = ownerMailUxEnabled()
+      ? renderOwnerMailContextNav()
+      : `${renderMailContextNav()}${renderDraftsContextNav()}${renderApprovalsContextNav()}`;
+  }
   else if (workspace === 'calendar') body = renderCalendarContextNav();
   else if (workspace === 'tasks') body = renderTasksContextNav();
   else if (workspace === 'automations') body = renderAutomationsContextNav();
@@ -6071,13 +6316,15 @@ function renderContextualLeftRail() {
   else if (workspace === 'integrations') body = renderIntegrationsContextNav();
   else if (workspace === 'settings') body = renderSettingsContextNav();
   else body = `<p class="form-hint mail-nav-hint">Choose Home, Mail, Calendar, Tasks, or another workspace from the top bar.</p>`;
-  if (['mail', 'calendar', 'tasks', 'activity'].includes(workspace)) {
+  const skipScopeLens = workspace === 'mail' && ownerMailUxEnabled();
+  if (['mail', 'calendar', 'tasks', 'activity'].includes(workspace) && !skipScopeLens) {
     body = `${renderScopeLens(workspace)}${body}`;
   }
   const workspaceLabel = PRODUCT_LEVEL_NAV.find((entry) => entry.id === workspace)?.label || 'Workspace';
+  const navClass = workspace === 'mail' && ownerMailUxEnabled() ? 'lane-nav context-nav-pane is-owner-mail-nav' : 'lane-nav context-nav-pane';
   return `
-    <nav class="lane-nav context-nav-pane" aria-label="${escapeHtml(workspaceLabel)} navigation">
-      <p class="lane-nav-label">${escapeHtml(workspaceLabel)}</p>
+    <nav class="${navClass}" aria-label="${escapeHtml(workspaceLabel)} navigation">
+      ${workspace === 'mail' && ownerMailUxEnabled() ? '' : `<p class="lane-nav-label">${escapeHtml(workspaceLabel)}</p>`}
       ${body}
     </nav>
   `;
@@ -6294,6 +6541,13 @@ function renderLocalTriageChip(threadId) {
 
 function renderInboxToolbar() {
   const searchQuery = state.inbox.mailSearchQuery || '';
+  const overflow = ownerMailUxEnabled() ? '' : `
+      <details class="inbox-toolbar-overflow">
+        <summary>More</summary>
+        <button class="inbox-action-btn" type="button" data-inbox-action="open-activity">View Activity</button>
+        <button class="inbox-action-btn is-danger" type="button" data-inbox-action="clear-all">Clear local inbox state</button>
+      </details>
+  `;
   return `
     <div class="inbox-toolbar" role="toolbar" aria-label="Inbox actions">
       <button class="inbox-action-btn is-primary" type="button" data-inbox-action="toggle-compose" aria-expanded="${state.inbox.composeOpen ? 'true' : 'false'}">Compose</button>
@@ -6303,11 +6557,7 @@ function renderInboxToolbar() {
         ${searchQuery ? '<button class="inbox-action-btn" type="button" data-inbox-action="clear-mail-search">Clear</button>' : ''}
       </form>
       <div id="inboxStatusRegion" class="inbox-status-region is-compact" role="status" aria-live="polite">${escapeHtml(state.statusMessage && state.laneId === 'inbox' ? state.statusMessage : '')}</div>
-      <details class="inbox-toolbar-overflow">
-        <summary>More</summary>
-        <button class="inbox-action-btn" type="button" data-inbox-action="open-activity">View Activity</button>
-        <button class="inbox-action-btn is-danger" type="button" data-inbox-action="clear-all">Clear local inbox state</button>
-      </details>
+      ${overflow}
     </div>
   `;
 }
@@ -6544,6 +6794,17 @@ function renderDraftReadingPane(draft) {
 }
 
 function renderMailWorkspaceHeader() {
+  if (ownerMailUxEnabled()) {
+    const visible = threadsForMailboxView();
+    const title = mailViewTitle();
+    return `
+      <header class="mail-workspace-head is-owner-simple">
+        <h2 class="mail-workspace-title">${escapeHtml(title)}</h2>
+        <p class="mail-workspace-subtitle">${visible.length ? `${visible.length} conversation${visible.length === 1 ? '' : 's'}` : 'No conversations yet'}</p>
+      </header>
+      ${renderMailSetupGuide()}
+    `;
+  }
   const account = state.inbox.accountFilter ? mailAccountById(state.inbox.accountFilter) : selectedAccountFixture();
   const bridge = metadataBridgeStatusLabel();
   return `
@@ -6560,6 +6821,8 @@ function renderMailWorkspaceHeader() {
         <span class="mail-source-badge is-blocked">Send blocked</span>
       </div>
     </header>
+    ${renderBrowserLiveMailRequiredBanner()}
+    ${renderMetadataThreadCapBanner()}
     ${renderGmailSyncStatusPanel({ compact: true })}
   `;
 }
@@ -6695,8 +6958,6 @@ function renderInboxReadingPane(layoutSection, threadOverride) {
 
 function renderThreadListRow(thread, selected) {
   const unread = thread.unread === true;
-  const sourceBadge = threadSourceBadge(thread);
-  const bodyState = thread.metadataOnly ? 'Body unavailable' : 'Preview body';
   return `
     <button class="thread-row mail-thread-row ${selected?.id === thread.id ? 'is-selected' : ''} ${unread ? 'is-unread' : ''} ${thread.metadataOnly ? 'is-metadata-only' : 'is-fixture'}" type="button" data-thread-id="${escapeHtml(thread.id)}" data-inspector-focus="${escapeHtml(`inbox-thread:${thread.id}`)}" aria-pressed="${selected?.id === thread.id ? 'true' : 'false'}">
       <div class="thread-row-main">
@@ -6705,13 +6966,10 @@ function renderThreadListRow(thread, selected) {
           <time class="thread-time" datetime="${escapeHtml(thread.receivedAt || '')}">${escapeHtml(formatMailDate(thread.receivedAt))}</time>
         </div>
         <span class="thread-subject">${escapeHtml(demoteMailDisplayText(thread.title))}</span>
-        <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(thread.summary))}</p>
+        <p class="thread-snippet">${escapeHtml(demoteMailDisplayText(threadSnippetText(thread)))}</p>
       </div>
       <div class="thread-row-meta">
-        <span class="thread-source-chip">${escapeHtml(sourceBadge)}</span>
-        ${unread ? '<span class="thread-state-chip is-unread">Unread</span>' : ''}
-        ${thread.metadataOnly ? '<span class="thread-state-chip is-metadata">Meta</span>' : ''}
-        ${renderThreadStatusChip(thread.state || 'preview_only')}
+        ${renderThreadListMeta(thread)}
       </div>
     </button>
   `;
@@ -10375,7 +10633,7 @@ function renderShell() {
     <a class="skip-to-main" href="#appMainLane">Skip to main content</a>
     <section class="app-shell" aria-label="xi-io Inbox unified app shell">
       ${renderTopBar()}
-      <section class="app-frame app-density-${escapeHtml(state.settings.userPrefs?.displayDensity || 'comfortable')} app-frame-lane-${escapeHtml(state.laneId)} ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}">
+      <section class="app-frame app-density-${escapeHtml(state.settings.userPrefs?.displayDensity || 'comfortable')} app-frame-lane-${escapeHtml(state.laneId)} ${state.laneId === 'inbox' ? 'is-mail-workbench' : ''}${state.laneId === 'inbox' && ownerMailUxEnabled() ? ' is-owner-mail-ux' : ''}">
         ${renderNavigation()}
         ${renderMainLane()}
         ${renderInspector()}
@@ -10544,6 +10802,22 @@ function handleAccountAction(action, accountId) {
   if (action === 'add-account') {
     state.account.editingAccountId = null;
     state.account.accountFormOpen = true;
+    if (state.laneId !== 'settings') {
+      state.laneId = 'settings';
+      state.settings.selectedKey = 'user:accounts';
+      state.focusId = 'settings:local:accounts';
+      window.location.hash = `${ROUTE_PREFIX}settings`;
+    }
+    saveState();
+    renderShell();
+    return;
+  }
+  if (action === 'open-settings-accounts') {
+    state.laneId = 'settings';
+    state.settings.selectedKey = 'user:accounts';
+    state.focusId = 'settings:local:accounts';
+    state.account.accountFormOpen = true;
+    window.location.hash = `${ROUTE_PREFIX}settings`;
     saveState();
     renderShell();
     return;
@@ -12090,14 +12364,15 @@ function bindEvents() {
 
 async function init() {
   loadState();
+  pruneSampleDraftsForOwnerUx();
   state.payload = await fetchJson(DATA_URL, {});
-  ensureAccountDefaults();
-  normalizeScopedObjects();
   await loadRuntimeMailArtifacts();
   syncRuntimeRefreshLoop();
   await loadGmailMetadataSnapshotFromUrl(GMAIL_METADATA_LOCAL_URL, 'local-file');
   await loadGmailBodySnapshotFromUrl(GMAIL_BODY_LOCAL_URL, 'local-file');
   await loadGmailSyncStatusFromUrl(GMAIL_SYNC_STATUS_LOCAL_URL, 'local-file');
+  ensureAccountDefaults();
+  normalizeScopedObjects();
   saveState();
   state.threadId = selectedInboxThread()?.id || state.threadId;
   state.focusId = state.focusId || defaultFocusIdForLane(state.laneId);

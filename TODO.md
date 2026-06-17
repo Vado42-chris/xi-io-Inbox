@@ -332,4 +332,14 @@ Current estimated work to reach buildable Android proof: 5 to 7 remaining passes
 
 - [x] GOV-REFRESH-001 — fixture/TODO/hydration/owner gate chart/PR body/TAURI-CI (`docs/ui/reviews/gov-refresh-001-receipt.md`).
 
-Current estimated work (2026-06-17): RUNTIME spine complete · GOV-REFRESH-001 complete · **UI-003E owner visual proof** (open http://localhost:4488) · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
+## UI-PEER-REVIEW: workspace component + IA peer review (2026-06-17)
+
+Owner screenshot pass across all primary nav workspaces. Systematic review for component framework drift, scaffold noise, and owner vs agent UX.
+
+- [x] UI-PEER-REVIEW-PROGRAM — runbook, global findings, component drift register, owner vs scaffold mode (`docs/ui/reviews/peer-review/`).
+- [ ] UI-PEER-REVIEW-002 Mail — fix batches B3/B6/B7 · retest (partial OWNER_MAIL_UX in code).
+- [ ] UI-PEER-REVIEW-009 Account drawer — owner-simple connect surface.
+- [ ] UI-PEER-REVIEW-001 Home — fixture attention + inspector collapse.
+- [ ] UI-PEER-REVIEW-003 … 008 — Calendar, Tasks, Automations, Activity, Integrations, Ibal.
+
+Current estimated work (2026-06-17): RUNTIME spine complete · GOV-REFRESH-001 complete · **UI-PEER-REVIEW active** · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.

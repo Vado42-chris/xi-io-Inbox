@@ -32,7 +32,7 @@ AI-generated interfaces.
 | `UI-015 Level 4 Lane Purpose and Journey Index` | Lane promises, journeys, failure points, Level 5 prep. | Complete. |
 | `UI-016 Level 5 Componentization and Consistency Index` | Component inventory, duplication audit, framework/repo/template ownership. | This doc. |
 | `Component Anatomy Spec` | Standard props/slots/states for shell, scope lens, receipt row, provider gate, related object rail, cards, sheets. | UI-016B doc created; check scripts pending. |
-| `Visual QA Checklist` | No AI-slop gate: hierarchy, lane identity, contrast, density, copy, motion, empty/error states. | UI-013 defines gate; executable checklist still needed before UI-003E. |
+| `Visual QA Checklist` | No AI-slop gate: hierarchy, lane identity, contrast, density, copy, motion, empty/error states. | UI-013 defines gate; **`docs/ui/reviews/peer-review/`** active 2026-06-17. |
 | `Framework Backfeed Plan` | What moves to `xi-io.net`, what stays here, what becomes reusable template material. | Backfeed standard created; xi-io.net update pending. |
 
 ## Existing component-like patterns
@@ -58,7 +58,7 @@ AI-generated interfaces.
 | `renderCalendarProviderBanner` and `renderTasksProviderBanner` | Trust/blocked-provider language drifts. | Create provider/trust banner component. |
 | Per-lane edit sheets | Forms look and behave inconsistently. | Create shared sheet/form anatomy. |
 | Multiple detail grid CSS blocks (`extensions-detail-grid`, `settings-detail-grid`, `activity-detail-grid`) | Data hierarchy varies by lane. | Create shared detail grid component/class. |
-| Context nav arrays in JS | Nav/routing can drift from product IA. | Convert to one route/context table. |
+| Context nav arrays in JS (`renderMailContextNav`, `renderOwnerMailContextNav`, …) | Nav/routing can drift from product IA. | Convert to one route/context table; owner Mail nav is peer-review batch B5. |
 | Activity/log/receipt rows | Audit trail can look disconnected from source lanes. | Use one receipt row and continuation link model. |
 | Task/story/bug/evidence cards | Tasks can become disconnected mini-apps. | Use one `XiWorkItemCard` with typed badges. |
 

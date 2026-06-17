@@ -40,6 +40,7 @@ HEAD:   run `git rev-parse HEAD` after fetch
 PR:     #12 (open, draft, unmerged)
 CI:     Static Preview Check (npm run check) + Tauri Runtime Check (cargo test + gate)
 Owner:  docs/operations/owner-gate-chart.md
+Peer review: docs/ui/reviews/peer-review/README.md
 ```
 
 ### Active gate (agent work order)
@@ -49,6 +50,7 @@ Owner:  docs/operations/owner-gate-chart.md
 | RUNTIME-002A → RUNTIME-002C + peer reviews | complete |
 | GOV-REFRESH-001 | complete |
 | TAURI-CI-001 | complete |
+| **UI-PEER-REVIEW program** | **active** — workspace receipts in `docs/ui/reviews/peer-review/` |
 | **UI-003E owner visual proof** (`:4488`) | **NOT passed — owner eyes required** |
 | MERGE-PREP-001 | blocked until UI-003E PASS |
 
