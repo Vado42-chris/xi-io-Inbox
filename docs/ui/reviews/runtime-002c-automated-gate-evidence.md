@@ -14,7 +14,7 @@ AUTO-GENERATED — do not hand-edit decision tokens without re-running the gate.
 
 ## Commit SHA
 
-`858d431868e302864314d311c97235e4e753b970`
+`e7465bf983772e52db27cd6a04bc7c50a3e9912c`
 
 ## Automated checks
 
@@ -29,10 +29,16 @@ AUTO-GENERATED — do not hand-edit decision tokens without re-running the gate.
 
 ## Live OAuth consent marker
 
-**Not recorded** — optional marker missing (`secrets/runtime-002c-oauth-consent.complete`, gitignored). Human step after automated gate: Connect Gmail once in Tauri, then create the marker file (see runbook).
+**Recorded** — 2026-06-17T05:03:22-06:00 OAuth consent completed in Tauri
 
 ## Decision values
 
 ```text
 RUNTIME_002C_AUTOMATED_STRUCTURAL_GATE_PASS
+```
+```text
+RUNTIME_002C_LIVE_OAUTH_CONSENT_RECORDED
+```
+```text
+RUNTIME_002C_GATE_PASS_READY_FOR_PEER_REVIEW
 ```

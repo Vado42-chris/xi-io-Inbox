@@ -34,10 +34,16 @@ Structural gate + Ollama draft peer review:
 cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run gate:runtime002c -- --write-evidence --ollama-draft
 ```
 
-Full repo check (includes runtime002c + ollama harness + gate):
+Full repo check (CI / static preview — no cargo):
 
 ```bash
 cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run check
+```
+
+Full product check (local/agent — includes cargo gate evidence):
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run check:full
 ```
 
 ## Minimal human step (live OAuth only)

@@ -50,3 +50,5 @@ jobs:
 
       - name: Run static preview checks
         run: npm run check
+        env:
+          CI: true

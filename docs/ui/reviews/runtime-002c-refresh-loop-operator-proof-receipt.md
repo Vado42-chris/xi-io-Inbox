@@ -74,7 +74,7 @@ After RUNTIME-002B peer review PASS:
 
 ## Next recommended pass
 
-1. **Automated** — `npm run gate:runtime002c -- --write-evidence` (included in `npm run check`)
+1. **Automated** — `npm run check:full` (or `gate:runtime002c --write-evidence` after edits)
 2. **Optional human** — OAuth consent + marker file (see `docs/operations/automated-gates-runbook.md`)
 3. **RUNTIME-002C-PEER-REVIEW** — `npm run peer-review:ollama -- --slice runtime-002c --write`
 

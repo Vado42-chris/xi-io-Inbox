@@ -66,7 +66,8 @@ Static preview is not connected live mail. Tauri runtime is not a substitute for
 | `npm run gate:runtime002c -- --write-evidence` | Automated RUNTIME-002C structural gate + evidence |
 | `npm run peer-review:ollama -- --slice <id> --write` | Ollama draft peer review receipt |
 | `npm run check:route` | Browser smoke (in full check) |
-| `npm run check` | Before slice close / merge prep |
+| `npm run check` | Before slice close / CI (static + structural runtime checks, no cargo) |
+| `npm run check:full` | Local/agent slice close (includes `gate:runtime002c` + cargo test) |
 | `cargo test --manifest-path src-tauri/Cargo.toml` | Tauri Rust changes |
 | `git diff --check` | Before commit |
 | `npm run dev` | Owner scaffold visual proof → http://localhost:4488 |
