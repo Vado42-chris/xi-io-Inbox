@@ -1,0 +1,42 @@
+---
+description: Run automated structural gates after runtime slices; minimal human OAuth only
+alwaysApply: true
+---
+
+# Automated gates (xi-io Inbox)
+
+## Default agent workflow
+
+After RUNTIME slice work, run structural gates **without asking the owner to re-run checklists**:
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run gate:runtime002c -- --write-evidence
+```
+
+Before slice close on full tree:
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run check
+```
+
+Peer review draft (token savings):
+
+```bash
+cd "/media/chrishallberg/Storage 22/999_Work/003_Projects/017_xi-io_inbox" && npm run peer-review:ollama -- --slice runtime-002c --write
+```
+
+Read `docs/operations/automated-gates-runbook.md`.
+
+## Human-only (do not automate or invent)
+
+| Gate | Human action |
+| --- | --- |
+| Google OAuth consent | Click Allow in Tauri connect flow |
+| OAuth recorded | Owner creates `secrets/runtime-002c-oauth-consent.complete` |
+| UI-003E PASS | Owner visual proof on `:4488` |
+
+## Forbidden
+
+- Inventing `RUNTIME_002C_LIVE_OAUTH_CONSENT_RECORDED` without marker file
+- Inventing `UI_003E_PASS_OWNER_VISUAL_PROOF_COMPLETE`
+- Skipping `gate:runtime002c` while claiming RUNTIME-002C complete

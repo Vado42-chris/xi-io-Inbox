@@ -1,0 +1,43 @@
+---
+description: Automatic Ollama governance peer review after slice implementation
+alwaysApply: true
+---
+
+# Ollama governance peer review (token economics)
+
+## When to run
+
+After an **implementation slice** is complete and structural checks pass, before writing the canonical `*-peer-review-receipt.md`:
+
+1. `npm run check:<slice>` (or `npm run check:quick` during edits)
+2. `npm run peer-review:ollama -- --slice <profile> --dry-run`
+3. `npm run peer-review:ollama -- --slice <profile> --write` (when operator key/host available)
+4. Run validation commands from the draft receipt
+5. Finalize canonical peer review receipt only after checks pass
+
+## Slice profile map
+
+| Slice | Profile id |
+| --- | --- |
+| RUNTIME-002C peer review | `runtime-002c` |
+| RUNTIME-002B peer review | `runtime-002b` |
+| RUNTIME-002A peer review | `runtime-002a` |
+| Ad-hoc / new slice | `generic` + `--files` |
+
+List all profiles: `npm run peer-review:ollama -- --list-slices`
+
+Read `docs/ai/ollama-peer-review-runbook.md` before first use.
+
+## Rules
+
+- Do **not** treat `*-ollama-peer-review-draft.md` as PASS without running checks.
+- Do **not** read or commit `secrets/` contents.
+- Prefer Ollama draft review over re-deriving the full peer review prompt in Cursor when a profile exists.
+- Cursor agent still validates, edits, and commits the **final** receipt.
+- Product Ibal provider Settings use `docs/ai/provider-settings-contract.md` — not this harness.
+
+## Forbidden
+
+- Marking UI-003E PASS from an Ollama draft
+- Skipping `npm run check` / cargo because the draft says Pass
+- Pasting API keys into receipts, PR bodies, or chat

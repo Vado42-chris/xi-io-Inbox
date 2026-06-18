@@ -1,0 +1,12 @@
+# Gmail adapter local secrets and cache — never commit
+node_modules/
+.env
+.env.*
+credentials.json
+token.json
+token.*
+oauth.*
+cache/
+data/
+receipts/
+*.log

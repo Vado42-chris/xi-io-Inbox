@@ -1,0 +1,36 @@
+---
+description: Prevent edit stalls and silent failures on slow/external storage
+alwaysApply: true
+---
+
+# Agent edit discipline (xi-io Inbox)
+
+## Storage reality
+
+This repo often lives on external/slow paths (`/media/.../Storage 22/`). Large batched writes can hit tool timeouts (~45 min) and appear as "interrupted by user".
+
+## Required workflow
+
+1. **One file per edit pass** when touching `public/inbox-preview.js`, `public/inbox-preview.css`, or large docs.
+2. **Prefer StrReplace** over full-file Write for existing files.
+3. **Cap batch size**: max 3 file edits before running `npm run check:quick`.
+4. **Never claim pass** without running a check command in the same pass.
+5. **After timeout/interrupt**: run `git status --short` and grep target file before retrying — partial writes are common.
+
+## Forbidden patterns
+
+- Parallel Write/StrReplace on 4+ files in one turn
+- Full rewrite of `inbox-preview.js` or multi-hundred-line CSS blocks
+- Creating duplicate docs when an existing receipt/plan can be updated
+- Marking UI-003E PASS or PR ready without owner sign-off
+
+## Verify commands
+
+```bash
+npm run check:quick    # after each edit batch (~5s)
+npm run check          # before slice close / merge prep
+npm run check:runtime002a   # read bridge changes
+npm run check:runtime002b   # connect/sync orchestration changes
+cargo test --manifest-path src-tauri/Cargo.toml   # Tauri Rust changes
+git diff --check       # whitespace
+```

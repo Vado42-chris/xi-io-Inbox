@@ -1,0 +1,55 @@
+import fs from 'fs/promises';
+import path from 'path';
+import { wipeToken, tokenPath } from './token-store.js';
+import { resolveDataDir, resolveReceiptsDir } from './runtime-paths.js';
+
+const DATA_DIR = resolveDataDir();
+const RECEIPTS_DIR = resolveReceiptsDir();
+export const SNAPSHOT_PATH = path.join(DATA_DIR, 'metadata-snapshot.json');
+export const BODY_SNAPSHOT_PATH = path.join(DATA_DIR, 'readonly-body-snapshot.json');
+
+async function listFiles(dir) {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    return entries.filter((entry) => entry.isFile()).map((entry) => path.join(dir, entry.name));
+  } catch {
+    return [];
+  }
+}
+
+export async function wipeLocalAdapterData({ dryRun = false } = {}) {
+  const targets = [
+    { path: tokenPath(), kind: 'token' },
+    { path: SNAPSHOT_PATH, kind: 'metadata_snapshot' },
+    { path: BODY_SNAPSHOT_PATH, kind: 'readonly_body_snapshot' },
+  ];
+
+  for (const filePath of await listFiles(RECEIPTS_DIR)) {
+    targets.push({ path: filePath, kind: 'receipt' });
+  }
+
+  for (const filePath of await listFiles(DATA_DIR)) {
+    if (!targets.some((target) => target.path === filePath)) {
+      targets.push({ path: filePath, kind: 'data' });
+    }
+  }
+
+  const removed = [];
+  for (const target of targets) {
+    try {
+      await fs.access(target.path);
+      if (!dryRun) {
+        await fs.unlink(target.path);
+      }
+      removed.push(target);
+    } catch {
+      // missing paths are fine
+    }
+  }
+
+  return {
+    dryRun,
+    removed,
+    paths: removed.map((entry) => entry.path),
+  };
+}

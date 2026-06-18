@@ -1,0 +1,50 @@
+/* FIX-BATCH-004 — Ibal drawer owner-mode overlay */
+
+.is-owner-ibal-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.is-owner-ibal-drawer .ibal-concierge-head h2 {
+  margin-bottom: 0.15rem;
+}
+
+.is-owner-ibal-drawer .ibal-concierge-head .form-hint.is-owner-mail-context {
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.is-owner-ibal-drawer .ibal-concierge-prompt {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chrome);
+  background: var(--surface-elevated);
+}
+
+.is-owner-ibal-drawer .ibal-message-list {
+  max-height: min(42vh, 28rem);
+  overflow: auto;
+}
+
+.is-owner-ibal-drawer .ibal-proposal-card .ibal-proposal-meta.is-owner-collapsed-meta,
+.is-owner-ibal-drawer .ibal-proposal-card .ibal-proposal-criteria.is-owner-collapsed-meta {
+  display: none;
+}
+
+.is-owner-ibal-drawer .ibal-selected-proposal.is-owner-hidden-duplicate {
+  display: none;
+}
+
+.is-owner-ibal-drawer .ibal-owner-advanced {
+  margin-top: 0.25rem;
+}
+
+.is-owner-ibal-drawer .ibal-owner-advanced-body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+body.is-ibal-drawer-open [data-ibal-action="toggle-open"] {
+  display: none;
+}

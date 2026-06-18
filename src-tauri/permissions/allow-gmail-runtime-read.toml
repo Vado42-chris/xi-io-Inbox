@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-gmail-runtime-read"
+description = "Read-only Gmail runtime store access for RUNTIME-002A (mail index + boundary)."
+commands.allow = ["runtime_store_boundary", "gmail_provider_mail_index"]

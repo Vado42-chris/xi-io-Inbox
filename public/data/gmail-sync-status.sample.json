@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-14T12:00:00.000Z",
+  "source": "local-gmail-cli",
+  "mode": "sync-status",
+  "browserOAuth": false,
+  "oauth": {
+    "connected": false,
+    "secretsConfigured": true,
+    "status": "disconnected",
+    "tokenPresent": false,
+    "tokenStorage": "tools/gmail/data/token.json (gitignored)"
+  },
+  "artifacts": {
+    "metadataSnapshot": {
+      "present": true,
+      "path": "tools/gmail/data/metadata-snapshot.json",
+      "accountEmail": "sample@example.com",
+      "threadCount": 3,
+      "messageCount": 4,
+      "mode": "metadata-only"
+    },
+    "mailIndex": {
+      "present": true,
+      "path": "tools/gmail/data/mail-index.json",
+      "threadCount": 3,
+      "messageCount": 4,
+      "updatedAt": "2026-06-14T11:55:00.000Z",
+      "accountEmails": ["sample@example.com"],
+      "historyState": {
+        "lastHistoryId": "9876543210",
+        "updatedAt": "2026-06-14T11:56:00.000Z",
+        "lastSyncMode": "full"
+      }
+    },
+    "readonlyBodySnapshot": {
+      "present": false,
+      "path": "tools/gmail/data/readonly-body-snapshot.json"
+    }
+  },
+  "lastSync": {
+    "at": "2026-06-14T11:58:00.000Z",
+    "pagesFetched": 1,
+    "threadCount": 3,
+    "messageCount": 4,
+    "stoppedReason": "complete",
+    "jobs": ["inbox_recent"],
+    "event": "completed",
+    "success": true,
+    "error": null
+  },
+  "gates": {
+    "bodyRead": "blocked",
+    "draftWrite": "blocked",
+    "send": "blocked",
+    "mutation": "blocked"
+  },
+  "liveProof": {
+    "status": "not_reconnected",
+    "note": "Sample sync status fixture for preview import. Not live Gmail."
+  },
+  "syncReceipts": [
+    {
+      "id": "receipt-sample-started",
+      "at": "2026-06-14T11:57:30.000Z",
+      "event": "started",
+      "method": "gmail.metadataSync.started",
+      "success": true,
+      "blocked": false,
+      "error": null,
+      "details": { "job": "inbox_recent" }
+    },
+    {
+      "id": "receipt-sample-page",
+      "at": "2026-06-14T11:57:45.000Z",
+      "event": "pageFetched",
+      "method": "gmail.metadataSync.pageFetched",
+      "success": true,
+      "blocked": false,
+      "error": null,
+      "details": { "page": 1, "pagesFetched": 1, "threadCount": 3 }
+    },
+    {
+      "id": "receipt-sample-completed",
+      "at": "2026-06-14T11:58:00.000Z",
+      "event": "completed",
+      "method": "gmail.metadataSync.completed",
+      "success": true,
+      "blocked": false,
+      "error": null,
+      "details": {
+        "pagesFetched": 1,
+        "threadCount": 3,
+        "messageCount": 4,
+        "stoppedReason": "complete",
+        "job": "inbox_recent"
+      }
+    },
+    {
+      "id": "receipt-sample-body-withheld",
+      "at": "2026-06-14T11:58:01.000Z",
+      "event": "bodyWithheld",
+      "method": "gmail.metadataSync.bodyWithheld",
+      "success": true,
+      "blocked": true,
+      "error": null,
+      "details": null
+    },
+    {
+      "id": "receipt-sample-send-blocked",
+      "at": "2026-06-14T11:58:01.000Z",
+      "event": "sendBlocked",
+      "method": "gmail.metadataSync.sendBlocked",
+      "success": true,
+      "blocked": true,
+      "error": null,
+      "details": null
+    }
+  ],
+  "warnings": [
+    "Sample fixture only. Browser preview does not perform OAuth or live Gmail sync.",
+    "JSON mail index is a bridge scaffold — not final storage architecture."
+  ],
+  "blockedCapabilities": [
+    "body_read",
+    "draft_write",
+    "send",
+    "provider_mutation",
+    "browser_oauth"
+  ],
+  "nextOperatorAction": "Run: cd tools/gmail && node cli.js connect, then sync-metadata and sync-status --out ../public/data/gmail-sync-status.local.json"
+}

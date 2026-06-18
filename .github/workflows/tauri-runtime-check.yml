@@ -1,0 +1,73 @@
+name: Tauri Runtime Check
+
+on:
+  pull_request:
+    paths:
+      - "src-tauri/**"
+      - "public/src/runtime/**"
+      - "scripts/gate-runtime-002c.mjs"
+      - "scripts/lib/automated-gate/**"
+      - "scripts/test/runtime-002c-refresh-loop.test.mjs"
+      - "scripts/runtime-002*.mjs"
+      - "package.json"
+      - ".github/workflows/tauri-runtime-check.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: tauri-runtime-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tauri-runtime-check:
+    name: Tauri runtime validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tools/gmail/package-lock.json
+
+      - name: Install root dev dependencies
+        run: npm ci
+
+      - name: Install Gmail adapter dependencies
+        working-directory: tools/gmail
+        run: npm ci
+
+      - name: Run cargo tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Run RUNTIME-002C automated gate
+        run: npm run gate:runtime002c -- --write-evidence
+        env:
+          CI: true
+          TAURI_CI: "1"
