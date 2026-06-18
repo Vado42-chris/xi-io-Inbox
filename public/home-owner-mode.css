@@ -1,0 +1,80 @@
+.owner-home-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.owner-home-status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(14rem, 0.8fr);
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chrome);
+  background: var(--surface-elevated);
+}
+
+.owner-home-status-card h3,
+.owner-home-status-card p {
+  margin: 0;
+}
+
+.owner-home-status-card p {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+}
+
+.owner-home-eyebrow {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.owner-home-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.owner-home-status-grid div {
+  padding: 0.65rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-chrome);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.owner-home-status-grid dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.owner-home-status-grid dd {
+  margin: 0.15rem 0 0;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.home-stats-grid.is-owner-secondary {
+  opacity: 0.88;
+}
+
+.owner-home-start-panel {
+  margin-top: 0;
+}
+
+.owner-home-priority-card {
+  border-radius: var(--radius-chrome);
+  background: rgba(105, 210, 255, 0.04);
+}
+
+.owner-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
