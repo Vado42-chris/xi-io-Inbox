@@ -17,7 +17,7 @@
 
 | Commit | Scope |
 | --- | --- |
-| (this commit) | `public/ibal-owner-mode.js`, `public/ibal-owner-mode.css`, `public/index.html`, receipt, governance |
+| `5167fb377778653853e0718111babb1462854dae` | `public/ibal-owner-mode.js`, `public/ibal-owner-mode.css`, `public/index.html`, receipt, governance |
 
 ## Purpose
 
