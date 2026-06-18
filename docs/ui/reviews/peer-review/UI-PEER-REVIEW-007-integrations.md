@@ -2,7 +2,7 @@
 
 ## Status
 
-Captured 2026-06-17 · Retest pending
+Captured 2026-06-17 · Classification active · IA decision pending — `UI-PEER-REVIEW-INTEGRATIONS-IA-DECISION.md`
 
 ## Pass A — Purpose
 

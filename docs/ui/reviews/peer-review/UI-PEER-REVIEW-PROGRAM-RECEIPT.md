@@ -31,17 +31,22 @@ Owner walked all primary header nav items with screenshots; requested systematic
 | `docs/ui/reviews/peer-review/component-drift-register.md` | Atomic drift |
 | `docs/ui/reviews/peer-review/owner-vs-scaffold-mode.md` | Mode split |
 | `UI-PEER-REVIEW-001` … `009` | Per-surface captures |
+| `UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md` | Continuation ledger (supersedes stale next-action copy) |
+| `UI-PEER-REVIEW-ACTIVITY-B6-RETEST-CLASSIFY.md` | Activity B6 outcome slot |
+| `UI-PEER-REVIEW-INTEGRATIONS-IA-DECISION.md` | Connect Gmail IA decision |
 
 ## Code delta (same program)
 
-- `OWNER_MAIL_UX` — simplified Mail sidebar, setup guide, hide demo drafts/scaffold nav sections
-- CSS — owner mail spacing, setup guide, topbar/nav radius alignment (partial)
+- FIX-BATCH-001 — `OWNER_MAIL_UX` Mail owner-mode (setup guide, message-first pane, inspector collapse, B6 activity table overflow)
+- FIX-BATCH-002 — `OWNER_ACCOUNT_UX` Account drawer + Settings → Accounts owner-mode
 
 ## Next agent action
 
-1. Read global findings + `UI-PEER-REVIEW-002-mail.md`
-2. Implement fix batch B3/B5/B6 for Mail owner mode
-3. Re-screenshot Mail · update receipt status
+> **Supersession:** This section was amended 2026-06-18. If any earlier kickoff copy still references “read Mail and implement B3/B5/B6,” treat it as **stale**. Authoritative ordering lives in `UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md`.
+
+1. Owner retest Mail + Account at `:4488`.
+2. Continue classification for Home, Ibal, Calendar, Tasks, Automations, Activity, Integrations.
+3. Do not start/claim FIX-BATCH-003 until Mail + Account retest regressions are classified.
 
 ## Decision value
 
@@ -49,4 +54,4 @@ Owner walked all primary header nav items with screenshots; requested systematic
 UI_PEER_REVIEW_PROGRAM_OPEN_WORKSPACE_REVIEW_ACTIVE
 ```
 
-Program documented; workspace reviews captured; Mail owner UX partial; full lane polish blocked until batch fixes + retest.
+Program documented; FIX-BATCH-001/002 landed; full-nav review continues; Home next implementation after retest signal.

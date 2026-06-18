@@ -93,7 +93,7 @@ Open, draft, unmerged — not marked ready for review.
 
 ## Next recommended fix batch
 
-**UI-PEER-REVIEW-FIX-BATCH-003 — Home owner-mode cleanup** (or hold until Mail + Account owner retest passes).
+**UI-PEER-REVIEW-FIX-BATCH-003 — Home owner-mode cleanup** — next implementation batch after Mail/Account owner retest (review/classification for remaining pages continues in parallel).
 
 ## Decision value
 

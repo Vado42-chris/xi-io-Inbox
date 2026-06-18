@@ -2,7 +2,9 @@
 
 ## Status
 
-Captured 2026-06-17 · Retest pending
+Captured 2026-06-17 · Classification active · P0 retest classify (B6)
+
+**P0 table overlap:** may be fixed by FIX-BATCH-001 shared ledger overflow (B6). Classify via `UI-PEER-REVIEW-ACTIVITY-B6-RETEST-CLASSIFY.md` — do not close or reopen without `:4488` proof on Activity lane.
 
 ## Pass A — Purpose
 
@@ -57,3 +59,4 @@ Captured 2026-06-17 · Retest pending
 | Date | Reviewer | Note |
 | --- | --- | --- |
 | 2026-06-17 | Owner + Cursor | Initial capture |
+| 2026-06-18 | Owner + Cursor | P0 overlap queued for retest classify — possible close via FIX-BATCH-001 B6 |

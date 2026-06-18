@@ -14,11 +14,13 @@ Systematic owner-grade review of each primary nav workspace after owner screensh
 
 ## Review order (recommended)
 
-1. Mail — `UI-PEER-REVIEW-002-mail.md`
-2. Account drawer — `UI-PEER-REVIEW-009-account-drawer.md`
-3. Home — `UI-PEER-REVIEW-001-home.md`
+1. Mail — `UI-PEER-REVIEW-002-mail.md` · FIX-BATCH-001 landed · owner retest pending
+2. Account drawer — `UI-PEER-REVIEW-009-account-drawer.md` · FIX-BATCH-002 landed · owner retest pending
+3. Home — `UI-PEER-REVIEW-001-home.md` · next implementation batch (003)
 4. Ibal drawer — `UI-PEER-REVIEW-008-ibal-drawer.md`
 5. Calendar → Tasks → Automations → Activity → Integrations
+
+**Review/classification continues for all remaining pages** while implementation batches queue. See `UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md`.
 
 Fix batches group by component (see runbook). Do not close a workspace until P0 findings are triaged.
 
@@ -26,15 +28,15 @@ Fix batches group by component (see runbook). Do not close a workspace until P0 
 
 | ID | Workspace | File | Status |
 | --- | --- | --- | --- |
-| 001 | Home | `UI-PEER-REVIEW-001-home.md` | Captured — owner screenshots |
-| 002 | Mail | `UI-PEER-REVIEW-002-mail.md` | Captured — owner screenshots · partial owner UX pass in code |
-| 003 | Calendar | `UI-PEER-REVIEW-003-calendar.md` | Captured — owner screenshots |
-| 004 | Tasks | `UI-PEER-REVIEW-004-tasks.md` | Captured — owner screenshots |
-| 005 | Automations | `UI-PEER-REVIEW-005-automations.md` | Captured — owner screenshots |
-| 006 | Activity | `UI-PEER-REVIEW-006-activity.md` | Captured — owner screenshots |
-| 007 | Integrations | `UI-PEER-REVIEW-007-integrations.md` | Captured — owner screenshots |
-| 008 | Ibal drawer | `UI-PEER-REVIEW-008-ibal-drawer.md` | Captured — owner screenshots |
-| 009 | Account drawer | `UI-PEER-REVIEW-009-account-drawer.md` | Captured — owner screenshots |
+| 001 | Home | `UI-PEER-REVIEW-001-home.md` | Classification active |
+| 002 | Mail | `UI-PEER-REVIEW-002-mail.md` | Fix landed · owner retest pending |
+| 003 | Calendar | `UI-PEER-REVIEW-003-calendar.md` | Classification active |
+| 004 | Tasks | `UI-PEER-REVIEW-004-tasks.md` | Classification active |
+| 005 | Automations | `UI-PEER-REVIEW-005-automations.md` | Classification active |
+| 006 | Activity | `UI-PEER-REVIEW-006-activity.md` | Classification active · B6 retest classify |
+| 007 | Integrations | `UI-PEER-REVIEW-007-integrations.md` | Classification active · IA decision pending |
+| 008 | Ibal drawer | `UI-PEER-REVIEW-008-ibal-drawer.md` | Classification active |
+| 009 | Account drawer | `UI-PEER-REVIEW-009-account-drawer.md` | Fix landed · owner retest pending |
 
 ## Related standards (do not re-derive)
 
@@ -47,3 +49,9 @@ Fix batches group by component (see runbook). Do not close a workspace until P0 
 ## Program receipt
 
 Kickoff and scope: `UI-PEER-REVIEW-PROGRAM-RECEIPT.md`
+
+Continuation ledger (ordering, classification matrix, IA decisions): `UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md`
+
+Activity B6 retest classify slot: `UI-PEER-REVIEW-ACTIVITY-B6-RETEST-CLASSIFY.md`
+
+Integrations IA decision (Connect Gmail): `UI-PEER-REVIEW-INTEGRATIONS-IA-DECISION.md`

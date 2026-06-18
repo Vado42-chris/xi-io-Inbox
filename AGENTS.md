@@ -140,8 +140,19 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | Optional live OAuth marker | owner when ready (`secrets/runtime-002c-oauth-consent.complete`) |
 | **GOV-REFRESH-001** | complete |
 | **TAURI-CI-001** | complete (`.github/workflows/tauri-runtime-check.yml`) |
+| **UI-PEER-REVIEW-FIX-BATCH-001** | landed — Mail owner-mode · owner retest pending |
 | **UI-PEER-REVIEW-FIX-BATCH-002** | landed — Account drawer owner-mode · owner retest pending |
-| **UI-PEER-REVIEW program** | **active** — FIX-BATCH-001 complete · FIX-BATCH-002 Account drawer next |
+| **UI-PEER-REVIEW program** | **active** — review/classification continues full nav · FIX-BATCH-003 Home next impl |
+
+### UI peer review — review vs implementation
+
+```text
+Classification may continue across all peer-review workspaces even while implementation batches are held.
+Do not interpret "hold FIX-BATCH-003" as "stop reviewing remaining pages."
+```
+
+Authoritative ordering: `docs/ui/reviews/peer-review/UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md` (supersedes stale kickoff “Next agent action” in program receipt).
+
 | **UI-003E owner visual proof** (scaffold `:4488`) | **NOT passed — owner only** |
 | MERGE-PREP-001 | blocked until UI-003E PASS |
 
