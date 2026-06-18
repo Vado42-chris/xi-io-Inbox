@@ -142,7 +142,9 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | **TAURI-CI-001** | complete (`.github/workflows/tauri-runtime-check.yml`) |
 | **UI-PEER-REVIEW-FIX-BATCH-001** | landed — Mail owner-mode · owner retest pending |
 | **UI-PEER-REVIEW-FIX-BATCH-002** | landed — Account drawer owner-mode · owner retest pending |
-| **UI-PEER-REVIEW program** | **active** — review/classification continues full nav · FIX-BATCH-003 Home next impl |
+| **UI-PEER-REVIEW-FIX-BATCH-003** | landed — Home owner-mode · owner retest pending |
+| **UI-PEER-REVIEW-FIX-BATCH-004** | landed — Ibal drawer dedupe · owner retest pending |
+| **UI-PEER-REVIEW program** | **active** — Calendar/Tasks/Automations/Activity/Integrations classified · next impl gated |
 
 ### UI peer review — review vs implementation
 
@@ -164,6 +166,8 @@ Decision tokens in flight (see receipts — do not invent new ones):
 - `UI_PEER_REVIEW_PROGRAM_OPEN_WORKSPACE_REVIEW_ACTIVE`
 - `UI_PEER_REVIEW_FIX_BATCH_001_PASS_READY_FOR_OWNER_MAIL_REVIEW`
 - `UI_PEER_REVIEW_FIX_BATCH_002_PASS_READY_FOR_OWNER_ACCOUNT_REVIEW`
+- `UI_PEER_REVIEW_FIX_BATCH_003_PASS_READY_FOR_OWNER_HOME_REVIEW`
+- `UI_PEER_REVIEW_FIX_BATCH_004_PASS_READY_FOR_OWNER_IBAL_REVIEW`
 - UI-003E: not passed
 
 Owner session (scaffold): `docs/ui/reviews/ui-003e-owner-session-runbook.md`

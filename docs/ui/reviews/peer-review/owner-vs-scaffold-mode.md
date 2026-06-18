@@ -20,6 +20,7 @@ Showing both at full volume on every page reads as overwhelming and inconsistent
 
 - `OWNER_MAIL_UX = true` in `public/inbox-preview.js` — Mail lane owner simplification (sidebar, setup guide, no sample drafts).
 - `OWNER_ACCOUNT_UX = true` — Account drawer owner simplification (connect/sync/trust; operator tools in Advanced).
+- `OWNER_IBAL_UX = true` in `public/ibal-owner-mode.js` — Ibal drawer dedupe overlay (prompt-first, owner mail context, Advanced receipts).
 - Developer re-enable full scaffold: `state.settings.userPrefs.showWorkflowScaffold = true` (localStorage-backed).
 
 ## Doc implication for peer review

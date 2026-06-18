@@ -16,8 +16,8 @@ Systematic owner-grade review of each primary nav workspace after owner screensh
 
 1. Mail — `UI-PEER-REVIEW-002-mail.md` · FIX-BATCH-001 landed · owner retest pending
 2. Account drawer — `UI-PEER-REVIEW-009-account-drawer.md` · FIX-BATCH-002 landed · owner retest pending
-3. Home — `UI-PEER-REVIEW-001-home.md` · next implementation batch (003)
-4. Ibal drawer — `UI-PEER-REVIEW-008-ibal-drawer.md`
+3. Home — `UI-PEER-REVIEW-001-home.md` · FIX-BATCH-003 landed · owner retest pending
+4. Ibal drawer — `UI-PEER-REVIEW-008-ibal-drawer.md` · FIX-BATCH-004 landed · owner retest pending
 5. Calendar → Tasks → Automations → Activity → Integrations
 
 **Review/classification continues for all remaining pages** while implementation batches queue. See `UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md` and `UI-PEER-REVIEW-REMAINING-WORKSPACES-CLASSIFICATION-2026-06-18.md`.
@@ -28,14 +28,14 @@ Fix batches group by component (see runbook). Do not close a workspace until P0 
 
 | ID | Workspace | File | Status |
 | --- | --- | --- | --- |
-| 001 | Home | `UI-PEER-REVIEW-001-home.md` | Classified P0 · FIX-BATCH-003 queued |
+| 001 | Home | `UI-PEER-REVIEW-001-home.md` | Fix landed · owner retest pending |
 | 002 | Mail | `UI-PEER-REVIEW-002-mail.md` | Fix landed · owner retest pending |
 | 003 | Calendar | `UI-PEER-REVIEW-003-calendar.md` | Classified P0 · implementation queued |
 | 004 | Tasks | `UI-PEER-REVIEW-004-tasks.md` | Classified P0 · implementation queued |
 | 005 | Automations | `UI-PEER-REVIEW-005-automations.md` | Classified P1 · product-phase gated |
 | 006 | Activity | `UI-PEER-REVIEW-006-activity.md` | Classified P0 · B6 retest classify |
 | 007 | Integrations | `UI-PEER-REVIEW-007-integrations.md` | Classified · IA-blocked |
-| 008 | Ibal drawer | `UI-PEER-REVIEW-008-ibal-drawer.md` | Classified P1 · implementation queued |
+| 008 | Ibal drawer | `UI-PEER-REVIEW-008-ibal-drawer.md` | Fix landed · owner retest pending |
 | 009 | Account drawer | `UI-PEER-REVIEW-009-account-drawer.md` | Fix landed · owner retest pending |
 
 ## Related standards (do not re-derive)
@@ -57,3 +57,5 @@ Activity B6 retest classify slot: `UI-PEER-REVIEW-ACTIVITY-B6-RETEST-CLASSIFY.md
 Integrations IA decision (Connect Gmail): `UI-PEER-REVIEW-INTEGRATIONS-IA-DECISION.md`
 
 Remaining workspaces classification (2026-06-18): `UI-PEER-REVIEW-REMAINING-WORKSPACES-CLASSIFICATION-2026-06-18.md`
+
+FIX-BATCH-004 Ibal receipt: `UI-PEER-REVIEW-FIX-BATCH-004-ibal-drawer-owner-mode-receipt.md`

@@ -2,7 +2,7 @@
 
 ## Status
 
-Captured 2026-06-17 · Classification active · FIX-BATCH-003 queued
+Captured 2026-06-17 · UI-PEER-REVIEW-FIX-BATCH-003 landed · Owner retest pending
 
 ## Pass A — Purpose
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Captured 2026-06-17 · Classification active
+Captured 2026-06-17 · UI-PEER-REVIEW-FIX-BATCH-004 landed · Owner retest pending
 
 ## Pass A — Purpose
 
@@ -58,3 +58,4 @@ Captured 2026-06-17 · Classification active
 | Date | Reviewer | Note |
 | --- | --- | --- |
 | 2026-06-17 | Owner + Cursor | Initial capture |
+| 2026-06-18 | Cursor | FIX-BATCH-004 owner overlay — dedupe, owner context, Advanced receipts |

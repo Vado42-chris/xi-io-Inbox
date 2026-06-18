@@ -340,11 +340,14 @@ Owner screenshot pass across all primary nav workspaces. Systematic review for c
 - [x] UI-PEER-REVIEW-PROGRAM — runbook, global findings, component drift register, owner vs scaffold mode (`docs/ui/reviews/peer-review/`).
 - [x] UI-PEER-REVIEW-FIX-BATCH-001 — Mail owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-001-mail-owner-mode-receipt.md`).
 - [x] UI-PEER-REVIEW-FIX-BATCH-002 — Account drawer owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-002-account-drawer-owner-mode-receipt.md`).
+- [x] UI-PEER-REVIEW-FIX-BATCH-003 — Home owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-003-home-owner-mode-receipt.md`).
+- [x] UI-PEER-REVIEW-FIX-BATCH-004 — Ibal drawer owner-mode dedupe (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-004-ibal-drawer-owner-mode-receipt.md`).
 - [ ] UI-PEER-REVIEW-002 Mail — owner retest at `:4488` after FIX-BATCH-001.
 - [ ] UI-PEER-REVIEW-009 Account drawer — owner retest at `:4488` after FIX-BATCH-002.
+- [ ] UI-PEER-REVIEW-001 Home — owner retest at `:4488` after FIX-BATCH-003.
+- [ ] UI-PEER-REVIEW-008 Ibal drawer — owner retest at `:4488` after FIX-BATCH-004.
 - [ ] UI-PEER-REVIEW program — **review/classification continues** for Home, Calendar, Tasks, Automations, Activity, Integrations, Ibal (`UI-PEER-REVIEW-PROGRAM-CONTINUATION-2026-06-18.md`).
 - [ ] UI-PEER-REVIEW-006 Activity — B6 retest classify (`UI-PEER-REVIEW-ACTIVITY-B6-RETEST-CLASSIFY.md`).
 - [ ] UI-PEER-REVIEW-007 Integrations — IA decision (`UI-PEER-REVIEW-INTEGRATIONS-IA-DECISION.md`) before implementation batch.
-- [ ] UI-PEER-REVIEW-FIX-BATCH-003 — Home owner-mode cleanup (next impl after Mail/Account retest unless regressions).
 
-Current estimated work (2026-06-18): FIX-BATCH-001/002 landed · CI green @384f18b · **owner retest Mail+Account `:4488`** · full-nav peer review classification active · FIX-BATCH-003 Home queued · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
+Current estimated work (2026-06-18): FIX-BATCH-001/002/003/004 landed · **owner retest Mail+Account+Home+Ibal `:4488`** · Calendar/Tasks/Automations/Activity/Integrations classified · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
