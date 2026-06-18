@@ -121,10 +121,13 @@ Record which mode a receipt used. Do not treat scaffold proof as live-mail proof
 
 ### `ui-002/framework-derived-static-preview`
 
-- `npm run check`
+- `npm run check:quick` after each edit batch
+- `npm run check` before push (product UI / static preview paths)
 - `git diff --check`
 - `npm run dev` for visible scaffold UI changes
 - `npm run tauri:dev` for runtime orchestration changes (operator OAuth still human)
+
+Full policy: `docs/operations/local-validation-without-bugbot.md`
 
 Note: if the repo lives on a non-POSIX filesystem (exFAT/NTFS external drive), Gmail token
 `0600` mode assertions may be skipped in `tools/gmail/test/hardening.mjs`. Run full checks on

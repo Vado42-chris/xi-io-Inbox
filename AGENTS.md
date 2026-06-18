@@ -55,10 +55,17 @@ Static preview is not connected live mail. Tauri runtime is not a substitute for
 
 ## Validation
 
+See **`docs/operations/local-validation-without-bugbot.md`** — local CI parity and reading GitHub Actions without Bugbot.
+
+```text
+Bugbot is not the build system. GitHub Actions is. Local checks are the pre-push safety net. :4488 is the UX gate.
+```
+
 | Command | When |
 | --- | --- |
 | `npm run setup:gmail` | First run / clean worktree (required before full check) |
 | `npm run check:quick` | After each 1–3 file edit batch |
+| `npm run check` | **Before push** when touching `public/**`, `scripts/**`, `package.json`, or `*owner-mode.*` overlays |
 | `npm run check:runtime001` | Tauri spine / sidecar allowlist changes |
 | `npm run check:runtime002a` | Read-only mail index bridge changes |
 | `npm run check:runtime002b` | Connect/sync orchestration changes |
