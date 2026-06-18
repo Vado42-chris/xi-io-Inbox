@@ -17,8 +17,6 @@ The FIX-BATCH ledger is useful for agents, but it does not explain the review in
 
 ## Review standard used across every page
 
-Each page is judged against these standards:
-
 | Standard | Human meaning |
 | --- | --- |
 | Owner-first clarity | The screen should tell Chris what to do next without requiring agent knowledge. |
@@ -26,7 +24,7 @@ Each page is judged against these standards:
 | One primary action | The page should not show several equally loud CTAs for the same job. |
 | Progressive disclosure | Advanced, scaffold, receipt, CLI, and debug content belongs behind Advanced or scaffold mode. |
 | Accessibility and cognition | The UI should reduce scanning load, repeated copy, table overflow, and multi-column noise. |
-| Provider safety | Send, draft write, delete, label/archive, calendar write, and other provider mutations remain blocked unless explicitly approved. |
+| Provider safety | Send, draft write, delete, label/archive, calendar write, task sync, issue tracker, evidence upload, and other provider mutations remain blocked unless explicitly approved. |
 | Consistent product model | Similar surfaces should use the same language and owner-mode pattern. |
 | Scaffold recovery | Agent/operator detail can still exist, but it should not be the default owner experience. |
 
@@ -34,12 +32,12 @@ Each page is judged against these standards:
 
 | Surface | Human status | Plain-English meaning |
 | --- | --- | --- |
-| Mail | Fixed, needs owner eyes | The Mail page was simplified to message-first reading and reduced operator noise, but Chris still needs to verify it at `:4488`. |
+| Mail | Fixed, needs owner eyes | Mail was simplified to message-first reading and reduced operator noise. Chris still needs to verify it at `:4488`. |
 | Account drawer / Settings Accounts | Fixed, needs owner eyes | Account connection was simplified to connect/sync/account settings instead of CLI/operator clutter. Needs owner visual check. |
 | Home | Fixed, needs owner eyes | Home no longer promotes fixture mail as real urgency. It now explains preview state and gives owner actions. Needs owner visual check. |
 | Ibal drawer | Fixed, needs owner eyes | Ibal now has one clearer owner path and less duplicate proposal noise. Needs owner visual check. |
-| Calendar | Reviewed, not fixed yet | Calendar is still too busy for owner mode. Month-first cleanup is next high-value implementation work. |
-| Tasks | Reviewed, not fixed yet | Tasks still reads like a product/backlog system instead of a personal task surface. Needs owner-mode simplification. |
+| Calendar | Fixed, needs owner eyes | Calendar is now month-first, with week/day/detail/proposal/conflict surfaces behind Advanced. Needs owner visual check. |
+| Tasks | Fixed, needs owner eyes | Tasks now starts as a personal task surface. PM/backlog scaffold lives behind Advanced. Needs owner visual check. |
 | Automations | Reviewed, not fixed yet | Automations should probably be hidden or reduced to one calm dry-run card until the product phase supports it. |
 | Activity | Reviewed, proof needed | A prior table-overlap bug may already be fixed, but it needs visual classify at `:4488` before implementation. |
 | Integrations | Reviewed, IA blocked | Integrations overlaps with Account drawer and Settings Accounts. Need decision on where Connect Gmail primarily belongs. |
@@ -48,28 +46,16 @@ Each page is judged against these standards:
 
 ### 1. Mail
 
-Human problem found:
+Human problem found: Mail had too much scaffold and system explanation around the core job: read messages, understand status, and decide what to do next.
 
-Mail had too much scaffold and system explanation around the core job: read messages, understand status, and decide what to do next. It risked making preview/import/provider limitations louder than the message list itself.
+Standards applied: owner-first clarity, one primary action, trust honesty, progressive disclosure, provider safety.
 
-Standards applied:
-
-- Owner-first clarity
-- One primary action
-- Trust honesty
-- Progressive disclosure
-- Provider safety
-
-Fixed direction:
+Fixed in FIX-BATCH-001:
 
 - Message-first reading.
 - Setup guide reduced to one next step.
 - Inspector and advanced metadata demoted.
 - Provider write/send actions still blocked.
-
-Current status:
-
-Fixed in FIX-BATCH-001. Owner retest pending.
 
 Owner should check:
 
@@ -80,60 +66,37 @@ Owner should check:
 
 ### 2. Account drawer and Settings Accounts
 
-Human problem found:
+Human problem found: Account setup mixed owner actions with CLI/operator controls. That made connection status hard to trust and made the drawer feel like a development tool instead of a product surface.
 
-Account setup mixed owner actions with CLI/operator controls. That made connection status hard to trust and made the drawer feel like a development tool instead of a product surface.
+Standards applied: owner-first clarity, trust honesty, one primary action, progressive disclosure, consistent product model.
 
-Standards applied:
-
-- Owner-first clarity
-- Trust honesty
-- One primary action
-- Progressive disclosure
-- Consistent product model
-
-Fixed direction:
+Fixed in FIX-BATCH-002:
 
 - Account owner mode added.
 - Primary actions reduced to connect, sync, add account, and account settings.
 - CLI/import/wipe/debug content moved behind Advanced/scaffold paths.
 - Receipt duplication reduced.
 
-Current status:
-
-Fixed in FIX-BATCH-002. Owner retest pending.
-
 Owner should check:
 
 - Is there one obvious account status?
-- Is Connect Gmail or Sync now easy to find?
+- Is Connect Gmail or Sync easy to find?
 - Are CLI/import/wipe controls no longer primary?
 - Do Account drawer and Settings Accounts feel like the same product model?
 
 ### 3. Home
 
-Human problem found:
+Human problem found: Home treated fixture/sample mail as if it were real priority, creating fake urgency at the app entry point.
 
-Home is the first-run surface, but it treated fixture/sample mail as if it were real priority. That is a trust problem because it could make fake urgency look operationally real.
+Standards applied: trust honesty, owner-first clarity, accessibility and cognition, progressive disclosure.
 
-Standards applied:
-
-- Trust honesty
-- Owner-first clarity
-- Accessibility and cognition
-- Progressive disclosure
-
-Fixed direction:
+Fixed in FIX-BATCH-003:
 
 - Fixture priority card replaced by owner next-step card.
 - Preview state is explicit.
-- Counts are context, not a real live-priority ranking.
+- Counts are context, not live-priority ranking.
 - Advanced build explanation is behind Advanced.
 - Owner actions point to Mail, Account settings, Tasks, and Calendar.
-
-Current status:
-
-Fixed in FIX-BATCH-003. Owner retest pending.
 
 Owner should check:
 
@@ -144,28 +107,17 @@ Owner should check:
 
 ### 4. Ibal drawer
 
-Human problem found:
+Human problem found: Ibal had too many AI/proposal surfaces at once. Duplicate proposal display and scaffold mail context made the assistant feel output-heavy before the user had a clear input path.
 
-Ibal had too many AI/proposal surfaces at once. Duplicate proposal display and scaffold mail context made the assistant feel output-heavy before the user had a clear input path.
+Standards applied: one primary action, owner-first clarity, accessibility and cognition, consistent product model.
 
-Standards applied:
-
-- One primary action
-- Owner-first clarity
-- Accessibility and cognition
-- Consistent product model
-
-Fixed direction:
+Fixed in FIX-BATCH-004:
 
 - One prompt/input path.
 - Duplicate selected proposal hidden when already visible in chat.
 - Owner-safe mail context copy.
 - Redundant Ask Ibal buttons hidden while drawer is open.
 - Local receipts and clear controls moved behind Advanced.
-
-Current status:
-
-Fixed in FIX-BATCH-004. Owner retest pending.
 
 Owner should check:
 
@@ -176,75 +128,54 @@ Owner should check:
 
 ### 5. Calendar
 
-Human problem found:
+Human problem found: Calendar had too many things fighting for attention: month grid, week strip, daily detail, proposal editor, provider gate, conflicts, and fixture account references.
 
-Calendar has a good purpose, but the owner view is overloaded: month grid, week strip, daily detail, proposal editor, provider gate, conflicts, and fixture account references compete at once.
+Standards applied: owner-first clarity, progressive disclosure, accessibility and cognition, trust honesty, provider safety.
 
-Standards applied:
+Fixed in FIX-BATCH-005:
 
-- Owner-first clarity
-- Progressive disclosure
-- Accessibility and cognition
-- Trust honesty
-- Provider safety
+- Month view is the primary surface.
+- Provider warning is reduced to a calmer setup/status card.
+- Week strip, day agenda, reading/detail pane, proposal/conflict detail, and provider detail move behind `Advanced calendar details`.
+- Primary action says `New local event` to preserve provider-write honesty.
+- Calendar provider writes remain blocked.
+- Scaffold recovery is preserved.
 
-Required fix direction:
+Owner should check:
 
-- Keep month view primary.
-- Show day/event detail after selection.
-- Move proposal editor and conflict preview behind Advanced.
-- Remove fixture account text from primary owner UI.
-- Collapse provider-write warning to one setup/status card.
-- Keep calendar provider writes blocked.
-
-Current status:
-
-Reviewed and classified P0. Not implemented yet.
-
-Best next batch:
-
-FIX-BATCH-005 Calendar owner month-first cleanup.
+- Does the month grid dominate the page?
+- Is Advanced collapsed by default?
+- Does the page avoid any false live-calendar-write feeling?
+- Does selecting a day or event still work?
+- Does scaffold mode restore full detail?
 
 ### 6. Tasks
 
-Human problem found:
+Human problem found: Tasks read like a product-management/backlog system instead of a personal task surface. Epics, stories, bugs, acceptance criteria, evidence, project selector, board controls, and provider sync copy competed with the basic owner job: see what needs doing and add a task.
 
-Tasks currently reads like a product-management/backlog system. Epics, stories, bugs, acceptance criteria, and evidence are valid for agents, but too heavy for a normal owner task surface.
+Standards applied: owner-first clarity, accessibility and cognition, progressive disclosure, consistent product model, provider safety.
 
-Standards applied:
+Fixed in FIX-BATCH-006:
 
-- Owner-first clarity
-- Accessibility and cognition
-- Progressive disclosure
-- Consistent product model
+- Tasks starts with an owner-facing `Your tasks` card.
+- `New task` is the obvious primary action.
+- Project selector, Planning/Board toggle, epics, stories, bugs, evidence, and backlog detail move behind `Advanced task planning details`.
+- External task sync, issue tracker mutation, and evidence upload remain blocked.
+- Scaffold recovery is preserved.
 
-Required fix direction:
+Owner should check:
 
-- Simple personal task list by default.
-- Optional board view.
-- Hide epics, stories, bugs, acceptance criteria, and evidence unless scaffold mode or Advanced is enabled.
-- Suppress fixture seeds in owner mode.
-
-Current status:
-
-Reviewed and classified P0. Not implemented yet.
-
-Best later batch:
-
-Tasks owner-mode simplification after Calendar or as a separate batch.
+- Does Tasks start as a personal task page, not a backlog console?
+- Is `New task` obvious?
+- Are epics/stories/bugs/evidence behind Advanced?
+- Do local task create/edit flows still work?
+- Does scaffold mode restore full detail?
 
 ### 7. Automations
 
-Human problem found:
+Human problem found: Automations currently presents template/scaffold content before the product has enough live automation behavior. This risks selling capability that is not actually enabled yet.
 
-Automations currently presents a lot of template/scaffold content before the product has enough live automation behavior. This risks selling capability that is not actually enabled yet.
-
-Standards applied:
-
-- Trust honesty
-- Progressive disclosure
-- Provider safety
-- Owner-first clarity
+Standards applied: trust honesty, progressive disclosure, provider safety, owner-first clarity.
 
 Required fix direction options:
 
@@ -252,30 +183,17 @@ Required fix direction options:
 2. Keep it visible as one calm dry-run / coming-soon card.
 3. Move templates and builder detail to Advanced only.
 
-Current status:
+Current status: reviewed and classified P1. Product-phase decision needed before major implementation.
 
-Reviewed and classified P1. Product-phase decision needed before major implementation.
-
-Recommended human decision:
-
-Prefer one calm dry-run card or hide until real automation value exists.
+Recommended human decision: prefer one calm dry-run card or hide until real automation value exists.
 
 ### 8. Activity
 
-Human problem found:
+Human problem found: Activity has a possible table-overlap P0 and too much filtering/detail for owner mode. It should be a simple history of what happened, what was proposed, and what was blocked.
 
-Activity has a possible table-overlap P0 and too much filtering/detail for owner mode. It should be a simple history of what happened, what was proposed, and what was blocked.
+Standards applied: accessibility and cognition, trust honesty, progressive disclosure, auditability.
 
-Standards applied:
-
-- Accessibility and cognition
-- Trust honesty
-- Progressive disclosure
-- Auditability
-
-Required proof first:
-
-A previous shared overflow fix may already have repaired the table overlap. The Activity page must be visually classified at `:4488` before more implementation.
+Required proof first: a previous shared overflow fix may already have repaired the table overlap. The Activity page must be visually classified at `:4488` before more implementation.
 
 Outcome choices:
 
@@ -290,22 +208,11 @@ Required fix direction if not closed:
 - Move export packet and receipt class details behind Advanced.
 - Collapse unrelated inspector content.
 
-Current status:
-
-Reviewed. Proof needed before implementation.
-
 ### 9. Integrations
 
-Human problem found:
+Human problem found: Integrations overlaps with Account drawer and Settings Accounts. All three can point at provider connection, especially Gmail. If we implement before deciding ownership, the app may show duplicate Connect Gmail paths.
 
-Integrations overlaps with Account drawer and Settings Accounts. All three can point at provider connection, especially Gmail. If we implement before deciding ownership, the app may show duplicate Connect Gmail paths.
-
-Standards applied:
-
-- Consistent product model
-- One primary action
-- Trust honesty
-- Provider safety
+Standards applied: consistent product model, one primary action, trust honesty, provider safety.
 
 Decision needed:
 
@@ -315,41 +222,35 @@ Decision needed:
 | Integrations primary | Integrations owns Connect Gmail hero. Account drawer shows session/status only. |
 | Split | Both show the same action with identical copy and one backend path. Highest duplication risk. |
 
-Current status:
+Current status: reviewed and IA-blocked. Do not implement until this decision is recorded.
 
-Reviewed and IA-blocked. Do not implement until this decision is recorded.
-
-Recommended human decision:
-
-Use Accounts primary for Gmail connection. Let Integrations become a provider catalog and explanation surface. This avoids duplicate Connect Gmail CTAs.
+Recommended human decision: use Accounts primary for Gmail connection. Let Integrations become a provider catalog and explanation surface.
 
 ## What is already safe to say
 
 - Every primary page/surface has been reviewed at least once in the peer-review program.
-- Mail, Account, Home, and Ibal have fixes landed and await owner visual retest.
-- Calendar, Tasks, Automations, Activity, and Integrations are not forgotten. They are reviewed, classified, and sequenced.
-- The remaining work is not random; each page has a known human problem and fix direction.
+- Mail, Account, Home, Ibal, Calendar, and Tasks have fixes landed and await owner visual retest.
+- Automations, Activity, and Integrations are not forgotten. They are reviewed, classified, and sequenced.
+- The remaining work is not random; each remaining page has a known human problem and fix direction.
 
 ## What is not safe to say yet
 
 - Do not say UI-003E passed.
 - Do not say the app is owner-approved.
-- Do not say Calendar, Tasks, Automations, Activity, or Integrations are fixed.
+- Do not say Automations, Activity, or Integrations are fixed.
 - Do not say Integrations is ready until the Connect Gmail IA decision is made.
 - Do not say Activity is fixed until B6 is visually classified.
 
 ## Recommended finish order for a human operator
 
-1. Retest Mail, Account, Home, and Ibal at `:4488`.
-2. Implement Calendar owner month-first cleanup.
-3. Implement Tasks personal-task owner mode.
-4. Decide Automations: hide vs one dry-run card.
-5. Visually classify Activity B6, then fix only if needed.
-6. Decide Integrations ownership, then implement.
-7. Run full owner UI-003E review only after these surfaces are fixed or intentionally deferred.
+1. Retest Mail, Account, Home, Ibal, Calendar, and Tasks at `:4488`.
+2. Decide Automations: hide vs one dry-run card.
+3. Visually classify Activity B6, then fix only if needed.
+4. Decide Integrations ownership, then implement.
+5. Run full owner UI-003E review only after these surfaces are fixed or intentionally deferred.
 
 ## Decision value
 
 ```text
-UI_PEER_REVIEW_HUMAN_OPERATOR_MAP_CREATED_2026_06_18
+UI_PEER_REVIEW_HUMAN_OPERATOR_MAP_SYNCED_AFTER_FIX_BATCH_006_2026_06_18
 ```
