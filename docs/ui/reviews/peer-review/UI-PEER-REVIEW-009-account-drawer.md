@@ -2,7 +2,7 @@
 
 ## Status
 
-Captured 2026-06-17 · Retest pending
+Captured 2026-06-17 · UI-PEER-REVIEW-FIX-BATCH-002 landed · Owner retest pending
 
 ## Pass A — Purpose
 
@@ -16,14 +16,12 @@ Captured 2026-06-17 · Retest pending
 
 ## Pass B — Region findings
 
-| Region | Finding | Sev |
-| --- | --- | --- |
-| Header | Email repeated 3× with metadata strings | P0 |
-| Body | Seven import/wipe buttons before clear path | P1 |
-| Body | CLI sync-status command in UI | P0 |
-| Body | Metadata/body/send/mutation grid | P1 |
-| Body | “Connect in browser blocked” prominent | P1 |
-| Footer | Three identical mailbox-selected receipts | P1 |
+| Header | Email repeated 3× with metadata strings | P0 | Fixed — single email + status chip |
+| Body | Seven import/wipe buttons before clear path | P1 | Fixed — moved to Advanced |
+| Body | CLI sync-status command in UI | P0 | Fixed — demoted to Settings Advanced |
+| Body | Metadata/body/send/mutation grid | P1 | Fixed — hidden from owner drawer |
+| Body | “Connect in browser blocked” prominent | P1 | Fixed — removed from owner drawer |
+| Footer | Three identical mailbox-selected receipts | P1 | Fixed — deduped in Advanced |
 
 ## Pass C — Tags
 

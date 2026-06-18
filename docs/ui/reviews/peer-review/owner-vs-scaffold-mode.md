@@ -19,6 +19,7 @@ Showing both at full volume on every page reads as overwhelming and inconsistent
 ## Code switch (preview)
 
 - `OWNER_MAIL_UX = true` in `public/inbox-preview.js` — Mail lane owner simplification (sidebar, setup guide, no sample drafts).
+- `OWNER_ACCOUNT_UX = true` — Account drawer owner simplification (connect/sync/trust; operator tools in Advanced).
 - Developer re-enable full scaffold: `state.settings.userPrefs.showWorkflowScaffold = true` (localStorage-backed).
 
 ## Doc implication for peer review

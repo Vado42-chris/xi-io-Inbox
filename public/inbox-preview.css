@@ -6478,6 +6478,108 @@ body {
   }
 }
 
+/* UI-PEER-REVIEW-FIX-BATCH-002 — Account drawer owner-mode */
+.account-session-panel.is-owner-account-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.account-session-head.is-owner-simple {
+  align-items: flex-start;
+}
+
+.account-session-head.is-owner-simple h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.account-owner-email,
+.account-owner-copy {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.account-owner-status {
+  margin: 0.35rem 0 0;
+}
+
+.account-setup-guide {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(105, 210, 255, 0.28);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-chrome);
+  background: rgba(8, 18, 28, 0.45);
+}
+
+.account-setup-guide.is-compact {
+  padding: 0.65rem 0.75rem;
+}
+
+.account-setup-guide-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.account-setup-guide-copy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.account-setup-guide-actions {
+  margin-top: 0.65rem;
+}
+
+.account-owner-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.account-owner-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chrome);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  text-align: left;
+}
+
+.account-owner-row.is-active {
+  box-shadow: inset var(--selected-indicator-width, 3px) 0 0 0 var(--accent);
+}
+
+.account-owner-switch-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.account-owner-advanced summary,
+.is-owner-accounts-pane .account-owner-advanced summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.account-scaffold-toolbar {
+  flex-wrap: wrap;
+}
+
+.is-owner-accounts-pane .lane-reading-head.is-owner-simple h3 {
+  margin: 0;
+}
+
 .lane-nav.is-owner-mail-nav {
   padding-top: 0.35rem;
 }

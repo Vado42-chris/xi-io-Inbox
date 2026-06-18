@@ -29,6 +29,8 @@ const RUNTIME_SYNC_DEFAULT_OPTIONS = {
 };
 /** Owner-facing Mail: hide egress/draft scaffold and show one next-step at a time. */
 const OWNER_MAIL_UX = true;
+/** Owner-facing Account drawer: connect/sync/trust surface without operator clutter. */
+const OWNER_ACCOUNT_UX = true;
 
 const DATA_URL = './data/inbox-events.preview.json';
 const GMAIL_METADATA_LOCAL_URL = './data/gmail-metadata.local.json';
@@ -992,6 +994,198 @@ function renderBrowserLiveMailRequiredBanner() {
 
 function ownerMailUxEnabled() {
   return OWNER_MAIL_UX && state.settings?.userPrefs?.showWorkflowScaffold !== true;
+}
+
+function ownerAccountUxEnabled() {
+  return OWNER_ACCOUNT_UX && state.settings?.userPrefs?.showWorkflowScaffold !== true;
+}
+
+function ownerAccountConnectionHeadline() {
+  if (isTauriRuntime()) {
+    if (runtimeOrchestration.busy) {
+      return { status: 'Working…', tone: 'is-syncing', copy: runtimeOrchestrationStatusLabel() };
+    }
+    if (runtimeOrchestration.connected || String(gmailSyncStatus?.oauth?.status || '').toLowerCase() === 'connected') {
+      const threads = gmailMailIndex?.threads?.length || 0;
+      return {
+        status: 'Connected',
+        tone: 'is-connected',
+        copy: threads ? `${threads} conversation${threads === 1 ? '' : 's'} in your inbox` : 'Ready to sync your inbox',
+      };
+    }
+    return { status: 'Not connected', tone: 'is-queued', copy: 'Sign in with Gmail to load mail here.' };
+  }
+  if (gmailMetadataBridgeActive()) {
+    const counts = metadataSnapshotInboxCounts();
+    if (counts && counts.loaded < counts.total) {
+      return {
+        status: 'Partial import',
+        tone: 'is-metadata-snapshot',
+        copy: `Showing ${counts.loaded} of ${counts.total.toLocaleString()} threads from a saved import — not live Gmail.`,
+      };
+    }
+    return {
+      status: 'Saved mail',
+      tone: 'is-metadata-snapshot',
+      copy: 'Browser preview uses saved mail only. Use the desktop app for live sync.',
+    };
+  }
+  if (operatorMailAccounts().length || allMailAccounts().some((account) => !isDemoFixtureMailAccount(account))) {
+    return { status: 'Not connected', tone: 'is-queued', copy: 'Connect Gmail in the desktop app to sync your inbox.' };
+  }
+  return { status: 'No account', tone: 'is-demo', copy: 'Add your Gmail account to get started.' };
+}
+
+function ownerAccountPrimaryEmail() {
+  const account = selectedAccountFixture() || operatorMailAccounts()[0] || allMailAccounts().find((entry) => !isDemoFixtureMailAccount(entry)) || null;
+  return account?.displayName || account?.email || null;
+}
+
+function ownerAccountTopbarSummary() {
+  return ownerAccountConnectionHeadline().status;
+}
+
+function accountOwnerSetupGuideKind() {
+  if (isTauriRuntime()) {
+    if (runtimeOrchestration.busy) return 'working';
+    if (!runtimeOrchestration.connected && !(gmailMailIndex?.threads?.length)) return 'connect';
+    if (!(gmailMailIndex?.threads?.length)) return 'sync';
+    return null;
+  }
+  if (!operatorMailAccounts().length && !hasRealMailBridge() && !allMailAccounts().some((account) => !isDemoFixtureMailAccount(account))) {
+    return 'add-account';
+  }
+  if (gmailMetadataBridgeActive()) return null;
+  return 'desktop';
+}
+
+function renderAccountOwnerSetupGuide() {
+  const kind = accountOwnerSetupGuideKind();
+  if (!kind) return '';
+
+  if (kind === 'working') {
+    return `
+      <aside class="account-setup-guide" role="status">
+        <p class="account-setup-guide-title">Working…</p>
+        <p class="account-setup-guide-copy">${escapeHtml(runtimeOrchestrationStatusLabel())}</p>
+      </aside>
+    `;
+  }
+
+  if (kind === 'connect') {
+    return `
+      <aside class="account-setup-guide" role="region" aria-label="Connect Gmail">
+        <p class="account-setup-guide-title">Connect your Gmail</p>
+        <p class="account-setup-guide-copy">Sign in once to load your inbox. Headers and snippets sync automatically; full message bodies come later.</p>
+        <div class="account-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-connect-gmail" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (kind === 'sync') {
+    return `
+      <aside class="account-setup-guide" role="region" aria-label="Sync mail">
+        <p class="account-setup-guide-title">Sync your inbox</p>
+        <p class="account-setup-guide-copy">You're connected. Pull your latest conversations into Mail.</p>
+        <div class="account-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-sync-metadata" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (kind === 'add-account') {
+    return `
+      <aside class="account-setup-guide" role="region" aria-label="Add Gmail account">
+        <p class="account-setup-guide-title">Add your Gmail account</p>
+        <p class="account-setup-guide-copy">Start here — we'll walk you through connect and sync.</p>
+        <div class="account-setup-guide-actions inbox-form-actions">
+          <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  return `
+    <aside class="account-setup-guide is-compact" role="note">
+      <p class="account-setup-guide-copy">Live Gmail sync runs in the desktop app. This browser preview shows saved mail only.</p>
+    </aside>
+  `;
+}
+
+function renderAccountOwnerPrimaryActions() {
+  if (isTauriRuntime()) {
+    return `
+      <div class="account-owner-primary-actions inbox-form-actions" role="toolbar" aria-label="Account actions">
+        <button class="inbox-action-btn is-primary" type="button" data-account-action="runtime-connect-gmail" ${runtimeOrchestration.busy ? 'disabled' : ''}>Connect Gmail</button>
+        <button class="inbox-action-btn" type="button" data-account-action="runtime-sync-metadata" ${runtimeOrchestration.busy ? 'disabled' : ''}>Sync now</button>
+        <button class="inbox-link-btn" type="button" data-account-action="open-settings-accounts">Account settings</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="account-owner-primary-actions inbox-form-actions" role="toolbar" aria-label="Account actions">
+      <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+      <button class="inbox-link-btn" type="button" data-account-action="open-settings-accounts">Account settings</button>
+    </div>
+  `;
+}
+
+function uniqueAccountReceipts(receipts, limit = 5) {
+  const seen = new Set();
+  return (receipts || []).filter((receipt) => {
+    const key = `${receipt.type || 'receipt'}:${receipt.title || ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, limit);
+}
+
+function renderOwnerAccountAccountsList() {
+  const accounts = allMailAccounts().filter((account) => !isDemoFixtureMailAccount(account));
+  const activeAccountId = selectedAccountFixture()?.accountId || '';
+  if (!accounts.length) {
+    return '<p class="lane-empty-state">No Gmail account yet. Add one above to get started.</p>';
+  }
+  if (accounts.length === 1) {
+    const account = accounts[0];
+    return `
+      <article class="account-owner-row is-active">
+        <strong>${escapeHtml(account.displayName)}</strong>
+        <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>
+      </article>
+    `;
+  }
+  return `
+    <div class="account-owner-switch-list" aria-label="Mail accounts">
+      ${accounts.map((account) => `
+        <button class="account-owner-row ${account.accountId === activeAccountId ? 'is-active' : ''}" type="button" data-account-action="switch-account" data-account-id="${escapeHtml(account.accountId)}" ${account.accountId === activeAccountId ? 'disabled' : ''}>
+          <strong>${escapeHtml(account.displayName)}</strong>
+          <span class="mail-account-state ${accountSyncStatusClass(account.syncState)}">${escapeHtml(accountSyncStatusLabel(account.syncState))}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderScaffoldEmailAccountOperatorToolbar() {
+  return `
+    <div class="inbox-form-actions account-scaffold-toolbar">
+      <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
+      <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
+      <button class="inbox-action-btn" type="button" data-account-action="import-sync-status">Import sync status</button>
+      <button class="inbox-action-btn" type="button" data-account-action="import-calendar-snapshot">Import calendar snapshot</button>
+      <button class="inbox-action-btn" type="button" data-account-action="import-body-snapshot">Import read-only body snapshot</button>
+      <button class="inbox-action-btn" type="button" data-account-action="wipe-gmail-local-hint">Wipe local Gmail CLI data</button>
+      ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
+      ${gmailBodyBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-body-snapshot">Clear body snapshot</button>' : ''}
+      ${gmailSyncStatusActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-sync-status">Clear sync status</button>' : ''}
+      ${gcalEventsSnapshotActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-calendar-snapshot">Clear calendar snapshot</button>' : ''}
+      <button class="inbox-action-btn" type="button" data-account-action="connect-gmail">Gmail CLI path</button>
+    </div>
+  `;
 }
 
 function mailThreadCount() {
@@ -6095,6 +6289,7 @@ function environmentStatusBadge() {
 }
 
 function providerAccountStatusSummary() {
+  if (ownerAccountUxEnabled()) return ownerAccountTopbarSummary();
   if (isTauriRuntime()) return runtimeOrchestrationStatusLabel();
   const bridge = metadataBridgeStatusLabel();
   if (bridge) return bridge;
@@ -9257,16 +9452,7 @@ function renderEmailAccountsBlock() {
     <div class="settings-accounts-block">
       <div class="inbox-form-actions">
         <h3>Mail accounts (${operatorAccounts.length} connected · ${accounts.length} total)</h3>
-        <button class="inbox-action-btn is-primary" type="button" data-account-action="add-account">Add Gmail account</button>
-        <button class="inbox-action-btn" type="button" data-account-action="import-metadata-snapshot">Import metadata snapshot</button>
-        <button class="inbox-action-btn" type="button" data-account-action="import-sync-status">Import sync status</button>
-        <button class="inbox-action-btn" type="button" data-account-action="import-calendar-snapshot">Import calendar snapshot</button>
-        <button class="inbox-action-btn" type="button" data-account-action="import-body-snapshot">Import read-only body snapshot</button>
-        <button class="inbox-action-btn" type="button" data-account-action="wipe-gmail-local-hint">Wipe local Gmail CLI data</button>
-        ${gmailMetadataBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-metadata-snapshot">Clear metadata snapshot</button>' : ''}
-        ${gmailBodyBridgeActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-body-snapshot">Clear body snapshot</button>' : ''}
-        ${gmailSyncStatusActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-sync-status">Clear sync status</button>' : ''}
-        ${gcalEventsSnapshotActive() ? '<button class="inbox-action-btn" type="button" data-account-action="clear-calendar-snapshot">Clear calendar snapshot</button>' : ''}
+        ${renderScaffoldEmailAccountOperatorToolbar()}
       </div>
       <p class="form-hint">${escapeHtml(isTauriRuntime()
     ? 'Tauri runtime uses local desktop OAuth and bounded sync commands. Static JSON import remains a scaffold fallback outside Tauri.'
@@ -9556,6 +9742,38 @@ function renderUserPreferencesPane() {
 }
 
 function renderUserAccountsPane() {
+  if (ownerAccountUxEnabled()) {
+    return `
+      <section class="lane-reading-pane is-owner-accounts-pane" aria-label="Accounts">
+        <header class="lane-reading-head is-owner-simple">
+          <div>
+            <h3>Accounts</h3>
+            <p class="lane-reading-meta">${escapeHtml(ownerAccountConnectionHeadline().copy)}</p>
+          </div>
+        </header>
+        ${renderOwnerAccountAccountsList()}
+        ${state.account.accountFormOpen ? `
+          <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
+            <label for="settings-account-email-input">Gmail address</label>
+            <input id="settings-account-email-input" name="email" type="email" required autocomplete="email" placeholder="you@gmail.com" />
+            <p class="form-hint">We'll guide you through connect and sync. Tokens stay on your device, not in this browser preview.</p>
+            <div class="inbox-form-actions">
+              <button class="inbox-action-btn is-primary" type="submit">Add account</button>
+              <button class="inbox-action-btn" type="button" data-account-action="cancel-account-form">Cancel</button>
+            </div>
+          </form>
+        ` : renderAccountOwnerPrimaryActions()}
+        <details class="lane-reading-details account-owner-advanced">
+          <summary>Operator and import tools</summary>
+          ${renderScaffoldEmailAccountOperatorToolbar()}
+          ${renderGmailSyncStatusPanel()}
+          <pre class="settings-cli-hint">${escapeHtml(gmailConnectInstructions())}</pre>
+          <p class="form-hint">Send, draft write, and provider mutation remain blocked in this build.</p>
+        </details>
+        ${renderIntegrationAccountsBlock()}
+      </section>
+    `;
+  }
   return `
     <section class="lane-reading-pane" aria-label="Accounts">
       <header class="lane-reading-head">
@@ -10713,7 +10931,79 @@ function renderIbalProposalCard(proposal) {
   `;
 }
 
+function renderOwnerAccountSessionPanel() {
+  const workspaces = workspaceOptions();
+  const activeWorkspaceId = state.account.workspaceId || workspaces[0]?.id || '';
+  const headline = ownerAccountConnectionHeadline();
+  const email = ownerAccountPrimaryEmail() || 'No Gmail account yet';
+  const receipts = uniqueAccountReceipts(state.account.receipts || []);
+  return `
+    <div class="account-session-root ${state.account.open ? 'is-open' : ''}" aria-hidden="${state.account.open ? 'false' : 'true'}">
+      <button class="account-session-backdrop" type="button" data-account-action="close" aria-label="Close account panel"></button>
+      <aside id="accountSessionPanel" class="account-session-panel is-owner-account-drawer" role="dialog" aria-modal="true" aria-label="Your account" tabindex="-1">
+        <header class="account-session-head is-owner-simple">
+          <div class="user-card-header">
+            <span class="user-card-avatar is-large" aria-hidden="true">${escapeHtml((activeSessionDisplayName() || email || 'A').slice(0, 1).toUpperCase())}</span>
+            <div>
+              <h2>${escapeHtml(activeSessionDisplayName() || email)}</h2>
+              <p class="account-owner-email">${escapeHtml(email)}</p>
+              <p class="account-owner-status"><span class="mail-account-state ${headline.tone}">${escapeHtml(headline.status)}</span></p>
+              <p class="account-owner-copy">${escapeHtml(headline.copy)}</p>
+            </div>
+          </div>
+          <button class="inbox-action-btn" type="button" data-account-action="close">Close</button>
+        </header>
+        ${renderAccountOwnerSetupGuide()}
+        ${renderAccountOwnerPrimaryActions()}
+        <section class="account-owner-accounts" aria-label="Mail accounts">
+          ${renderOwnerAccountAccountsList()}
+        </section>
+        ${state.account.accountFormOpen ? `
+          <form class="inbox-draft-form" data-account-form="connect" aria-label="Add Gmail account">
+            <label for="account-drawer-email-input">Gmail address</label>
+            <input id="account-drawer-email-input" name="email" type="email" required autocomplete="email" placeholder="you@gmail.com" />
+            <div class="inbox-form-actions">
+              <button class="inbox-action-btn is-primary" type="submit">Add account</button>
+              <button class="inbox-action-btn" type="button" data-account-action="cancel-account-form">Cancel</button>
+            </div>
+          </form>
+        ` : ''}
+        <details class="lane-reading-details account-owner-advanced">
+          <summary>Advanced</summary>
+          <form class="inbox-draft-form" data-account-form="session" aria-label="Workspace preferences">
+            <label for="account-workspace">Workspace</label>
+            <select id="account-workspace" name="workspaceId">
+              ${workspaces.map((entry) => `
+                <option value="${escapeHtml(entry.id)}" ${entry.id === activeWorkspaceId ? 'selected' : ''}>${escapeHtml(entry.label)}</option>
+              `).join('')}
+            </select>
+            <label for="account-display-name">Display name</label>
+            <input id="account-display-name" name="sessionDisplayName" type="text" autocomplete="off" value="${escapeHtml(state.account.sessionDisplayName || '')}" placeholder="${escapeHtml(email)}" />
+            <div class="inbox-form-actions">
+              <button class="inbox-action-btn is-primary" type="submit" data-account-action="session-save">Save</button>
+            </div>
+          </form>
+          ${receipts.length ? `
+            <section class="account-receipt-list" aria-label="Recent account activity">
+              <h3>Recent activity</h3>
+              ${receipts.map((receipt) => `
+                <article class="local-receipt-row">
+                  <header><strong>${escapeHtml(receipt.title)}</strong><span>${escapeHtml(label(receipt.type))}</span></header>
+                  <p>${escapeHtml(receipt.summary)}</p>
+                </article>
+              `).join('')}
+            </section>
+          ` : ''}
+          <p class="form-hint">Send, draft write, and provider changes remain blocked in this build.</p>
+          <button class="inbox-action-btn is-danger" type="button" data-account-action="clear-all">Clear account preview state</button>
+        </details>
+      </aside>
+    </div>
+  `;
+}
+
 function renderAccountSessionPanel() {
+  if (ownerAccountUxEnabled()) return renderOwnerAccountSessionPanel();
   const workspaces = workspaceOptions();
   const activeAccount = selectedAccountFixture();
   const activeWorkspaceId = state.account.workspaceId || workspaces[0]?.id || '';

@@ -185,7 +185,7 @@ async function main() {
     }
 
     const blockedCopy = await page.locator('body').innerText();
-    if (!/Send blocked|Send remains blocked|not enabled in this build|blocked/i.test(blockedCopy)) {
+    if (!/Send blocked|Send remains blocked|not enabled in this build|remain blocked|Body not imported yet|Preview only/i.test(blockedCopy)) {
       throw new Error('blocked send copy not found on mail workspace');
     }
 

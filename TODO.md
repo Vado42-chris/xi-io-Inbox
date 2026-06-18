@@ -339,10 +339,10 @@ Owner screenshot pass across all primary nav workspaces. Systematic review for c
 
 - [x] UI-PEER-REVIEW-PROGRAM — runbook, global findings, component drift register, owner vs scaffold mode (`docs/ui/reviews/peer-review/`).
 - [x] UI-PEER-REVIEW-FIX-BATCH-001 — Mail owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-001-mail-owner-mode-receipt.md`).
-- [ ] UI-PEER-REVIEW-FIX-BATCH-002 — Account drawer owner-mode cleanup (next product batch).
+- [x] UI-PEER-REVIEW-FIX-BATCH-002 — Account drawer owner-mode cleanup (`docs/ui/reviews/peer-review/UI-PEER-REVIEW-FIX-BATCH-002-account-drawer-owner-mode-receipt.md`).
 - [ ] UI-PEER-REVIEW-002 Mail — owner retest at `:4488` after FIX-BATCH-001.
-- [ ] UI-PEER-REVIEW-009 Account drawer — owner-simple connect surface.
+- [ ] UI-PEER-REVIEW-009 Account drawer — owner retest at `:4488` after FIX-BATCH-002.
 - [ ] UI-PEER-REVIEW-001 Home — fixture attention + inspector collapse.
 - [ ] UI-PEER-REVIEW-003 … 008 — Calendar, Tasks, Automations, Activity, Integrations, Ibal.
 
-Current estimated work (2026-06-17): RUNTIME spine complete · GOV-REFRESH-001 complete · FIX-BATCH-001 Mail complete · FRAMEWORK-BACKFEED-002 complete · **FIX-BATCH-002 Account drawer next** · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
+Current estimated work (2026-06-17): RUNTIME spine complete · FIX-BATCH-001 Mail complete · FIX-BATCH-002 Account complete · **owner retest `:4488`** · UI-003E owner visual proof · PR #12 draft · MERGE-PREP blocked until UI-003E PASS.
