@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0.0",
+  "registry_type": "gmail_label_to_evidence_tag_map_example",
+  "note": "This is an example mapping for private hydration. Do not store raw Gmail ids or private email bodies in the public repo.",
+  "label_mappings": [
+    {
+      "source_label": "Katherine Legal",
+      "canonical": {
+        "matter_id": "private_family_matter",
+        "retention_priority": "preserve"
+      }
+    },
+    {
+      "source_label": "DO NOT LOSE",
+      "canonical": {
+        "retention_priority": "preserve",
+        "processing_state": "needs_human_review"
+      }
+    },
+    {
+      "source_label": "Katherine_legal/mediation_june_2026",
+      "canonical": {
+        "event_cluster": "mediation_june_2026",
+        "evidence_domains": ["mediation"],
+        "issue_lanes": ["interim_vehicle_access", "family_debt", "support_calculation", "asset_tracing"]
+      }
+    },
+    {
+      "source_label": "Katherine_legal/kia_vehicle_access",
+      "canonical": {
+        "issue_lanes": ["interim_vehicle_access", "vehicle_registration_liability", "disability_access"],
+        "evidence_domains": ["vehicle_access", "disability_access"],
+        "evidentiary_role": "notice_of_harm"
+      }
+    },
+    {
+      "source_label": "Katherine_legal/home_insurance",
+      "canonical": {
+        "event_cluster": "home_preservation_urgent_bills",
+        "issue_lanes": ["home_insurance", "family_debt"],
+        "evidence_domains": ["home_preservation", "family_debt"],
+        "document_type": "insurance_notice"
+      }
+    },
+    {
+      "source_label": "Katherine_legal/legal_consultation",
+      "canonical": {
+        "event_cluster": "legal_help_and_intake",
+        "issue_lanes": ["legal_consultation"],
+        "evidence_domains": ["legal_help"],
+        "document_type": "legal_intake",
+        "confidentiality": "legal_help_segregated"
+      }
+    },
+    {
+      "source_label": "Katherine_legal/support_context",
+      "canonical": {
+        "issue_lanes": ["support_context"],
+        "evidence_domains": ["support_context"],
+        "document_type": "support_context_message",
+        "evidentiary_role": "support_context",
+        "confidentiality": "support_context"
+      }
+    },
+    {
+      "source_label": "Katherine_legal/dogs_emotional_support",
+      "canonical": {
+        "issue_lanes": ["dog_access_support", "disability_access"],
+        "evidence_domains": ["disability_access"],
+        "evidentiary_role": "notice_of_harm"
+      }
+    },
+    {
+      "source_label": "Evidence/DIV-SA-05-2026/ARG04_FamilyDebt",
+      "canonical": {
+        "issue_lanes": ["family_debt"],
+        "evidence_domains": ["family_debt"],
+        "processing_state": "indexed"
+      }
+    },
+    {
+      "source_label": "Evidence/DIV-SA-05-2026/Needs_Drive_Mirror",
+      "canonical": {
+        "processing_state": "needs_drive_mirror"
+      }
+    },
+    {
+      "source_label": "Evidence/DIV-SA-05-2026/Needs_Read_Or_Extraction",
+      "canonical": {
+        "processing_state": "needs_attachment_extraction"
+      }
+    },
+    {
+      "source_label": "Legal/Andersen-v-Hallberg/Timeline-Checkpoints",
+      "canonical": {
+        "event_cluster": "timeline_checkpoint",
+        "evidence_domains": ["timeline_integrity"],
+        "document_type": "timeline_checkpoint",
+        "evidentiary_role": "timeline_anchor"
+      }
+    }
+  ],
+  "mapping_rules": [
+    "Preserve every source label in source_record.source_labels even when mapped to canonical tags.",
+    "If multiple labels map to conflicting fields, set review_state to human_review_needed.",
+    "Legal-help material must not be mixed into the primary evidence export without explicit review.",
+    "Support-context material must remain discoverable but should not be treated as primary evidence by default.",
+    "Needs_Drive_Mirror and Needs_Read_Or_Extraction are processing states, not evidence issues."
+  ]
+}
