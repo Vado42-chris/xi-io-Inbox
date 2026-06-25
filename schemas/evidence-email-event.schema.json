@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xi-io.local/schemas/evidence-email-event.schema.json",
+  "title": "Evidence Email Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "matter_id",
+    "source_system",
+    "source_record",
+    "timeline",
+    "participants",
+    "classification",
+    "processing_status"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "event_id": {
+      "type": "string",
+      "pattern": "^evt_[a-z0-9_\\-]+$",
+      "description": "Stable deterministic event id. Prefer date + source hash in private ledgers."
+    },
+    "matter_id": {
+      "type": "string",
+      "description": "Matter or project namespace. Public examples should avoid sensitive personal names."
+    },
+    "source_system": {
+      "type": "string",
+      "enum": ["gmail", "eml_export", "pdf_export", "manual_entry", "drive_mirror", "unknown"]
+    },
+    "source_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_class", "source_labels", "raw_source_preserved"],
+      "properties": {
+        "source_class": {
+          "type": "string",
+          "enum": ["primary_evidence", "support_context", "legal_help_material", "derived_work_product", "unknown"]
+        },
+        "private_source_id_ref": {
+          "type": "string",
+          "description": "Pointer into private evidence store. Do not place raw Gmail ids in public repo."
+        },
+        "thread_ref": {
+          "type": "string",
+          "description": "Private thread pointer or redacted thread group id."
+        },
+        "source_labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "raw_source_preserved": { "type": "boolean" },
+        "raw_source_location": {
+          "type": "string",
+          "description": "Private storage pointer, not public content."
+        }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_datetime", "timezone", "subject_normalized", "event_summary", "sequence_status"],
+      "properties": {
+        "event_datetime": { "type": "string", "format": "date-time" },
+        "timezone": { "type": "string" },
+        "subject_original_redacted": { "type": "string" },
+        "subject_normalized": { "type": "string" },
+        "event_summary": { "type": "string" },
+        "responds_to_event_id": { "type": ["string", "null"] },
+        "next_known_event_id": { "type": ["string", "null"] },
+        "sequence_status": {
+          "type": "string",
+          "enum": ["complete", "gap_before", "gap_after", "gap_before_and_after", "needs_review"]
+        },
+        "gap_notes": { "type": "string" }
+      }
+    },
+    "participants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sender_role", "recipient_roles"],
+      "properties": {
+        "sender_role": { "type": "string" },
+        "recipient_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "cc_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_cluster", "issue_lanes", "evidence_domains", "document_type", "evidentiary_role", "confidentiality"],
+      "properties": {
+        "event_cluster": { "type": "string" },
+        "issue_lanes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "evidence_domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "document_type": { "type": "string" },
+        "evidentiary_role": { "type": "string" },
+        "confidentiality": {
+          "type": "string",
+          "enum": ["public_standard_only", "private_evidence", "legal_help_segregated", "support_context", "unknown"]
+        },
+        "retention_priority": {
+          "type": "string",
+          "enum": ["preserve", "normal", "low", "exclude"]
+        }
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["attachment_id", "filename_redacted", "content_type", "processing_status"],
+        "properties": {
+          "attachment_id": { "type": "string" },
+          "filename_redacted": { "type": "string" },
+          "content_type": { "type": "string" },
+          "private_source_ref": { "type": "string" },
+          "processing_status": {
+            "type": "string",
+            "enum": ["not_needed", "needs_mirror", "needs_extraction", "extracted", "needs_review"]
+          }
+        }
+      }
+    },
+    "processing_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indexed", "mirrored", "extracted", "review_state"],
+      "properties": {
+        "indexed": { "type": "boolean" },
+        "mirrored": { "type": "boolean" },
+        "extracted": { "type": "boolean" },
+        "review_state": {
+          "type": "string",
+          "enum": ["not_started", "machine_indexed", "human_review_needed", "human_reviewed", "excluded"]
+        },
+        "review_notes": { "type": "string" }
+      }
+    }
+  }
+}
