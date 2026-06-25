@@ -119,6 +119,20 @@ These slices are execution units inside the larger waterfall phase map in `docs/
 
 Prior slices (UI-004 through UI-011I) remain complete locally.
 
+## Planned slices — industry UX direction (2026-06-19)
+
+Capture only. **Not started.** Competitor names do not appear in slice IDs. Source: `docs/product/competitive-inbox-ingress-positioning-2026-06.md` · copy dependency: `docs/ui/user-language-map.md`.
+
+| ID | Slice | Goal | Status | Blocked by |
+| --- | --- | --- | --- | --- |
+| SLICE-UI-SHELL-001 | Column scroll shell | Independent column scrolling, `100dvh`, overflow hygiene | planned | UI-003E owner verify |
+| SLICE-QUIET-PROOF-001 | Quiet proof UI | Proof saved / missing / needed badges; receipts behind disclosure | planned | UI-003E; Activity owner-mode |
+| SLICE-COPY-LITERAL-001 | Literal job copy | Five obvious actions + user-language map in owner default UI | planned | user-language-map; UI-003E |
+| SLICE-INGRESS-CARD-001 | Ingress object cards | File, URL, GitHub ref, screenshot/log cards with safe-action preview | planned | PROVISIONING-001 (#22), SECURITY-INGRESS-001 (#23) |
+| SLICE-GITHUB-WORK-OBJECT-001 | GitHub human states | Work-object cards (needs eyes, failed check, proof missing, etc.) | planned | GITHUB-WORKSPACE-001 (#25) implementation scope |
+
+**Immediate implementation lane (unchanged):** UI-PEER-REVIEW FIX-BATCH-007 Automations owner-mode → Activity B6 classify → Integrations IA decision → owner `:4488` retest. Do not start rows above until gates in positioning doc clear.
+
 ## Slice Rules
 
 - A slice cannot start unless Definition of Ready is satisfied.
