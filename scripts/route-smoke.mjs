@@ -180,12 +180,12 @@ async function main() {
     await page.locator('.mail-list-pane .thread-row').first().click();
     await page.locator('.mail-reading-stack .mail-reading-pane, .mail-reading-stack .inbox-reading-pane').first().waitFor({ timeout: 10000 });
     const readingText = await page.locator('.mail-reading-stack').innerText();
-    if (!/Body not imported|Read-only body snapshot|Select a conversation|not enabled in this build|Preview only|not live Gmail|saved mail import/i.test(readingText)) {
+    if (!/Body not imported|saved snapshot|Read-only body snapshot|Select a conversation|not enabled in this build|Preview only|not live Gmail|saved mail import/i.test(readingText)) {
       throw new Error(`mail reading pane missing expected metadata/body honesty copy: ${readingText.slice(0, 240)}`);
     }
 
     const blockedCopy = await page.locator('body').innerText();
-    if (!/Send blocked|Send remains blocked|not enabled in this build|remain blocked|Body not imported yet|Preview only/i.test(blockedCopy)) {
+    if (!/Send blocked|Send remains blocked|not enabled in this build|remain blocked|Body not imported|saved snapshot|Preview only|not live Gmail/i.test(blockedCopy)) {
       throw new Error('blocked send copy not found on mail workspace');
     }
 

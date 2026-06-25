@@ -4,10 +4,23 @@
 
 ```text
 Implementation: landed @ e4c3708 (stylesheet public/shell-layout-001.css)
-Owner scroll proof: PENDING — owner eyes only
+Owner scroll proof: DEFER — Mail owner-mode IA regression during review
 Blocks: Activity B6 classify, UI-003E retest, Integrations IA
 Does not pass: UI-003E, MERGE-PREP-001, or full owner visual proof
 ```
+
+## Owner decision (2026-06-19)
+
+During `:4488` review, Mail owner-mode folder IA was reduced below mailbox confidence (Trash, Spam, Drafts, labels, approvals, multi-account). That is a **product regression**, not a scroll failure.
+
+```text
+SHELL_LAYOUT_001_OWNER_SCROLL_PROOF: DEFER
+Reason: Mail owner-mode IA regression discovered during review; scroll behavior needs separate confirmation after bounded Mail folder restoration (FIX-BATCH-008).
+Product note: Do not mark shell scroll FAIL for folder reduction — conflate only after Mail restoration + rerun.
+Decision token: SHELL_LAYOUT_001_OWNER_SCROLL_PROOF_DEFERRED
+```
+
+Proceed to Activity B6 only after FIX-BATCH-008 lands and owner reruns this packet.
 
 ## Purpose
 

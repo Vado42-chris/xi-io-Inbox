@@ -6609,6 +6609,134 @@ body {
   font-size: 0.78rem;
 }
 
+.mail-owner-data-source {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid rgba(120, 170, 210, 0.35);
+}
+
+.mail-owner-data-source.is-preview {
+  border-left-color: rgba(210, 170, 90, 0.55);
+}
+
+.mail-owner-data-source.is-connected {
+  border-left-color: rgba(90, 190, 140, 0.55);
+}
+
+.mail-owner-data-source-headline {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mail-owner-data-source-grid {
+  display: grid;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+}
+
+.mail-owner-data-source-grid div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.mail-owner-data-source-grid dt {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.mail-owner-data-source-grid dd {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.mail-owner-data-source-note {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.mail-owner-desktop-link {
+  justify-self: start;
+  font-size: 0.76rem;
+}
+
+.mail-owner-sync-status {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.mail-owner-account-switcher {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.mail-owner-account-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mail-owner-account-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mail-owner-account-btn.is-active {
+  background: rgba(120, 170, 210, 0.12);
+  color: var(--text-primary);
+}
+
+.mail-owner-nav-group {
+  margin-top: 0.2rem;
+}
+
+.mail-owner-nav-group-summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.35rem;
+  list-style: none;
+}
+
+.mail-owner-nav-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.mail-owner-nav-group-body {
+  display: grid;
+  gap: 0.15rem;
+  padding-top: 0.1rem;
+}
+
+.mail-owner-nav-group.mail-label-group .mail-owner-nav-group-body {
+  max-height: 12rem;
+  overflow: auto;
+}
+
 .gmail-sync-status-eyebrow {
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
