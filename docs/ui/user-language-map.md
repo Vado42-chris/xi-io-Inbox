@@ -116,6 +116,7 @@ Allowed in **Advanced automation details**, **Developer**, or **Proof** disclosu
 - Ibal concierge model: `docs/ui/ui-005-ibal-concierge-model.md`
 - Activity user-facing repair: `docs/ui/reviews/ui-011h-activity-receipts-user-facing-repair-receipt.md`
 - Industry positioning capture: `docs/product/competitive-inbox-ingress-positioning-2026-06.md`
+- Visual language (border minimization, open surfaces): `docs/ui/ui-visual-language-001-editorial-surfaces-and-border-minimization.md`
 - Owner vs scaffold modes: `docs/ui/reviews/peer-review/owner-vs-scaffold-mode.md`
 
 ## Acceptance criteria (COPY-LITERAL-001)

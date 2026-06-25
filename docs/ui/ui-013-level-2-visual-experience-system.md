@@ -11,6 +11,8 @@ Blocks: owner UI-003E visual proof until implemented.
 UI-013 defines the design system we must build toward before claiming the app is owner-grade.
 It does not itself restyle the product. It defines what must be true when we do.
 
+Companion: `docs/ui/ui-visual-language-001-editorial-surfaces-and-border-minimization.md` (border minimization, open surfaces — owner-default batches must follow)
+
 ## Visual thesis
 
 ```text

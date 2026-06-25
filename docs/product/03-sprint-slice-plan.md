@@ -121,17 +121,38 @@ Prior slices (UI-004 through UI-011I) remain complete locally.
 
 ## Planned slices — industry UX direction (2026-06-19)
 
-Capture only. **Not started.** Competitor names do not appear in slice IDs. Source: `docs/product/competitive-inbox-ingress-positioning-2026-06.md` · copy dependency: `docs/ui/user-language-map.md`.
+Capture only. **Not started** unless marked. Competitor names do not appear in slice IDs. Source: `docs/product/competitive-inbox-ingress-positioning-2026-06.md` · copy dependency: `docs/ui/user-language-map.md`.
 
 | ID | Slice | Goal | Status | Blocked by |
 | --- | --- | --- | --- | --- |
-| SLICE-UI-SHELL-001 | Column scroll shell | Independent column scrolling, `100dvh`, overflow hygiene | planned | UI-003E owner verify |
+| SLICE-UI-SHELL-001 | Column scroll shell | Alias — see SLICE-SHELL-LAYOUT-001 | planned | merged into shell-layout doc |
 | SLICE-QUIET-PROOF-001 | Quiet proof UI | Proof saved / missing / needed badges; receipts behind disclosure | planned | UI-003E; Activity owner-mode |
 | SLICE-COPY-LITERAL-001 | Literal job copy | Five obvious actions + user-language map in owner default UI | planned | user-language-map; UI-003E |
 | SLICE-INGRESS-CARD-001 | Ingress object cards | File, URL, GitHub ref, screenshot/log cards with safe-action preview | planned | PROVISIONING-001 (#22), SECURITY-INGRESS-001 (#23) |
 | SLICE-GITHUB-WORK-OBJECT-001 | GitHub human states | Work-object cards (needs eyes, failed check, proof missing, etc.) | planned | GITHUB-WORKSPACE-001 (#25) implementation scope |
 
-**Immediate implementation lane (unchanged):** UI-PEER-REVIEW FIX-BATCH-007 Automations owner-mode → Activity B6 classify → Integrations IA decision → owner `:4488` retest. Do not start rows above until gates in positioning doc clear.
+## Planned slices — visual language correction (2026-06-19)
+
+Owner review: product reads as bordered admin console despite improving IA. Planning authority for UI work — **not** UI-003E PASS.
+
+| ID | Slice | Goal | Status | Doc |
+| --- | --- | --- | --- | --- |
+| SLICE-VISUAL-LANGUAGE-001 | Editorial surfaces | Border minimization, fields/dividers, typographic hierarchy, quiet proof badges, contextual rail | **docs locked** | `docs/ui/ui-visual-language-001-editorial-surfaces-and-border-minimization.md` |
+| SLICE-SHELL-LAYOUT-001 | Shell layout | Independent column scroll, `100dvh`, `min-height: 0`, rail behavior (alias SLICE-UI-SHELL-001) | planned — spec locked | `docs/ui/ui-shell-layout-001-column-scroll-and-rail-behavior.md` |
+
+**Near-term work order (2026-06-19):**
+
+```text
+1. ce43716 + db85848 pushed — industry docs + FIX-BATCH-007 Automations
+2. SLICE-VISUAL-LANGUAGE-001 planning doc — locked
+3. SLICE-SHELL-LAYOUT-001 implementation + small global CSS chrome pass (VISUAL-LANGUAGE-001 phase 3)
+4. Activity B6 visual classify — under visual-language constraints; fix only if still broken
+5. Integrations IA decision
+6. Structured UI-003E owner retest — not before steps 3–5
+7. COPY-LITERAL-001 / QUIET-PROOF-001 — after UI-003E PASS
+```
+
+Do not patch Activity/Integrations owner-mode with nested bordered cards. Do not start INGRESS-CARD / GitHub WO / export utilities until architecture gates clear.
 
 ## Slice Rules
 
