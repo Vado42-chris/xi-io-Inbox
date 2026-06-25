@@ -72,6 +72,23 @@ Status: blocker added after point-of-order review. No Inbox runtime UI should be
 - [ ] Create first static Inbox UI preview using framework-derived components.
 - [ ] Record accessibility and draft-only egress checks.
 
+## Evidence email ingress metadata
+
+Status: public standards and schemas added. Private evidence hydration remains pending.
+
+- [x] Add privacy-preserving evidence email ingress standard.
+- [x] Add canonical evidence email event schema.
+- [x] Add canonical tag registry for event clusters, issue lanes, evidence domains, document types, evidentiary roles, and processing states.
+- [x] Add Gmail-label-to-canonical-tag mapping example.
+- [x] Add Batch 002 private evidence hydration plan with no-omissions controls.
+- [x] Add redacted synthetic timeline ledger example.
+- [ ] Run Batch 002 in private workspace against exported email archive and current Gmail label audit.
+- [ ] Produce private source inventory, attachment manifest, label mapping report, gap report, and no-omissions report.
+- [ ] Validate private event JSONL against `schemas/evidence-email-event.schema.json`.
+- [ ] Mirror eligible attachments to private storage and mark extracted/review state.
+- [ ] Keep legal-help and support-context records segregated from primary evidence.
+- [ ] Only promote redacted summaries or generic standards back to this public repo.
+
 ## Pass 4: runtime skeleton
 
 Blocked until Pass 3 local build proof and UI-001 framework UI adoption decision are complete.
