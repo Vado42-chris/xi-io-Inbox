@@ -46,6 +46,10 @@
 
 ## Owner verification checklist
 
+Use the bounded owner packet (scroll proof only — not UI-003E):
+
+**`docs/ui/reviews/shell-layout-001-owner-scroll-proof-packet.md`**
+
 Hard-refresh `http://localhost:4488` and confirm:
 
 1. Mail — folder/list and reading pane scroll independently; no page-level horizontal overflow

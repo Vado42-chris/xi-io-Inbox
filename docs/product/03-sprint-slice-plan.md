@@ -145,8 +145,8 @@ Owner review: product reads as bordered admin console despite improving IA. Plan
 ```text
 1. ce43716 + db85848 pushed — industry docs + FIX-BATCH-007 Automations
 2. SLICE-VISUAL-LANGUAGE-001 planning doc — locked
-3. SLICE-SHELL-LAYOUT-001 implementation — **landed (`shell-layout-001.css`)** · owner scroll proof pending
-4. Activity B6 visual classify — under visual-language constraints; fix only if still broken
+3. SLICE-SHELL-LAYOUT-001 implementation — **landed (`shell-layout-001.css`)** · **owner scroll proof pending** (`shell-layout-001-owner-scroll-proof-packet.md`)
+4. Activity B6 visual classify — **blocked until shell scroll proof PASS**
 5. Integrations IA decision
 6. Structured UI-003E owner retest — not before steps 3–5
 7. COPY-LITERAL-001 / QUIET-PROOF-001 — after UI-003E PASS
