@@ -16,9 +16,7 @@
 
 | Commit | Scope |
 | --- | --- |
-| TBD | Add `public/automations-owner-mode.js` owner-mode Automations overlay |
-| TBD | Add `public/automations-owner-mode.css` overlay styles |
-| TBD | Load Automations owner-mode CSS and JS from `public/index.html` |
+| `db85848` | Add Automations owner-mode overlay, styles, index load, and receipt |
 
 ## Human problem fixed
 
