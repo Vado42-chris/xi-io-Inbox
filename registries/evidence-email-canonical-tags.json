@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0.0",
+  "registry_type": "evidence_email_canonical_tags",
+  "note": "Canonical repo tags are normalized metadata. Gmail labels remain source_labels only.",
+  "event_clusters": [
+    {
+      "id": "mediation_june_2026",
+      "label": "June 2026 mediation sequence",
+      "description": "Mediation session, follow-up scheduling, mediation summaries, and post-session position clarification."
+    },
+    {
+      "id": "home_preservation_urgent_bills",
+      "label": "Home preservation and urgent bills",
+      "description": "Insurance, utilities, creditor, or service-provider records affecting preservation of home or household stability."
+    },
+    {
+      "id": "legal_help_and_intake",
+      "label": "Legal help and intake",
+      "description": "Lawyer intake, legal resource requests, consultation scheduling, or related preparation. Segregate from general evidence."
+    },
+    {
+      "id": "timeline_checkpoint",
+      "label": "Timeline checkpoint",
+      "description": "Self-sent or generated checkpoint used to preserve a dated state of a working chronology."
+    }
+  ],
+  "issue_lanes": [
+    {
+      "id": "interim_vehicle_access",
+      "label": "Interim vehicle access",
+      "description": "Access to a practical vehicle before final settlement."
+    },
+    {
+      "id": "vehicle_registration_liability",
+      "label": "Vehicle registration and liability",
+      "description": "Plateholder, registration, tickets, accident exposure, insurance, and vehicle-use risk."
+    },
+    {
+      "id": "home_insurance",
+      "label": "Home insurance",
+      "description": "Home insurance notices, invoices, cancellation risk, and payment correspondence."
+    },
+    {
+      "id": "family_debt",
+      "label": "Family debt",
+      "description": "Shared or disputed family bills, debt, collection pressure, service interruption, and credit harm."
+    },
+    {
+      "id": "support_calculation",
+      "label": "Support calculation",
+      "description": "Income disclosure, support guideline inputs, and support-position correspondence."
+    },
+    {
+      "id": "asset_tracing",
+      "label": "Asset tracing",
+      "description": "Settlement funds, estate funds, down payments, mortgage contributions, and vehicle-purchase tracing."
+    },
+    {
+      "id": "disability_access",
+      "label": "Disability access",
+      "description": "Disability-related access, transportation, medical, rehabilitation, food, household, and functional-stability concerns."
+    },
+    {
+      "id": "dog_access_support",
+      "label": "Dog access and support",
+      "description": "Dog access, support-animal context, exercise access, and related logistics."
+    },
+    {
+      "id": "legal_consultation",
+      "label": "Legal consultation",
+      "description": "Lawyer outreach, intake, consult scheduling, and legal resource support."
+    },
+    {
+      "id": "support_context",
+      "label": "Support context",
+      "description": "Personal support or contemporaneous context that is not primary source-of-record evidence."
+    }
+  ],
+  "evidence_domains": [
+    "vehicle_access",
+    "home_preservation",
+    "family_debt",
+    "asset_tracing",
+    "support",
+    "disability_access",
+    "mediation",
+    "legal_help",
+    "timeline_integrity",
+    "support_context"
+  ],
+  "document_types": [
+    "counsel_correspondence",
+    "mediator_correspondence",
+    "service_provider_notice",
+    "insurance_notice",
+    "creditor_notice",
+    "legal_intake",
+    "resource_forward",
+    "timeline_checkpoint",
+    "support_context_message",
+    "self_sent_checkpoint",
+    "derived_summary"
+  ],
+  "evidentiary_roles": [
+    "notice_of_harm",
+    "notice_of_urgent_bill",
+    "proof_of_prompt_disclosure",
+    "liability_boundary",
+    "mediation_position",
+    "settlement_position",
+    "receipt_or_invoice",
+    "service_interruption_risk",
+    "consultation_record",
+    "timeline_anchor",
+    "support_context"
+  ],
+  "processing_states": [
+    "indexed",
+    "needs_drive_mirror",
+    "needs_attachment_extraction",
+    "needs_human_review",
+    "extracted",
+    "excluded_from_public_repo",
+    "complete"
+  ]
+}
