@@ -17,7 +17,7 @@
 
 | Commit | Scope |
 | --- | --- |
-| TBD | Add `public/shell-layout-001.css` and load from `public/index.html` |
+| `e4c3708` | Add `public/shell-layout-001.css`, load from `public/index.html`, receipt |
 
 ## Scope delivered
 
