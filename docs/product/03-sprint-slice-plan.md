@@ -138,14 +138,14 @@ Owner review: product reads as bordered admin console despite improving IA. Plan
 | ID | Slice | Goal | Status | Doc |
 | --- | --- | --- | --- | --- |
 | SLICE-VISUAL-LANGUAGE-001 | Editorial surfaces | Border minimization, fields/dividers, typographic hierarchy, quiet proof badges, contextual rail | **docs locked** | `docs/ui/ui-visual-language-001-editorial-surfaces-and-border-minimization.md` |
-| SLICE-SHELL-LAYOUT-001 | Shell layout | Independent column scroll, `100dvh`, `min-height: 0`, rail behavior (alias SLICE-UI-SHELL-001) | planned — spec locked | `docs/ui/ui-shell-layout-001-column-scroll-and-rail-behavior.md` |
+| SLICE-SHELL-LAYOUT-001 | Shell layout | Independent column scroll, `100dvh`, `min-height: 0`, rail behavior (alias SLICE-UI-SHELL-001) | **implemented — owner scroll proof pending** | `docs/ui/ui-shell-layout-001-column-scroll-and-rail-behavior.md` · `public/shell-layout-001.css` |
 
 **Near-term work order (2026-06-19):**
 
 ```text
 1. ce43716 + db85848 pushed — industry docs + FIX-BATCH-007 Automations
 2. SLICE-VISUAL-LANGUAGE-001 planning doc — locked
-3. SLICE-SHELL-LAYOUT-001 implementation + small global CSS chrome pass (VISUAL-LANGUAGE-001 phase 3)
+3. SLICE-SHELL-LAYOUT-001 implementation — **landed (`shell-layout-001.css`)** · owner scroll proof pending
 4. Activity B6 visual classify — under visual-language constraints; fix only if still broken
 5. Integrations IA decision
 6. Structured UI-003E owner retest — not before steps 3–5

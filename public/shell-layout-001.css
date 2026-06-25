@@ -1,0 +1,314 @@
+/**
+ * SLICE-SHELL-LAYOUT-001 — viewport shell, independent column scroll, chrome reduction.
+ * Spec: docs/ui/ui-shell-layout-001-column-scroll-and-rail-behavior.md
+ * Visual language: docs/ui/ui-visual-language-001-editorial-surfaces-and-border-minimization.md
+ */
+
+:root {
+  --shell-viewport-height: 100vh;
+  --field-page: var(--surface-canvas);
+  --field-content: rgba(14, 18, 26, 0.62);
+  --field-raised: rgba(22, 28, 40, 0.78);
+  --field-muted: rgba(255, 255, 255, 0.025);
+  --divider-subtle: rgba(255, 255, 255, 0.06);
+  --layout-pane-max-height: var(--shell-viewport-height);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --shell-viewport-height: 100dvh;
+  }
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: var(--shell-viewport-height);
+  min-height: var(--shell-viewport-height);
+  max-height: var(--shell-viewport-height);
+  overflow: hidden;
+}
+
+.app-shell-mount,
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: var(--shell-viewport-height);
+  min-height: var(--shell-viewport-height);
+  max-height: var(--shell-viewport-height);
+  overflow: hidden;
+}
+
+.app-topbar {
+  flex-shrink: 0;
+}
+
+.app-frame {
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
+  max-height: none;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+.lane-nav,
+#appMainLane.lane-surface,
+.right-inspector {
+  min-height: 0;
+  max-height: none;
+}
+
+.lane-nav {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#appMainLane.lane-surface {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#appMainLane .lane-header {
+  flex-shrink: 0;
+}
+
+#appMainLane .lane-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lane-workspace,
+.home-workspace,
+.inbox-workspace,
+.calendar-workspace,
+.tasks-workspace,
+.automations-workspace,
+.activity-workspace,
+.extensions-workspace,
+.settings-workspace {
+  flex: 1;
+  min-height: 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lane-workspace-grid,
+.inbox-workspace-grid,
+.mail-workbench-center,
+.calendar-workspace-grid,
+.tasks-workspace-grid,
+.automations-workspace-grid,
+.automations-workspace-grid-three,
+.extensions-workspace-grid,
+.extensions-workspace-layout,
+.settings-workspace-grid,
+.activity-workspace-grid {
+  flex: 1;
+  min-height: 0 !important;
+  max-height: none;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+.shell-scroll-pane,
+.lane-nav,
+.mail-list-pane,
+.mail-reading-pane,
+.inbox-reading-pane,
+.lane-reading-pane,
+.thread-list-panel.mail-list-pane,
+.tasks-item-list,
+.automations-item-list,
+.automations-action-library,
+.settings-item-list,
+.activity-feed-pane,
+.activity-detail-pane,
+.extensions-catalog-pane,
+.extensions-detail-pane,
+.extensions-item-list,
+.calendar-month-shell,
+.calendar-day-agenda,
+.calendar-event-detail,
+.calendar-day-summary,
+.home-workspace,
+.right-inspector.context-command-rail {
+  min-height: 0;
+  max-height: none !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.activity-detail-pane {
+  position: static;
+  top: auto;
+}
+
+.right-inspector.context-command-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lane-toolbar,
+.inbox-toolbar {
+  flex-shrink: 0;
+}
+
+/* Shared chrome reduction — fields and dividers over boxes */
+
+.app-topbar {
+  border-color: var(--divider-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.lane-nav,
+.right-inspector {
+  border: 0;
+  border-radius: 0;
+  background: var(--field-muted);
+  box-shadow: none;
+}
+
+.lane-nav {
+  border-right: 1px solid var(--divider-subtle);
+}
+
+.right-inspector {
+  border-left: 1px solid var(--divider-subtle);
+}
+
+.lane-surface {
+  border: 0;
+  border-radius: var(--radius-chrome);
+  background: var(--field-content);
+  box-shadow: none;
+}
+
+.lane-surface::before {
+  opacity: 0.42;
+}
+
+.lane-header.is-compact,
+.settings-page-head,
+.activity-page-head,
+.mail-workspace-head {
+  border-bottom-color: var(--divider-subtle);
+}
+
+.lane-toolbar,
+.inbox-toolbar {
+  border-bottom-color: var(--divider-subtle);
+}
+
+.inspector-section {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--divider-subtle);
+}
+
+.inspector-section:last-child {
+  border-bottom: 0;
+}
+
+.inspector-block {
+  border: 0;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.thread-list-panel.mail-list-pane,
+.inbox-reading-pane,
+.lane-reading-pane {
+  border: 0;
+  border-radius: var(--radius-chrome);
+  background: var(--field-muted);
+  box-shadow: none;
+}
+
+/* Owner-default overlays — open fields, no nested bordered cards */
+
+[class*="-owner-status-card"],
+[class*="-owner-dryrun-card"],
+[class*="-owner-list-card"],
+[class*="-owner-setup-card"] {
+  border: 0;
+  background: var(--field-raised);
+  box-shadow: none;
+}
+
+[class*="-owner-advanced"] {
+  border: 0;
+  border-top: 1px solid var(--divider-subtle);
+  border-radius: 0;
+  background: var(--field-muted);
+  box-shadow: none;
+}
+
+[class*="-owner-status-grid"] div,
+.automations-owner-proof-note {
+  border: 0;
+  background: var(--field-muted);
+}
+
+@media (max-width: 1180px) {
+  html,
+  body {
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .app-shell-mount,
+  .app-shell {
+    height: auto;
+    min-height: var(--shell-viewport-height);
+    max-height: none;
+    overflow: visible;
+  }
+
+  .app-frame {
+    overflow: visible;
+  }
+
+  #appMainLane.lane-surface,
+  #appMainLane .lane-content,
+  .lane-workspace,
+  .lane-workspace-grid {
+    overflow: visible;
+  }
+
+  .shell-scroll-pane,
+  .lane-nav,
+  .mail-list-pane,
+  .mail-reading-pane,
+  .inbox-reading-pane,
+  .lane-reading-pane,
+  .activity-feed-pane,
+  .activity-detail-pane,
+  .right-inspector.context-command-rail {
+    max-height: var(--layout-scroll-max, 70vh) !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-scroll-pane,
+  .lane-nav,
+  .right-inspector.context-command-rail {
+    scroll-behavior: smooth;
+  }
+}
