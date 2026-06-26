@@ -36,7 +36,7 @@ checked out `ui-002/framework-derived-static-preview`.
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   b1b70ae (branch-truth SHA sync after 001B) — run `git rev-parse HEAD` after fetch
+HEAD:   run `git rev-parse HEAD` after fetch (INBOX-REPO-RECOVERY-001B governance landed)
 PR:     #12 (open, draft, unmerged, merge conflicts — not merge-ready)
 CI:     Static Preview Check (npm run check) + Tauri Runtime Check (cargo test + gate) @ committed HEAD
 Owner:  docs/operations/owner-gate-chart.md
