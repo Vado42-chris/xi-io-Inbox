@@ -48,17 +48,25 @@ Polish is **blocked** until workspace peer review batches land and owner UI-003E
 
 | Mode | Command | What it proves |
 | --- | --- | --- |
-| Static scaffold preview | `npm run dev` → http://localhost:4488 | JSON/fixture UI, CI route smoke, owner UI-003E scaffold review |
-| Tauri connected runtime | `npm run tauri:dev` | Live Gmail connect/sync orchestration, runtime mail index, capability ACL |
+| **Local web runtime (v1 product)** | `npm run setup:gmail` then `npm run local:web` → http://127.0.0.1:8788 | Browser UI + local backend, OAuth/token store, Gmail read-only sync, live mail proof surface |
+| Static scaffold preview | `npm run dev` → http://localhost:4488 | JSON/fixture UI, CI route smoke, UI-003E scaffold review — **demo/CI only, not live mail** |
+| Tauri connected runtime | `npm run tauri:dev` | Interim desktop spine — connect/sync orchestration, capability ACL — **subordinate, not primary live-mail proof** |
 
-Static preview is not connected live mail. Tauri runtime is not a substitute for owner UI-003E on `:4488`. Record which mode was used in receipts.
+```text
+Live mail proof = http://127.0.0.1:8788 only (when LOCAL-WEB-RUNTIME-001 lands + owner proof PASS).
+Static UI proof = :4488 only.
+No product proof is valid if repo truth, PR truth, and receipt truth disagree.
+```
+
+Record which mode was used in receipts. `:4488` is not connected live mail. Tauri is not a substitute for local web runtime v1 proof.
 
 ## Validation
 
 See **`docs/operations/local-validation-without-bugbot.md`** — local CI parity and reading GitHub Actions without Bugbot.
 
 ```text
-Bugbot is not the build system. GitHub Actions is. Local checks are the pre-push safety net. :4488 is the UX gate.
+Bugbot is not the build system. GitHub Actions is. Local checks are the pre-push safety net.
+:4488 = scaffold/demo/CI UX gate. 127.0.0.1:8788 = live-mail product gate (when runtime lands).
 ```
 
 | Command | When |
@@ -79,8 +87,9 @@ Bugbot is not the build system. GitHub Actions is. Local checks are the pre-push
 | `npm run check:full` | Local/agent slice close (includes `gate:runtime002c` + cargo test) |
 | `cargo test --manifest-path src-tauri/Cargo.toml` | Tauri Rust changes |
 | `git diff --check` | Before commit |
-| `npm run dev` | Owner scaffold visual proof → http://localhost:4488 |
-| `npm run tauri:dev` | Runtime connect/sync/index proof (operator OAuth still human) |
+| `npm run local:web` | Local web runtime (v1) — live mail owner proof @ http://127.0.0.1:8788 when slice lands |
+| `npm run dev` | Scaffold/demo visual proof → http://localhost:4488 (not live mail) |
+| `npm run tauri:dev` | Interim Tauri spine proof only — subordinate to local web runtime v1 |
 
 Schema metaschema (when `schemas/` change):
 `python3 -m check_jsonschema --check-metaschema schemas/*.json`
@@ -152,6 +161,9 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | **UI-PEER-REVIEW-FIX-BATCH-003** | landed — Home owner-mode · owner retest pending |
 | **UI-PEER-REVIEW-FIX-BATCH-004** | landed — Ibal drawer dedupe · owner retest pending |
 | **UI-PEER-REVIEW program** | **active** — Calendar/Tasks/Automations/Activity/Integrations classified · next impl gated |
+| **INBOX-REPO-RECOVERY-001** | **001B governance alignment** — host-mode truth in PR/AGENTS/branch-truth |
+| **LOCAL-WEB-RUNTIME-001** | **uncommitted · proof-pending** — do not commit until owner browser proof PASS |
+| **FIX-BATCH-009** | **uncommitted · separate** — static `:4488` Mail state model; not mixed with runtime |
 
 ### UI peer review — review vs implementation
 
@@ -188,7 +200,7 @@ Only the owner may record PASS after a real localhost:4488 review, using the exa
 
 `npm run check:ui003e-packet` enforces this in CI. If local edits revert the packet, run `git checkout -- docs/ui/reviews/ui-003e-owner-visual-proof-packet.md` from branch HEAD.
 
-Runtime live-mail operator proof (connect/sync end-to-end in Tauri) is a **separate** human gate (RUNTIME-002C). Agents must not claim it during RUNTIME-002B or UI-003E scaffold review.
+Runtime live-mail operator proof uses **local web runtime @ 8788** when LOCAL-WEB-RUNTIME-001 lands (owner proof pending). RUNTIME-002C Tauri operator proof is a **separate interim gate** — subordinate, not primary product proof. Agents must not claim live mail proof during UI-003E scaffold review on `:4488`.
 
 Historical slice status (UI-012, ACC-SYNC, framework backfeed, etc.) lives in `TODO.md` — do not treat this file as the full project ledger.
 
