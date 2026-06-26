@@ -36,7 +36,7 @@ checked out `ui-002/framework-derived-static-preview`.
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   735addf (FIX-BATCH-008) — refresh after fetch/push
+HEAD:   1cf2aab (INBOX-REPO-RECOVERY-001B) — run `git rev-parse HEAD` after fetch
 PR:     #12 (open, draft, unmerged, merge conflicts — not merge-ready)
 CI:     Static Preview Check (npm run check) + Tauri Runtime Check (cargo test + gate) @ committed HEAD
 Owner:  docs/operations/owner-gate-chart.md
