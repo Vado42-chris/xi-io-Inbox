@@ -4,23 +4,32 @@
 
 ```text
 Implementation: landed @ e4c3708 (stylesheet public/shell-layout-001.css)
-Owner scroll proof: DEFER — Mail owner-mode IA regression during review
+Owner scroll proof: FAIL — owner-default Mail presentation failed product direction @ 735addf
 Blocks: Activity B6 classify, UI-003E retest, Integrations IA
+Follow-up: FIX-BATCH-009 (Mail owner UI state model correction) before scroll proof rerun
 Does not pass: UI-003E, MERGE-PREP-001, or full owner visual proof
 ```
 
 ## Owner decision (2026-06-19)
 
-During `:4488` review, Mail owner-mode folder IA was reduced below mailbox confidence (Trash, Spam, Drafts, labels, approvals, multi-account). That is a **product regression**, not a scroll failure.
+### Prior defer — Mail IA (FIX-BATCH-008 landed)
+
+Mail owner-mode folder IA was reduced below mailbox confidence. FIX-BATCH-008 restored folders and snapshot honesty; scroll rerun was next.
+
+### Current result — product presentation fail @ 735addf
+
+Mail scroll may be technically acceptable, but owner-default Mail failed product direction: implementation/debug state dominated primary UI (`Saved snapshot`, metadata grid in left rail). That reads as a mockup inspector, not a calm email client.
 
 ```text
-SHELL_LAYOUT_001_OWNER_SCROLL_PROOF: DEFER
-Reason: Mail owner-mode IA regression discovered during review; scroll behavior needs separate confirmation after bounded Mail folder restoration (FIX-BATCH-008).
-Product note: Do not mark shell scroll FAIL for folder reduction — conflate only after Mail restoration + rerun.
-Decision token: SHELL_LAYOUT_001_OWNER_SCROLL_PROOF_DEFERRED
+SHELL_LAYOUT_001_OWNER_SCROLL_PROOF: FAIL
+Reviewed by: Chris
+Commit SHA reviewed: 735addf
+Notes: Mail scroll may be technically acceptable, but owner UI fails product direction. The Mail screen exposes implementation/debug state as primary UI. “Saved snapshot” and snapshot metadata are useful diagnostic facts, but they should not dominate the normal mail navigation. The current UI still feels like a mockup/state inspector, not a calm email client or operator cockpit.
+Evidence: owner screenshot and notes.
+Decision token: SHELL_LAYOUT_001_OWNER_SCROLL_PROOF_FAIL_SHELL_FOLLOWUP_REQUIRED
 ```
 
-Proceed to Activity B6 only after FIX-BATCH-008 lands and owner reruns this packet.
+Open **FIX-BATCH-009** (Mail owner UI state model correction). Rerun this packet only after FIX-BATCH-009 lands and agents pass the pre-owner UX self-check.
 
 ## Purpose
 
