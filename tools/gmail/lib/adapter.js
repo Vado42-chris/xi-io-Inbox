@@ -29,6 +29,7 @@ import {
   READONLY_SCOPE,
 } from './body-gate.js';
 import {
+  DEFAULT_BODY_PREVIEW_MAX,
   extractBodyFromPayload,
   redactBodyContent,
   redactBodySnapshot,
@@ -745,15 +746,9 @@ function messageRowWithRedactedBody(message) {
   const labelIds = message.labelIds || [];
   const mimeAnalysis = analyzeMimePayload(message.payload);
   const renderModel = buildBodyRenderModel(mimeAnalysis, { blockRemoteImages: true });
-  const rawBody = renderModel.sanitizedPlainText
-    || mimeAnalysis.plainText
-    || extractBodyFromPayload(message.payload);
-  const redacted = redactBodyContent(rawBody);
-  if (renderModel.sanitizedPlainText && !redacted.sanitizedPlainText) {
-    redacted.sanitizedPlainText = renderModel.sanitizedPlainText;
-    redacted.sanitizedBodyPreview = renderModel.sanitizedPlainText.slice(0, 1200);
-    redacted.bodyAvailable = true;
-  }
+  const plain = String(renderModel.sanitizedPlainText || mimeAnalysis.plainText || '').trim();
+  const previewMax = DEFAULT_BODY_PREVIEW_MAX;
+  const preview = plain.length > previewMax ? `${plain.slice(0, previewMax).trim()}…` : plain;
   return {
     id: message.id,
     threadId: message.threadId,
@@ -764,10 +759,10 @@ function messageRowWithRedactedBody(message) {
     date: headers.Date || (message.internalDate ? new Date(Number(message.internalDate)).toISOString() : ''),
     unread: labelIds.includes('UNREAD'),
     snippet: message.snippet || '',
-    sanitizedBodyPreview: redacted.sanitizedBodyPreview,
-    sanitizedPlainText: redacted.sanitizedPlainText,
-    bodyAvailable: redacted.bodyAvailable,
-    redactionNotes: redacted.redactionNotes,
+    sanitizedBodyPreview: preview,
+    sanitizedPlainText: plain,
+    bodyAvailable: Boolean(plain || renderModel.sanitizedHtml),
+    redactionNotes: renderModel.renderWarnings || [],
     hasAttachments: renderModel.hasAttachments,
     renderModel,
     provider: 'gmail-readonly',

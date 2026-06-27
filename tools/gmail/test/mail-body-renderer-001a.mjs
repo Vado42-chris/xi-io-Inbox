@@ -81,12 +81,13 @@ const altModel = buildBodyRenderModel(altAnalysis);
 assert.equal(altModel.bodyRenderMode, 'sanitized_html');
 assert.match(altModel.sanitizedHtml, /HTML alternative part/);
 
-const trackingHtml = '<p>Newsletter</p><img src="https://evil.com/track.gif" width="1" height="1" />';
+const trackingHtml = '<p>Newsletter</p><img src="https://evil.com/track.gif" width="1" height="1" /><p>Offer ends Friday.</p>';
 const tracking = sanitizeEmailHtml(trackingHtml);
 assert.equal(tracking.remoteImagesBlocked, true);
-assert.match(tracking.sanitizedHtml, /tracking pixel blocked|remote image blocked/i);
+assert.equal(tracking.trackingPixelBlockedCount, 1);
+assert.match(tracking.sanitizedHtml, /Offer ends Friday/);
+assert.doesNotMatch(tracking.sanitizedHtml, /redacted-resource|remote image blocked|tracking pixel blocked/i);
 assert.ok(tracking.warnings.includes('tracking_pixel_blocked'));
-assert.ok(tracking.warnings.includes('remote_images_blocked'));
 
 const maliciousHtml = '<script>alert(1)</script><p onclick="alert(2)">click</p><img src=x onerror=alert(3)>';
 const malicious = sanitizeEmailHtml(maliciousHtml);

@@ -8066,20 +8066,32 @@ function renderMailBodyRenderBadges(renderModel) {
   if (!renderModel) return '';
   const badges = [];
   if (renderModel.bodyRenderMode === 'sanitized_html') badges.push('Sanitized HTML');
-  if (renderModel.bodyRenderMode === 'plain_fallback') badges.push('Plain text fallback');
+  if (renderModel.bodyRenderMode === 'plain_fallback' || renderModel.usedPlainTextFallback) badges.push('Plain text fallback');
   if (renderModel.bodyRenderMode === 'plain_text') badges.push('Plain text');
-  if (renderModel.remoteImagesBlocked) badges.push('Remote images blocked');
+  if (renderModel.remoteImageBlockedCount > 0 || renderModel.remoteImagesBlocked) badges.push('Remote images blocked');
+  if (renderModel.trackingPixelBlockedCount > 0) badges.push('Tracking resources blocked');
+  if (renderModel.inlineImageResolvedCount > 0) badges.push('Inline images rendered');
+  if ((renderModel.inlineImageCount || 0) > (renderModel.inlineImageResolvedCount || 0)) badges.push('Inline images unavailable');
   if (renderModel.hasAttachments) badges.push('Attachments detected');
-  if (renderModel.unsafeHtmlStripped) badges.push('Unsafe HTML stripped');
+  if (renderModel.unsafeHtmlStripped || renderModel.unsafeElementStrippedCount > 0) badges.push('Unsafe HTML stripped');
   if (!badges.length) return '';
   return `<div class="mail-body-render-badges">${badges.map((label) => `<span class="mail-body-render-badge">${escapeHtml(label)}</span>`).join('')}</div>`;
+}
+
+function renderMailBodyResourceSummary(renderModel) {
+  if (!renderModel?.resourcePolicySummary) return '';
+  return `<p class="mail-body-resource-summary" role="status">${escapeHtml(renderModel.resourcePolicySummary)}</p>`;
+}
+
+function renderMailBodyRenderChrome(renderModel) {
+  return `${renderMailBodyResourceSummary(renderModel)}${renderMailBodyRenderBadges(renderModel)}`;
 }
 
 function renderLocalWebHydratedBody(message, bodyText) {
   const renderModel = message?.renderModel;
   if (renderModel?.bodyRenderMode === 'sanitized_html' && renderModel.sanitizedHtml) {
     return `
-      ${renderMailBodyRenderBadges(renderModel)}
+      ${renderMailBodyRenderChrome(renderModel)}
       <div class="mail-body-sandbox" data-mail-body-sandbox>
         <div class="mail-body-sandbox-inner">${renderModel.sanitizedHtml}</div>
       </div>
@@ -8088,7 +8100,7 @@ function renderLocalWebHydratedBody(message, bodyText) {
     `;
   }
   return `
-    ${renderMailBodyRenderBadges(renderModel)}
+    ${renderMailBodyRenderChrome(renderModel)}
     <div class="mail-message-body is-readable">${escapeHtml(demoteMailDisplayText(bodyText))}</div>
     <p class="mail-message-preview-note">${escapeHtml(localWebRuntimeModeCopy('body_hydrated'))}</p>
   `;

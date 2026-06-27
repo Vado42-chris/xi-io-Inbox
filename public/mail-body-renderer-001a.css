@@ -65,3 +65,19 @@
   color: var(--color-text-muted, rgba(255, 255, 255, 0.62));
   font-size: 0.78rem;
 }
+
+.mail-body-resource-summary {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-bg-panel, #101217);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.76));
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.mail-body-sandbox-inner img {
+  max-width: 100%;
+  height: auto;
+}
