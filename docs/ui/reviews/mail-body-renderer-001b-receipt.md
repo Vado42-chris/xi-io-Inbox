@@ -174,6 +174,40 @@ npm run check                # pass
 | 10 | No OAuth scope changes | pass (`GMAIL_ACCESS_MODE=readonly`) |
 | 11 | 001I not started | pass |
 
+## Peer review follow-up — CSS/style leakage (001B-FIX)
+
+**Classification after owner screenshot:** `MAIL-BODY-RENDERER-001B: PARTIAL PASS / NEW FAILING CASE`
+
+### Todoist investigation
+
+| Field | Value |
+| --- | --- |
+| Safe identifier | thread/message `19f0a5591ce4f396` |
+| Subject | Chris, your due dates are lying to you |
+| Sender | Denise from Todoist `<no-reply@todoist.com>` |
+| `<style>` tags in HTML | yes (13 blocks stripped) |
+| CSS in body before fix | yes — Mantine `:root/:host`, `@media`, `--mantine-*` leaked when `<style>` tags were removed without their contents |
+| CSS source | `<style>` blocks (framework-injected email CSS) |
+| Plain text cleaner than polluted HTML | yes — plain part has readable prose; HTML path had CSS + broken attribute/preheader noise |
+| Fix | Strip `<style>`/`<head>`/`<noscript>`/`<template>` blocks with contents; detect CSS/display pollution; prefer plain fallback when HTML is worse |
+
+### Real-thread proof after CSS fix (`:8788` restart required)
+
+| Thread | Mode | CSS noise | `[redacted-resource]` | Prose | Summary outside body |
+| --- | --- | --- | --- | --- | --- |
+| Walmart `19f046e2ef6756a7` | `sanitized_html` | none | none | yes | yes |
+| Todoist `19f0a5591ce4f396` | `plain_fallback` (`html_display_polluted`) | none | none | yes | yes |
+
+Todoist metadata example:
+
+```text
+bodyRenderMode: plain_fallback
+styleElementStrippedCount: 13
+fallbackReason: html_display_polluted
+resourcePolicySummary: 8 remote images blocked · 6 tracking resources blocked · unsafe HTML stripped · style content stripped
+renderWarnings: style_content_stripped, html_display_used_plain_fallback, ...
+```
+
 ## Stop lines honored
 
 - No push

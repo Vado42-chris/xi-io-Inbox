@@ -31,6 +31,10 @@ for (const token of [
   'inlineImageResolvedCount',
   'usedPlainTextFallback',
   'buildResourcePolicySummary',
+  'styleElementStrippedCount',
+  'cssNoiseTextStrippedCount',
+  'fallbackReason',
+  'stripStyleAndFrameworkBlocks',
 ]) {
   if (!htmlSanitize.includes(token)) {
     console.error(`mail-body-renderer-001b-model-check: html-sanitize missing ${token}`);

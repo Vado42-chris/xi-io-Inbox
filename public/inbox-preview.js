@@ -8074,6 +8074,10 @@ function renderMailBodyRenderBadges(renderModel) {
   if ((renderModel.inlineImageCount || 0) > (renderModel.inlineImageResolvedCount || 0)) badges.push('Inline images unavailable');
   if (renderModel.hasAttachments) badges.push('Attachments detected');
   if (renderModel.unsafeHtmlStripped || renderModel.unsafeElementStrippedCount > 0) badges.push('Unsafe HTML stripped');
+  if (renderModel.styleElementStrippedCount > 0) badges.push('Style content stripped');
+  if (renderModel.fallbackReason === 'css_noise_stripped' || renderModel.fallbackReason === 'html_display_polluted') {
+    badges.push('Plain text preferred');
+  }
   if (!badges.length) return '';
   return `<div class="mail-body-render-badges">${badges.map((label) => `<span class="mail-body-render-badge">${escapeHtml(label)}</span>`).join('')}</div>`;
 }

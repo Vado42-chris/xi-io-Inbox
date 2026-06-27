@@ -133,4 +133,57 @@ assert.match(buildResourcePolicySummary({
   unsafeElementStrippedCount: 1,
 }), /2 remote images blocked · 1 tracking resource blocked · unsafe HTML stripped/);
 
+const mantineHtml = `
+<style>:root, :host { --mantine-primary-color-filled: var(--mantine-color-gray-filled); }
+@media (max-width: 36em) { .mantine-hidden-from-xs { display: none !important; } }</style>
+<p>Chris, your due dates are lying to you</p>
+<p>One field for when you'll do it, another for when it's due.</p>
+`;
+const mantineModel = buildBodyRenderModel(analyzeMimePayload({
+  mimeType: 'multipart/alternative',
+  parts: [
+    { mimeType: 'text/plain', body: { data: b64("Chris, your due dates are lying to you\nOne field for when you'll do it, another for when it's due.") } },
+    { mimeType: 'text/html', body: { data: b64(mantineHtml) } },
+  ],
+}));
+assert.doesNotMatch(
+  mantineModel.sanitizedHtml || mantineModel.sanitizedPlainText,
+  /:root|:host|@media|--mantine|display:\s*none\s*!important/i,
+);
+assert.match(mantineModel.sanitizedPlainText, /due dates are lying to you/i);
+assert.ok(mantineModel.styleElementStrippedCount >= 1 || mantineModel.usedPlainTextFallback);
+
+const styleOnlyHtml = '<style>.hidden{display:none !important;}</style><p>Sale ends tonight</p>';
+const styleOnlyModel = buildBodyRenderModel(analyzeMimePayload({
+  mimeType: 'text/html',
+  body: { data: b64(styleOnlyHtml) },
+}));
+assert.match(styleOnlyModel.sanitizedPlainText || styleOnlyModel.sanitizedHtml || '', /Sale ends tonight/i);
+assert.doesNotMatch(styleOnlyModel.sanitizedHtml || '', /display:\s*none/i);
+
+const cssLeakHtml = '<p>Broken title"></p><p>Real message body here with enough readable words for everyone.</p>';
+const cssLeakModel = buildBodyRenderModel(analyzeMimePayload({
+  mimeType: 'multipart/alternative',
+  parts: [
+    { mimeType: 'text/plain', body: { data: b64('Real message body here with enough readable words for everyone.') } },
+    { mimeType: 'text/html', body: { data: b64(cssLeakHtml) } },
+  ],
+}));
+assert.equal(cssLeakModel.usedPlainTextFallback, true);
+assert.match(cssLeakModel.fallbackReason || '', /html_display_polluted|css_noise_stripped/);
+
+const newsletterHtml = `
+<style>.logo{width:100px;}</style>
+<p>Newsletter headline</p>
+<img src="https://cdn.example.com/hero.png">
+<img src="https://track.example.com/p.gif" width="1" height="1">
+`;
+const newsletterModel = buildBodyRenderModel(analyzeMimePayload({
+  mimeType: 'text/html',
+  body: { data: b64(newsletterHtml) },
+}));
+assert.match(newsletterModel.sanitizedPlainText || newsletterModel.sanitizedHtml || '', /Newsletter headline/i);
+assert.doesNotMatch(newsletterModel.sanitizedHtml || '', /\[redacted-resource\]|\.logo\{/i);
+assert.ok(newsletterModel.remoteImageBlockedCount >= 1);
+
 console.log('mail-body-renderer-001b: pass');

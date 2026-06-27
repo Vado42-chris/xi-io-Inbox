@@ -5,8 +5,16 @@
 
 const BLOCKED_TAGS = new Set([
   'script', 'iframe', 'frame', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select',
-  'link', 'meta', 'base', 'svg', 'math',
+  'link', 'meta', 'base', 'svg', 'math', 'style', 'noscript', 'template', 'head',
 ]);
+
+const STYLE_BLOCK_PATTERN = /<style\b[^>]*>[\s\S]*?<\/style>/gi;
+const NOSCRIPT_BLOCK_PATTERN = /<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi;
+const TEMPLATE_BLOCK_PATTERN = /<template\b[^>]*>[\s\S]*?<\/template>/gi;
+const HEAD_BLOCK_PATTERN = /<head\b[^>]*>[\s\S]*?<\/head>/gi;
+const SCRIPT_BLOCK_PATTERN = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
+const HTML_COMMENT_PATTERN = /<!--[\s\S]*?-->/g;
+const INVISIBLE_CHAR_PATTERN = /[\u200B-\u200D\uFEFF\u00AD\u2060\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E\u3164\uFFA0]/g;
 
 const ALLOWED_TAGS = new Set([
   'p', 'br', 'div', 'span', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li',
@@ -32,13 +40,116 @@ function extractImgSrc(tag) {
   return (match?.[2] || match?.[3] || match?.[4] || '').trim();
 }
 
+function cleanPlainText(input) {
+  return String(input || '')
+    .replace(INVISIBLE_CHAR_PATTERN, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function htmlToPlainText(html) {
-  return String(html || '')
+  return cleanPlainText(String(html || '')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim());
+}
+
+function stripStyleAndFrameworkBlocks(html) {
+  let styleElementStrippedCount = 0;
+  let out = String(html || '');
+  for (const pattern of [
+    STYLE_BLOCK_PATTERN,
+    NOSCRIPT_BLOCK_PATTERN,
+    TEMPLATE_BLOCK_PATTERN,
+    HEAD_BLOCK_PATTERN,
+    SCRIPT_BLOCK_PATTERN,
+  ]) {
+    pattern.lastIndex = 0;
+    const matches = out.match(pattern) || [];
+    styleElementStrippedCount += matches.length;
+    out = out.replace(pattern, ' ');
+  }
+  out = out.replace(HTML_COMMENT_PATTERN, ' ');
+  return { html: out, styleElementStrippedCount };
+}
+
+function stripCssNoiseText(html) {
+  let cssNoiseTextStrippedCount = 0;
+  let out = String(html || '');
+  const patterns = [
+    /:root\s*,\s*:host\s*\{[^}]*\}/gi,
+    /:root\s*\{[^}]*\}/gi,
+    /:host\s*\{[^}]*\}/gi,
+    /@media[^{]+\{[\s\S]*?\}/gi,
+    /\.[a-z0-9_-][\w-]*\s*\{[^}]*\}/gi,
+    /--[a-z0-9_-]+\s*:[^;{}]+;?/gi,
+    /display\s*:\s*none\s*!important/gi,
+  ];
+  for (const pattern of patterns) {
+    pattern.lastIndex = 0;
+    const matches = out.match(pattern) || [];
+    cssNoiseTextStrippedCount += matches.length;
+    out = out.replace(pattern, ' ');
+  }
+  return { html: out.replace(/\s+/g, ' ').trim(), cssNoiseTextStrippedCount };
+}
+
+function analyzeTextNoise(text) {
+  const sample = String(text || '');
+  if (!sample.trim()) {
+    return { htmlNoiseRatio: 0, cssNoiseScore: 0, proseScore: 0 };
+  }
+  const cssNoiseScore = (
+    (sample.match(/:root\b/gi) || []).length
+    + (sample.match(/:host\b/gi) || []).length
+    + (sample.match(/@media\b/gi) || []).length
+    + (sample.match(/--[a-z0-9_-]+\s*:/gi) || []).length
+    + (sample.match(/\.[a-z0-9_-]+\s*\{/gi) || []).length
+    + (sample.match(/display\s*:\s*none\s*!important/gi) || []).length
+  );
+  const proseScore = (sample.match(/\b[a-z]{4,}\b/gi) || []).length;
+  const htmlNoiseRatio = cssNoiseScore / Math.max(1, cssNoiseScore + proseScore);
+  return { htmlNoiseRatio, cssNoiseScore, proseScore };
+}
+
+function invisibleCharRatio(text) {
+  const sample = String(text || '');
+  if (!sample.length) return 0;
+  const hits = (sample.match(INVISIBLE_CHAR_PATTERN) || []).length
+    + (sample.match(/&nbsp;|\u00a0/gi) || []).length;
+  return hits / sample.length;
+}
+
+function isHtmlCssPolluted(sanitizedHtml, plainText) {
+  const text = htmlToPlainText(sanitizedHtml);
+  const noise = analyzeTextNoise(text);
+  if (noise.cssNoiseScore >= 3 && noise.htmlNoiseRatio > 0.12) return true;
+  if (/:root\b/i.test(text) && (/:host\b/i.test(text) || /@media\b/i.test(text))) return true;
+  if (/@media\b/i.test(text) && /--[a-z0-9_-]+\s*:/i.test(text)) return true;
+  const plainNoise = analyzeTextNoise(cleanPlainText(plainText));
+  if (plainNoise.proseScore > noise.proseScore * 1.2 && noise.cssNoiseScore >= 2) return true;
+  return false;
+}
+
+function hasReadableProse(text) {
+  return (String(text).match(/\b[a-z]{4,}\b/gi) || []).length >= 8;
+}
+
+function isHtmlDisplayPolluted(sanitizedHtml, plainText) {
+  if (isHtmlCssPolluted(sanitizedHtml, plainText)) return true;
+  const htmlText = htmlToPlainText(sanitizedHtml);
+  const plain = cleanPlainText(plainText);
+  if (!plain || !hasReadableProse(plain)) return false;
+
+  if (/">\s/.test(htmlText)) return true;
+
+  const htmlInvisible = invisibleCharRatio(htmlText);
+  const plainInvisible = invisibleCharRatio(plain);
+  if (htmlInvisible > 0.15 && plainInvisible < htmlInvisible * 0.2 && !hasReadableProse(htmlText)) return true;
+
+  return false;
 }
 
 function countUnsafeElements(html) {
@@ -161,6 +272,12 @@ export function buildResourcePolicySummary(counts = {}) {
   if (counts.unsafeAttributeStrippedCount > 0) {
     parts.push('unsafe attributes stripped');
   }
+  if (counts.styleElementStrippedCount > 0) {
+    parts.push('style content stripped');
+  }
+  if (counts.cssNoiseTextStrippedCount > 0) {
+    parts.push('CSS noise stripped');
+  }
   if (counts.hasAttachments) {
     parts.push('attachments detected');
   }
@@ -183,8 +300,15 @@ export function sanitizeEmailHtml(html, { blockRemoteImages = true, inlineImageM
       inlineImageUnresolvedCount: 0,
       unsafeElementStrippedCount: 0,
       unsafeAttributeStrippedCount: 0,
+      styleElementStrippedCount: 0,
+      cssNoiseTextStrippedCount: 0,
     };
   }
+
+  const styleBlocks = stripStyleAndFrameworkBlocks(input);
+  input = styleBlocks.html;
+  let styleElementStrippedCount = styleBlocks.styleElementStrippedCount;
+  if (styleElementStrippedCount > 0) warnings.push('style_content_stripped');
 
   const unsafeElementCount = countUnsafeElements(input);
   let unsafeHtmlStripped = unsafeElementCount > 0
@@ -204,6 +328,9 @@ export function sanitizeEmailHtml(html, { blockRemoteImages = true, inlineImageM
   if (images.inlineImageUnresolvedCount > 0) warnings.push('inline_images_unavailable');
 
   input = allowlistTags(input);
+  const cssNoise = stripCssNoiseText(input);
+  input = cssNoise.html;
+  if (cssNoise.cssNoiseTextStrippedCount > 0) warnings.push('css_noise_stripped');
   input = input.replace(/\s+/g, ' ').trim();
 
   return {
@@ -217,12 +344,15 @@ export function sanitizeEmailHtml(html, { blockRemoteImages = true, inlineImageM
     inlineImageUnresolvedCount: images.inlineImageUnresolvedCount,
     unsafeElementStrippedCount: blocked.unsafeElementStrippedCount + unsafeElementCount,
     unsafeAttributeStrippedCount: neutral.unsafeAttributeStrippedCount,
+    styleElementStrippedCount: styleElementStrippedCount,
+    cssNoiseTextStrippedCount: cssNoise.cssNoiseTextStrippedCount,
   };
 }
 
 function isHtmlUnreadable(sanitizedHtml, plainText) {
+  if (isHtmlDisplayPolluted(sanitizedHtml, plainText)) return true;
   const text = htmlToPlainText(sanitizedHtml);
-  const plainLen = String(plainText || '').trim().length;
+  const plainLen = cleanPlainText(plainText).length;
   const htmlTextLen = text.length;
   if (!plainLen) return false;
   if (!htmlTextLen && plainLen > 40) return true;
@@ -232,11 +362,12 @@ function isHtmlUnreadable(sanitizedHtml, plainText) {
 
 export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } = {}) {
   const warnings = [];
-  const plainText = String(mimeAnalysis?.plainText || '').trim();
+  const plainText = cleanPlainText(mimeAnalysis?.plainText || '');
   let sanitizedPlainText = plainText;
   let sanitizedHtml = '';
   let bodyRenderMode = 'plain_text';
   let usedPlainTextFallback = false;
+  let fallbackReason = null;
   let unsafeHtmlStripped = false;
   let remoteImagesBlocked = blockRemoteImages;
   let remoteImageBlockedCount = 0;
@@ -245,6 +376,9 @@ export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } 
   let inlineImageUnresolvedCount = 0;
   let unsafeElementStrippedCount = 0;
   let unsafeAttributeStrippedCount = 0;
+  let styleElementStrippedCount = 0;
+  let cssNoiseTextStrippedCount = 0;
+  let htmlNoiseRatio = 0;
 
   if (mimeAnalysis?.hasHtml && mimeAnalysis.htmlText) {
     const sanitized = sanitizeEmailHtml(mimeAnalysis.htmlText, {
@@ -259,7 +393,12 @@ export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } 
     inlineImageUnresolvedCount = sanitized.inlineImageUnresolvedCount;
     unsafeElementStrippedCount = sanitized.unsafeElementStrippedCount;
     unsafeAttributeStrippedCount = sanitized.unsafeAttributeStrippedCount;
+    styleElementStrippedCount = sanitized.styleElementStrippedCount || 0;
+    cssNoiseTextStrippedCount = sanitized.cssNoiseTextStrippedCount || 0;
     warnings.push(...sanitized.warnings);
+
+    const noise = analyzeTextNoise(htmlToPlainText(sanitized.sanitizedHtml));
+    htmlNoiseRatio = noise.htmlNoiseRatio;
 
     if (sanitized.sanitizedHtml && !isHtmlUnreadable(sanitized.sanitizedHtml, plainText)) {
       sanitizedHtml = sanitized.sanitizedHtml;
@@ -268,7 +407,14 @@ export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } 
       sanitizedPlainText = plainText;
       bodyRenderMode = 'plain_fallback';
       usedPlainTextFallback = true;
-      warnings.push('html_unreadable_used_plain_fallback');
+      fallbackReason = isHtmlDisplayPolluted(sanitized.sanitizedHtml, plainText)
+        ? (isHtmlCssPolluted(sanitized.sanitizedHtml, plainText) ? 'css_noise_stripped' : 'html_display_polluted')
+        : 'html_unreadable';
+      warnings.push(fallbackReason === 'css_noise_stripped'
+        ? 'css_noise_used_plain_fallback'
+        : fallbackReason === 'html_display_polluted'
+          ? 'html_display_used_plain_fallback'
+          : 'html_unreadable_used_plain_fallback');
     } else if (sanitized.sanitizedHtml) {
       sanitizedHtml = sanitized.sanitizedHtml;
       bodyRenderMode = 'sanitized_html';
@@ -279,6 +425,7 @@ export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } 
     sanitizedPlainText = htmlToPlainText(mimeAnalysis.htmlText);
     bodyRenderMode = 'plain_fallback';
     usedPlainTextFallback = true;
+    fallbackReason = fallbackReason || 'html_fallback_to_text';
     warnings.push('html_fallback_to_text');
   }
 
@@ -297,6 +444,8 @@ export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } 
     inlineImageUnresolvedCount,
     unsafeElementStrippedCount,
     unsafeAttributeStrippedCount,
+    styleElementStrippedCount,
+    cssNoiseTextStrippedCount,
     hasAttachments: Boolean(mimeAnalysis?.hasAttachments),
   });
 
@@ -313,7 +462,11 @@ export function buildBodyRenderModel(mimeAnalysis, { blockRemoteImages = true } 
     trackingPixelBlockedCount,
     unsafeElementStrippedCount,
     unsafeAttributeStrippedCount,
+    styleElementStrippedCount,
+    cssNoiseTextStrippedCount,
+    htmlNoiseRatio,
     usedPlainTextFallback,
+    fallbackReason,
     remoteImagesBlocked,
     unsafeHtmlStripped,
     renderWarnings: [...new Set(warnings)],
