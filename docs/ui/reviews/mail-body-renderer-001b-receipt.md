@@ -2,10 +2,11 @@
 
 **Slice:** `MAIL-BODY-RENDERER-001B`  
 **Branch:** `ui-002/framework-derived-static-preview`  
-**Status:** Implementation complete locally — **not committed** — **not pushed**  
-**Parent:** `MAIL-BODY-RENDERER-001A` (`37d9a76`, owner FAIL)  
+**Status:** Owner review **PASS** locally — **not pushed**  
+**Commits:** `ed6fe26` (redaction/resource summary) · `e688e81` (CSS/style leakage fix)  
+**Classification:** `MAIL-BODY-RENDERER-001B OWNER REVIEW: PASS` (2026-06-19)  
 **Spec:** `docs/product/mail-body-renderer-001b.md`  
-**Blocks:** `IBAL-RUNTIME-001A` · `LOCAL-WEB-RUNTIME-001I` until owner review PASS
+**Blocks:** `IBAL-RUNTIME-001A` unblocked after owner approves push · `LOCAL-WEB-RUNTIME-001I` still blocked
 
 ## Objective
 
@@ -218,12 +219,44 @@ renderWarnings: style_content_stripped, html_display_used_plain_fallback, ...
 - No attachment open/download
 - No view modes, labels accordion, rail resize, GitHub/Contacts nav, or account provisioning mixed in
 
-## Owner review gate
-
-Owner visual proof on `:4488` with a real marketing/newsletter thread remains recommended before downstream slices.
-
-Decision token (owner only):
+## Owner review (2026-06-19)
 
 ```text
+MAIL_BODY_RENDERER_001B_OWNER_REVIEW: PASS
+```
+
+**Host:** `npm run local:web` → http://127.0.0.1:8788 (hard refresh after restart)
+
+| Subcase | Proof | Result |
+| --- | --- | --- |
+| Todoist CSS/style leakage (`19f0a5591ce4f396`) | Owner browser screenshot | **PASS** — plain text fallback; no Mantine/CSS in pane; badges outside body |
+| Walmart redacted-resource wall (`19f046e2ef6756a7`) | Agent `:8788` final proof post-restart | **PASS** — no `[redacted-resource]` wall; readable prose; resource summary outside body |
+
+### Walmart final proof snapshot
+
+| Check | Result |
+| --- | --- |
+| No inline `[redacted-resource]` wall | pass |
+| Readable prose preserved | pass |
+| Blocked resources summarized outside body | pass |
+| Remote images not auto-loaded | pass |
+| Tracking pixels blocked | pass |
+| Provider writes blocked | pass |
+| OAuth unchanged | pass |
+| `001I` not started | pass |
+
+**Push:** blocked until owner explicitly approves scoped push of `ed6fe26` + `e688e81`.
+
+Decision tokens:
+
+```text
+MAIL_BODY_RENDERER_001B_OWNER_REVIEW: PASS
 MAIL_BODY_RENDERER_001B_PASS_READY_FOR_IBAL_RUNTIME
+```
+
+Scoped push when owner approves (not executed):
+
+```text
+ed6fe26 — MAIL-BODY-RENDERER-001B redaction/resource summary fix
+e688e81 — MAIL-BODY-RENDERER-001B CSS/style leakage fix
 ```
