@@ -36,19 +36,20 @@ checked out `ui-002/framework-derived-static-preview`.
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   run `git rev-parse HEAD` after fetch (INBOX-REPO-RECOVERY-001B governance landed)
+HEAD:   run `git rev-parse HEAD` after fetch (001H read-only runtime + planning captures landed; see PR #12)
 PR:     #12 (open, draft, unmerged, merge conflicts — not merge-ready)
-CI:     Static Preview Check (npm run check) + Tauri Runtime Check (cargo test + gate) @ committed HEAD
+CI:     Static Preview Check (npm run check) + Tauri Runtime Check @ committed HEAD
 Owner:  docs/operations/owner-gate-chart.md
 Peer review: docs/ui/reviews/peer-review/README.md
 Recovery: docs/ui/reviews/inbox-repo-recovery-001-report.md
+001H receipt: docs/ui/reviews/local-web-runtime-001-receipt.md
 ```
 
 ### Host-mode truth (owner 2026-06-19)
 
 | Surface | Command | Role |
 | --- | --- | --- |
-| **v1 product / live mail proof** | `npm run local:web` → http://127.0.0.1:8788 | LOCAL-WEB-RUNTIME-001 — **uncommitted, proof-pending** |
+| **v1 product / live mail proof** | `npm run local:web` → http://127.0.0.1:8788 | **LOCAL-WEB-RUNTIME-001H** — read-only Gmail runtime **landed** (`ab7ff45`); owner proof **PASS for read-only runtime only** |
 | Demo / CI / scaffold | `npm run dev` → http://localhost:4488 | Fixtures, UI-003E scaffold — **not live mail** |
 | Interim desktop spine | `npm run tauri:dev` | RUNTIME-002 — **subordinate, not primary proof path** |
 
@@ -64,8 +65,10 @@ No product proof is valid if repo truth, PR truth, and receipt truth disagree.
 | GOV-REFRESH-001 | complete |
 | TAURI-CI-001 | complete |
 | **UI-PEER-REVIEW program** | **active** — workspace receipts in `docs/ui/reviews/peer-review/` |
-| **INBOX-REPO-RECOVERY-001B** | **governance alignment** — PR #12 body, AGENTS.md, branch-truth host-mode truth |
-| **LOCAL-WEB-RUNTIME-001** | **uncommitted · proof-pending** — resume browser proof only after governance aligned |
+| **INBOX-REPO-RECOVERY-001B** | **governance alignment** — PR #12 body, branch-truth host-mode truth |
+| **LOCAL-WEB-RUNTIME-001H** | **landed @ `ab7ff45`** — read-only Gmail runtime; `LOCAL_WEB_RUNTIME_001H_OWNER_PROOF: PASS FOR READ-ONLY RUNTIME ONLY` |
+| **LOCAL-WEB-RUNTIME-001I** | **not started** — read-only freshness + notification smoke (next implementation gate) |
+| **Planning captures** | **docs only @ `64c54d3`, `c5fd46c`** — provider architecture, control plane, IA, desktop, Ibal (no implementation) |
 | **UI-003E owner visual proof** (scaffold `:4488`) | **NOT passed — owner eyes required** |
 | MERGE-PREP-001 | blocked until UI-003E PASS |
 
@@ -84,7 +87,7 @@ Authoritative slice ledger: `TODO.md` · `docs/product/03-sprint-slice-plan.md` 
 
 - Monolithic `public/inbox-preview.js` and `public/inbox-preview.css` remain the main UI surface.
 - Design tokens/components under `public/src/design/` are target architecture, not yet source of truth.
-- Owner UI-003E scaffold visual proof (`:4488`) is separate from live-mail proof (LOCAL-WEB-RUNTIME-001 @ `:8788` when landed).
+- Owner UI-003E scaffold visual proof (`:4488`) is separate from live-mail proof (`LOCAL-WEB-RUNTIME-001H` @ `:8788` — read-only runtime landed; egress blocked).
 
 Convergence direction:
 
@@ -122,7 +125,7 @@ Host modes:
 
 | Proof type | Command |
 | --- | --- |
-| Live mail (v1 product) | `npm run local:web` → http://127.0.0.1:8788 (LOCAL-WEB-RUNTIME-001 — uncommitted until owner proof PASS) |
+| Live mail (v1 product) | `npm run local:web` → http://127.0.0.1:8788 — **001H read-only runtime landed**; draft/send/mutation blocked |
 | Scaffold / UI-003E | `npm run dev` → http://localhost:4488 (demo/CI only) |
 | Interim Tauri spine | `npm run tauri:dev` (subordinate — not primary live-mail proof) |
 
@@ -141,7 +144,7 @@ Record which mode a receipt used. Do not treat `:4488` scaffold proof as live-ma
 - `npm run check` before push (product UI / static preview paths)
 - `git diff --check`
 - `npm run dev` for visible scaffold UI changes (`:4488` — not live mail)
-- `npm run local:web` for local web runtime v1 work (`:8788` — when slice lands)
+- `npm run local:web` for local web runtime v1 (`:8788` — 001H read-only spine; provider writes blocked)
 - `npm run tauri:dev` for interim Tauri spine changes only (subordinate)
 
 Full policy: `docs/operations/local-validation-without-bugbot.md`
