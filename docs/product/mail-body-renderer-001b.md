@@ -1,7 +1,7 @@
 # MAIL-BODY-RENDERER-001B — resource-aware readable rendering
 
-**Status:** **Implementation complete locally** (2026-06-19) — **not pushed** — owner review pending  
-**Receipt:** `docs/ui/reviews/mail-body-renderer-001b-receipt.md`  
+**Status:** Owner review **PASS** locally (`ed6fe26` · `e688e81`) — **not pushed**  
+**Next capture:** `MAIL-BODY-RENDERER-001C` — `docs/product/mail-body-renderer-001c-render-policy.md` (spec only — **do not implement** until owner approves)  
 **Parent:** `MAIL-BODY-RENDERER-001A` (`37d9a76`, local, **not pushed**, **owner FAIL**)  
 **Blocks:** trustworthy Ibal context · `001I` · push of 001A
 

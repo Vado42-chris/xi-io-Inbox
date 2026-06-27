@@ -56,12 +56,26 @@ Each setting MUST define:
 
 ### Body / rendering
 
-| settingKey | scope | notes |
+| settingKey | scope | userEditable | defaultValue | notes |
+| --- | --- | --- | --- | --- |
+| `render.preferHtml` | account · sender · message | yes | `auto_safe` | ties to `MAIL-BODY-RENDERER-001` / **001C** toggle chip |
+| `render.remoteImages` | account · sender · domain · message | yes | `block` | explicit allow only after user policy — **001C** |
+| `render.trackingPixels` | global · account | **no** | `block` | **locked in 001C** — status only, not checkbox |
+| `render.styles` | sender · message | yes | `strip_unsafe` | safe allowlist vs prefer plain — **001C** |
+| `render.inlineCidImages` | sender · message | yes | `render_safe` | local CID only — **001C** |
+| `render.sandboxStrict` | global | no | on | isolation level |
+
+**001C capture:** Sender/message render policy toggles live in the **reading-pane summary strip** (not account settings panel). See `docs/product/mail-body-renderer-001c-render-policy.md`.
+
+| settingKey | displayLabel (001C chip) | ledgerEvent |
 | --- | --- | --- |
-| `render.preferHtml` | account | ties to `MAIL-BODY-RENDERER-001` |
-| `render.remoteImages` | account | default block |
-| `render.trackingPixels` | account | default block |
-| `render.sandboxStrict` | global | isolation level |
+| `render.preferHtml` | Sanitized HTML | `mail.render_policy.changed` |
+| `render.remoteImages` | Remote images | `mail.render_policy.sender_allowed` / `sender_blocked` |
+| `render.trackingPixels` | Tracking resources blocked 🔒 | n/a — locked |
+| `render.styles` | Style content stripped | `mail.render_policy.changed` |
+| `render.inlineCidImages` | Inline images | `mail.render_policy.changed` |
+
+Scope modal values: `message` · `sender` · `domain` (account/global later).
 
 ### Labels / folders
 

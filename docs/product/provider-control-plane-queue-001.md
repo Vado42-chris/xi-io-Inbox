@@ -1,8 +1,20 @@
 # Provider control plane — slice queue (ledger)
 
-**Updated:** 2026-06-27  
-**Ledger event:** `provider.queue.updated`  
+**Updated:** 2026-06-19 (renderer-only branch · 001B owner PASS · 001C capture)  
+**Ledger event:** `provider.queue.updated` · `mail.body_renderer.001c.spec_captured`  
 **Rule:** Capture-only slices do not authorize implementation until explicitly opened.
+
+## Renderer-only branch note
+
+This branch (`ui-002/mail-body-renderer-001b-clean`) carries **mail body renderer work only** — not 002D/brand/Ibal surface/boot/view-mode commits. See `docs/ui/reviews/mail-body-renderer-001b-receipt.md`.
+
+| Layer | State |
+| --- | --- |
+| `MAIL-BODY-RENDERER-001A` | Landed on branch — superseded by 001B for owner purposes |
+| `MAIL-BODY-RENDERER-001B` | **Owner PASS** — push pending owner approval |
+| `MAIL-BODY-RENDERER-001C` | **Capture only** — sender render policy toggles |
+| `IBAL-RUNTIME-001A` | **Next impl** after renderer push approval |
+| `LOCAL-WEB-RUNTIME-001I` | **Blocked** |
 
 ## Product scope (ledger note)
 
@@ -31,12 +43,10 @@ Every setting/action change must produce a ledger event or receipt.
 
 | Surface | State |
 | --- | --- |
-| PR #12 | Open, draft, **not merge-ready**, head **`dcd2a17`** |
-| Branch claim | Read-only Gmail runtime only (`LOCAL-WEB-RUNTIME-001H`) |
+| PR #12 | Open, draft, **not merge-ready**, base **`9c8e698`** |
+| Renderer-only branch | `ui-002/mail-body-renderer-001b-clean` — **not pushed** until owner approves |
+| Owner mail body review | **001B PASS** (Todoist browser + Walmart proof) · **001C capture only** |
 | Not complete on PR | egress · 001I · UI-003E · Microsoft/GitHub/Drive/Contacts impl · multi-account IA |
-| Local only (unpushed) | Brand stack `521d639` + `2bf632f` + `af0bc61` |
-
-Do **not** update PR #12 / `branch-truth.md` for brand until owner approves push. Prep: `docs/operations/brand-stack-push-prep-notes.md`.
 
 ---
 
@@ -45,27 +55,17 @@ Do **not** update PR #12 / `branch-truth.md` for brand until owner approves push
 | Slice | SHA / receipt | Scope |
 | --- | --- | --- |
 | `LOCAL-WEB-RUNTIME-001H` | `ab7ff45` · `docs/ui/reviews/local-web-runtime-001-receipt.md` | **PASS for read-only Gmail runtime only** |
-| Capture docs (001H era) | `64c54d3` · `c5fd46c` | IA/desktop/Ibal/provider-architecture/001I specs |
+| `MAIL-BODY-RENDERER-001B` | clean branch · `docs/ui/reviews/mail-body-renderer-001b-receipt.md` | Readable resource-aware rendering — **owner PASS** |
 
 ---
 
-## Local pending (not pushed)
-
-| Slice | Commits | Ledger events | Scope |
-| --- | --- | --- | --- |
-| `BRAND-SHELL-POLISH-002` | `521d639` | `brand.shell.002.pass_pending_owner` | Base visual refresh |
-| `BRAND-SHELL-POLISH-002B` | `2bf632f` | `brand.shell.002b.token_enforcement_recorded` | Route token enforcement |
-| `BRAND-SHELL-POLISH-002C` | `af0bc61` | `brand.shell.002c.route_audit_recorded` | Route audit + a11y |
-
-**Push blocked** until owner visual review. **001I not started.**
-
----
-
-## Capture required (this ledger update — no implementation)
+## Capture required (no implementation)
 
 | Slice | Doc | Ledger event |
 | --- | --- | --- |
 | `MAIL-BODY-RENDERER-001` | `docs/product/mail-body-renderer-001.md` | `mail.body_renderer.spec_captured` |
+| `MAIL-BODY-RENDERER-001B` | `docs/product/mail-body-renderer-001b.md` | `mail.body_renderer.001b.owner_pass` |
+| `MAIL-BODY-RENDERER-001C` | `docs/product/mail-body-renderer-001c-render-policy.md` | `mail.body_renderer.001c.spec_captured` |
 | `PROVISIONING-ACCOUNT-SETTINGS-001` | `docs/product/provisioning-account-settings-001.md` | `provisioning.account_settings.spec_captured` |
 | `PROFILE-CARD-001` | `docs/product/profile-card-001.md` | `profile.card.spec_captured` |
 | `PROVIDER-SETTINGS-MATRIX-001` | `docs/architecture/provider-settings-matrix-001.md` | `provider.settings_matrix.spec_captured` |
@@ -86,33 +86,22 @@ Do **not** update PR #12 / `branch-truth.md` for brand until owner approves push
 
 ## Queue (implementation order — owner-locked)
 
-### Now
+### After renderer push approval
 
-1. **Ledger/spec capture** — this update (complete before more implementation)
-2. **Brand stack local** — owner visual review on `:4488` / `:8788`
-3. **Do not push** brand until approved
-
-### After brand push (if approved)
-
-4. Update PR #12 + `branch-truth.md` (visual polish only; 001I still not started)
-5. **Decision:** does `MAIL-BODY-RENDERER-001` block `001I` reading-pane review?
-6. `LOCAL-WEB-RUNTIME-001I` — read-only freshness + notification smoke (**only after brand + decision**)
-7. `MAIL-BODY-RENDERER-001` — if required before draft/send or 001I sign-off
-8. `GMAIL-DRAFT-EGRESS-001A` — after read-only/event smoke proven
-9. `GMAIL-SEND-EGRESS-001A` — send-to-self only, later
-10. `MAIL-ACCOUNT-IA-001` — after account/settings/provisioning truth captured
-11. `PROVISIONING-ACCOUNT-SETTINGS-001` + `PROFILE-CARD-001` + matrix — settings UI (future)
-12. `PROVIDER-ARCHITECTURE-001` — Microsoft mail mapping · GitHub · Contacts/Drive read · etc.
+1. **`IBAL-RUNTIME-001A`** — real Ask Ibal (**next implementation**)
+2. **`MAIL-BODY-RENDERER-001C`** — capture only; implement after owner approves (refinement, not blocker for Ibal)
+3. **`LOCAL-WEB-RUNTIME-001I`** — only after boot/refresh decision (separate branch)
+4. **`GMAIL-DRAFT-EGRESS-001A`** — after read-only/event smoke proven
 
 ---
 
-## Stop lines (all capture + brand)
+## Stop lines
 
-- No push of brand stack until owner approval
-- No `001I` implementation until brand decision + queue gate
+- No push until owner approves renderer-only branch
+- No `MAIL-BODY-RENDERER-001C` implementation until owner explicitly approves slice
+- No tracking pixel user toggle in 001C (locked privacy status only)
+- No `001I` implementation on this branch
 - No OAuth scope changes
 - No provider writes · no contact import · no Drive import
 - No GitHub / Microsoft implementation
-- No notification center implementation
-- No HTML renderer implementation unless `MAIL-BODY-RENDERER-001` explicitly opened
-- No runtime/provider/egress code changes in ledger-only updates
+- No 002D/brand/Ibal surface/boot/view-mode commits on renderer-only push
