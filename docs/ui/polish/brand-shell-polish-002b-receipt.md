@@ -19,7 +19,7 @@ If it cannot get it from a token, the token system is incomplete.
 | `521d639` (002) | Logo, black shell base, Stack A fonts, surface/accent tokens |
 | **002B** (this slice) | Route accents, radius scale, border/radius/gradient enforcement |
 
-Do **not** push 002 alone — push **`521d639 + 002B`** after owner visual review.
+Do **not** push 002 alone — push **`521d639 + 2bf632f + 002C`** after owner visual review (see `brand-shell-polish-002c-route-audit.md`).
 
 ## CSS load order
 

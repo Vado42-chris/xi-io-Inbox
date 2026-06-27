@@ -1,0 +1,125 @@
+/**
+ * BRAND-SHELL-POLISH-002C — accessibility + composite token enforcement
+ * Loads after 002b. Owner shell only (.is-owner-shell).
+ * Spec: docs/ui/polish/brand-shell-polish-002c-route-audit.md
+ *
+ * No new override layers beyond tokens, focus, disabled, and selected affordances.
+ */
+
+/* BRAND-002C-TOKENS-START */
+.app-shell.is-owner-shell {
+  /* Composite surfaces (design-token vocabulary) */
+  --token-bg: var(--color-bg-root);
+  --token-surface: var(--color-bg-panel);
+  --token-panel: var(--color-bg-panel);
+  --token-panel-raised: var(--color-bg-panel-raised);
+  --token-border: var(--color-border-subtle);
+  --token-border-strong: var(--color-border-strong);
+  --token-shadow: var(--shadow-panel);
+  --token-shadow-elevated: var(--shadow-shell);
+
+  /* Accessible text tiers (WCAG AA targets on --color-bg-panel) */
+  --color-text-muted: rgba(255, 255, 255, 0.62);
+  --color-text-secondary: rgba(255, 255, 255, 0.76);
+  --muted: var(--color-text-muted);
+  --text-secondary: var(--color-text-secondary);
+
+  /* Interaction states */
+  --state-hover-bg: var(--hover-bg);
+  --state-selected-bg: var(--route-accent-bg);
+  --state-selected-indicator: var(--route-accent);
+  --state-selected-border: var(--route-accent-border);
+  --state-disabled-text: rgba(255, 255, 255, 0.38);
+  --state-disabled-bg: rgba(255, 255, 255, 0.04);
+  --state-disabled-opacity: 1;
+
+  /* Semantic status */
+  --state-success: #6fcf97;
+  --state-warn: var(--color-accent-warn);
+  --state-danger: var(--color-accent-danger);
+  --state-info: var(--color-accent-blue);
+
+  /* Focus (WCAG 2.4.11 — visible, tokenized) */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-accent-blue-soft);
+  --focus-ring-shadow: 0 0 0 var(--focus-ring-width) color-mix(in srgb, var(--focus-ring-color) 88%, transparent);
+
+  /* Non-text UI contrast anchors */
+  --color-border-strong: rgba(255, 255, 255, 0.38);
+  --token-border-strong: var(--color-border-strong);
+  --line-strong: var(--color-border-strong);
+  --non-text-border-min: var(--color-border-strong);
+}
+/* BRAND-002C-TOKENS-END */
+
+/* —— Focus-visible: keyboard path always visible —— */
+.app-shell.is-owner-shell button:focus-visible,
+.app-shell.is-owner-shell a:focus-visible,
+.app-shell.is-owner-shell input:focus-visible,
+.app-shell.is-owner-shell select:focus-visible,
+.app-shell.is-owner-shell textarea:focus-visible,
+.app-shell.is-owner-shell [tabindex="0"]:focus-visible,
+.app-shell.is-owner-shell .product-nav-item:focus-visible,
+.app-shell.is-owner-shell .context-nav-item:focus-visible,
+.app-shell.is-owner-shell .thread-row:focus-visible,
+.app-shell.is-owner-shell .scope-lens-option:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--focus-ring-shadow);
+}
+
+/* —— Disabled: tokenized, not opacity-only —— */
+.app-shell.is-owner-shell button:disabled,
+.app-shell.is-owner-shell .inbox-action-btn:disabled,
+.app-shell.is-owner-shell .inbox-action-btn.is-blocked,
+.app-shell.is-owner-shell input:disabled,
+.app-shell.is-owner-shell select:disabled,
+.app-shell.is-owner-shell textarea:disabled {
+  opacity: var(--state-disabled-opacity);
+  color: var(--state-disabled-text);
+  background: var(--state-disabled-bg);
+  border-color: var(--token-border);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* —— Selected: not color-alone (indicator + weight/structure) —— */
+.app-shell.is-owner-shell .product-nav-item.is-active {
+  font-weight: 700;
+  border-bottom: var(--polish-underline-width, 2px) solid var(--lane-accent, var(--state-selected-indicator));
+}
+
+.app-shell.is-owner-shell .thread-row.is-selected,
+.app-shell.is-owner-shell .context-nav-item.is-active,
+.app-shell.is-owner-shell .activity-entry-card.is-selected,
+.app-shell.is-owner-shell .lane-item.is-selected,
+.app-shell.is-owner-shell .tasks-epic-row.is-selected,
+.app-shell.is-owner-shell .tasks-story-row.is-selected,
+.app-shell.is-owner-shell .scope-lens-option.is-active {
+  font-weight: 600;
+  box-shadow: inset var(--selected-indicator-width, 3px) 0 0 var(--state-selected-indicator);
+}
+
+.app-shell.is-owner-shell .calendar-day-cell.is-selected,
+.app-shell.is-owner-shell .calendar-week-day.is-selected {
+  box-shadow: inset 0 0 0 2px var(--state-selected-indicator);
+}
+
+.app-shell.is-owner-shell .thread-row.is-unread::before {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--state-selected-indicator) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.is-owner-shell * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .app-shell.is-owner-shell {
+    --color-text-muted: rgba(255, 255, 255, 0.78);
+    --color-border-subtle: rgba(255, 255, 255, 0.18);
+    --focus-ring-width: 3px;
+  }
+}

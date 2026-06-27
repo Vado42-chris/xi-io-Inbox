@@ -47,6 +47,13 @@ if (idx002 <= idx001 || idx002b <= idx002) {
   fail('brand CSS load order must be 001 → 002 → 002b');
 }
 
+if (indexHtml.includes('brand-shell-polish-002c.css')) {
+  const idx002c = indexHtml.indexOf('brand-shell-polish-002c.css');
+  if (idx002c <= idx002b) {
+    fail('brand CSS load order must include 002c after 002b when present');
+  }
+}
+
 const brandCssBundle = indexHtml + polish001 + polish002 + polish002b;
 if (/fonts\.googleapis\.com|fonts\.gstatic\.com/.test(brandCssBundle)) {
   fail('external font CDN forbidden (route smoke policy)');
@@ -167,4 +174,4 @@ for (const file of serverFiles) {
   }
 }
 
-console.log('brand-002-model-check: pass (002 + 002B token enforcement)');
+console.log('brand-002-model-check: pass (002 + 002B token enforcement; 002C via check:brand002 chain)');

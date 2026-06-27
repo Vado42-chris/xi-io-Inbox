@@ -36,7 +36,7 @@
     "check:runtime002b": "node scripts/runtime-002b-model-check.mjs",
     "check:runtime002c": "node scripts/runtime-002c-model-check.mjs",
     "check:localwebruntime001": "node scripts/local-web-runtime-001-model-check.mjs",
-    "check:brand002": "node scripts/brand-002-model-check.mjs",
+    "check:brand002": "node scripts/brand-002-model-check.mjs && node scripts/brand-002c-route-audit.mjs",
     "check:ollama-peer-review": "node scripts/ollama-peer-review-model-check.mjs",
     "peer-review:ollama": "node scripts/ollama-peer-review.mjs",
     "gate:runtime002c": "node scripts/gate-runtime-002c.mjs",
