@@ -24,6 +24,17 @@ export function generateOAuthState() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+/** RFC 7636 PKCE pair for loopback / installed-app OAuth. */
+export function generatePkcePair() {
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  return {
+    codeVerifier,
+    codeChallenge,
+    codeChallengeMethod: 'S256',
+  };
+}
+
 export function validateOAuthState(received, expected) {
   if (!expected) {
     return { ok: false, reason: 'OAuth session missing state.' };

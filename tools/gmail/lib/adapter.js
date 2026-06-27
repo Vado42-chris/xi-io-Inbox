@@ -790,20 +790,46 @@ export async function readMessageBody({ messageId } = {}) {
       error: err.message,
     });
   }
-  const gmail = await getGmail();
-  const message = await gmail.users.messages.get({ userId: 'me', id: messageId, format: 'full' });
-  const row = messageRowWithRedactedBody(message.data);
-  return envelope({
-    success: true,
-    method: 'gmail.messages.readBody',
-    dataClassification: 'body_redacted',
-    payload: { message: row },
-  });
+  try {
+    const gmail = await getGmail();
+    const message = await gmail.users.messages.get({ userId: 'me', id: messageId, format: 'full' });
+    const row = messageRowWithRedactedBody(message.data);
+    return envelope({
+      success: true,
+      method: 'gmail.messages.readBody',
+      dataClassification: 'body_redacted',
+      payload: { message: row },
+    });
+  } catch (error) {
+    const detail = error?.response?.data?.error?.message || error?.message || 'Body read failed';
+    return envelope({
+      success: false,
+      blocked: true,
+      providerGate: detail,
+      method: 'gmail.messages.readBody',
+      error: detail,
+    });
+  }
 }
 
-export async function readThreadBodies({ threadId, maxMessages = 5 } = {}) {
-  if (!threadId) {
-    return blocked('gmail.threads.readBodies', 'threadId required');
+export async function readThreadBodies({ threadId, maxMessages = 5, messageId = null } = {}) {
+  if (!threadId && !messageId) {
+    return blocked('gmail.threads.readBodies', 'threadId or messageId required');
+  }
+  if (messageId) {
+    const body = await readMessageBody({ messageId });
+    if (!body.success) return body;
+    const row = body.payload?.message;
+    return envelope({
+      success: true,
+      method: 'gmail.threads.readBodies',
+      dataClassification: 'body_redacted',
+      payload: {
+        id: row?.threadId || threadId,
+        snippet: row?.snippet || '',
+        messages: row ? [row] : [],
+      },
+    });
   }
   try {
     await requireBodyReadGate();
@@ -816,19 +842,30 @@ export async function readThreadBodies({ threadId, maxMessages = 5 } = {}) {
       error: err.message,
     });
   }
-  const gmail = await getGmail();
-  const thread = await gmail.users.threads.get({ userId: 'me', id: threadId, format: 'full' });
-  const messages = (thread.data.messages || []).slice(0, maxMessages).map(messageRowWithRedactedBody);
-  return envelope({
-    success: true,
-    method: 'gmail.threads.readBodies',
-    dataClassification: 'body_redacted',
-    payload: {
-      id: thread.data.id,
-      snippet: thread.data.snippet || '',
-      messages,
-    },
-  });
+  try {
+    const gmail = await getGmail();
+    const thread = await gmail.users.threads.get({ userId: 'me', id: threadId, format: 'full' });
+    const messages = (thread.data.messages || []).slice(0, maxMessages).map(messageRowWithRedactedBody);
+    return envelope({
+      success: true,
+      method: 'gmail.threads.readBodies',
+      dataClassification: 'body_redacted',
+      payload: {
+        id: thread.data.id,
+        snippet: thread.data.snippet || '',
+        messages,
+      },
+    });
+  } catch (error) {
+    const detail = error?.response?.data?.error?.message || error?.message || 'Body read failed';
+    return envelope({
+      success: false,
+      blocked: true,
+      providerGate: detail,
+      method: 'gmail.threads.readBodies',
+      error: detail,
+    });
+  }
 }
 
 export function assertReadonlyBodyExportSelection({

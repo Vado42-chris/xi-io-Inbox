@@ -5,12 +5,19 @@ import {
   connectPortInUseMessage,
   isOAuthCallbackProbe,
   generateOAuthState,
+  generatePkcePair,
   resolveLoopbackFromRedirectUri,
   validateOAuthState,
 } from '../lib/oauth-loopback.js';
 
 assert.ok(CONNECT_TIMEOUT_MS >= 60000);
 assert.equal(generateOAuthState().length, 64);
+
+const pkce = generatePkcePair();
+assert.ok(pkce.codeVerifier.length >= 43);
+assert.ok(pkce.codeChallenge.length >= 43);
+assert.equal(pkce.codeChallengeMethod, 'S256');
+assert.notEqual(pkce.codeVerifier, pkce.codeChallenge);
 
 const loopback = resolveLoopbackFromRedirectUri('http://127.0.0.1:8787/oauth2callback');
 assert.equal(loopback.host, '127.0.0.1');

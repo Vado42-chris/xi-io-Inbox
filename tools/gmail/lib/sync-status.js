@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadToken } from './token-store.js';
-import { SNAPSHOT_PATH, BODY_SNAPSHOT_PATH } from './local-data.js';
+import { bodySnapshotPath, snapshotPath } from './local-data.js';
 import {
   loadMailIndex,
   MailIndexError,
@@ -13,7 +13,6 @@ import { readSyncReceiptEvents } from './receipts.js';
 import { resolveAdapterRoot, resolveDataDir } from './runtime-paths.js';
 
 const ROOT = resolveAdapterRoot();
-const DATA_DIR = resolveDataDir();
 
 export const SYNC_STATUS_SCHEMA_VERSION = 1;
 
@@ -34,9 +33,11 @@ async function pathExists(filePath) {
 }
 
 async function resolveClientSecretsPath() {
+  const dataDir = resolveDataDir();
   const candidates = [
+    process.env.GMAIL_OAUTH_CLIENT_PATH,
     process.env.GMAIL_OAUTH_CLIENT_JSON,
-    path.join(DATA_DIR, 'credentials.json'),
+    path.join(dataDir, 'credentials.json'),
     path.join(ROOT, 'credentials.json'),
   ].filter(Boolean);
   for (const candidate of candidates) {
@@ -113,8 +114,8 @@ export async function buildSyncStatus() {
   else if (!tokenPresent) oauthStatus = 'disconnected';
   else oauthStatus = 'connected';
 
-  const metadataSnapshotPresent = await pathExists(SNAPSHOT_PATH);
-  const metadataSnapshot = metadataSnapshotPresent ? await readJsonIfPresent(SNAPSHOT_PATH) : null;
+  const metadataSnapshotPresent = await pathExists(snapshotPath());
+  const metadataSnapshot = metadataSnapshotPresent ? await readJsonIfPresent(snapshotPath()) : null;
   const mailIndexPath = resolveMailIndexPath();
   const mailIndexPresent = await pathExists(mailIndexPath);
   let mailIndexSummary = {
@@ -159,7 +160,7 @@ export async function buildSyncStatus() {
 
   const syncReceipts = await readSyncReceiptEvents({ limit: 40 });
   const lastSync = summarizeLastSync(syncReceipts);
-  const bodySnapshotPresent = await pathExists(BODY_SNAPSHOT_PATH);
+  const bodySnapshotPresent = await pathExists(bodySnapshotPath());
 
   const liveProofStatus = !secretsConfigured
     ? 'secrets_missing'
@@ -185,7 +186,7 @@ export async function buildSyncStatus() {
     artifacts: {
       metadataSnapshot: {
         present: metadataSnapshotPresent,
-        path: SNAPSHOT_PATH,
+        path: snapshotPath(),
         accountEmail: metadataSnapshot?.accountEmail || null,
         threadCount: metadataSnapshot?.threads?.length ?? null,
         messageCount: metadataSnapshot?.messages?.length ?? null,
@@ -194,7 +195,7 @@ export async function buildSyncStatus() {
       mailIndex: mailIndexSummary,
       readonlyBodySnapshot: {
         present: bodySnapshotPresent,
-        path: BODY_SNAPSHOT_PATH,
+        path: bodySnapshotPath(),
       },
     },
     lastSync,

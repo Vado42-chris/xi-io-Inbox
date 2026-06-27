@@ -21,9 +21,15 @@ export function getAccessMode() {
 
 export function getRequestedScopes(mode = getAccessMode()) {
   if (mode === ACCESS_MODES.READONLY) {
-    return [...BASE_SCOPES, METADATA_SCOPE, READONLY_SCOPE];
+    // gmail.readonly covers metadata + body read. Do NOT also request gmail.metadata —
+    // Google rejects format=FULL when both scopes are on the token.
+    return [...BASE_SCOPES, READONLY_SCOPE];
   }
   return [...BASE_SCOPES, METADATA_SCOPE];
+}
+
+export function hasReadonlyMetadataScopeConflict(token) {
+  return hasReadonlyScope(token) && hasMetadataScope(token);
 }
 
 export function parseTokenScopes(token) {
@@ -58,7 +64,9 @@ export function bodyGateStatus({ token, secretsConfigured, connected }) {
     metadataScopeGranted: hasMetadataScope(token),
     readonlyScopeGranted: hasReadonlyScope(token),
     broadScopeBlocked: hasBroadScope(token),
-    bodyReadAllowed: mode === ACCESS_MODES.READONLY && hasReadonlyScope(token),
+    bodyReadAllowed: mode === ACCESS_MODES.READONLY
+      && hasReadonlyScope(token)
+      && !hasReadonlyMetadataScopeConflict(token),
     bodyReadBlockedReason: bodyReadBlockedReason({ mode, token, connected }),
     draftWriteBlocked: true,
     sendBlocked: true,
@@ -75,6 +83,9 @@ export function bodyReadBlockedReason({ mode = getAccessMode(), token, connected
   }
   if (!hasReadonlyScope(token)) {
     return 'Token lacks gmail.readonly scope. Reconnect with GMAIL_ACCESS_MODE=readonly.';
+  }
+  if (hasReadonlyMetadataScopeConflict(token)) {
+    return 'OAuth token includes gmail.metadata with gmail.readonly. Gmail blocks body read (format=FULL). Disconnect and reconnect Gmail to refresh scopes (readonly-only).';
   }
   if (hasBroadScope(token)) {
     return 'Broad Gmail scopes are blocked for this adapter.';

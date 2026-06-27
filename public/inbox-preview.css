@@ -4823,8 +4823,8 @@ textarea:focus-visible,
 /* NAV-001 — app shell / navigation correction */
 
 .app-topbar {
-  grid-template-columns: minmax(10rem, auto) minmax(0, 1.3fr) minmax(14rem, auto);
-  align-items: stretch;
+  grid-template-columns: minmax(16rem, auto) minmax(0, 1.3fr) minmax(14rem, auto);
+  align-items: center;
   column-gap: 0.6rem;
 }
 
@@ -5559,13 +5559,14 @@ textarea:focus-visible,
   --amber: #f6c45d;
   --red: #ff7b87;
   --violet: #b89cff;
-  --lane-home: #79d8ff;
-  --lane-mail: #70f0c4;
-  --lane-calendar: #ffa75e;
-  --lane-tasks: #b89cff;
-  --lane-automations: #79d8ff;
-  --lane-activity: #f6c45d;
-  --lane-integrations: #8ef0bd;
+  --lane-home: #8ec5e8;
+  --lane-mail: #7eceb8;
+  --lane-calendar: #f0b492;
+  --lane-tasks: #b4a8e8;
+  --lane-automations: #8ec5e8;
+  --lane-activity: #ecd06a;
+  --lane-integrations: #8edfc0;
+  --lane-github: #a8b4f0;
   --lane-accent: var(--accent);
   --lane-glow: rgba(121, 216, 255, 0.18);
   --radius-lg: 18px;
@@ -6349,7 +6350,8 @@ body {
 
 /* UI-PEER-REVIEW-FIX-BATCH-001 — Mail owner-mode surface */
 .is-owner-mail-ux.is-mail-workbench .app-frame {
-  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(0, 0);
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) 0fr;
+  transition: grid-template-columns 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .is-owner-mail-ux.is-mail-workbench .app-frame:has(.is-rail-thread) {
@@ -6439,13 +6441,25 @@ body {
 }
 
 .right-inspector.is-owner-mail-rail.is-rail-idle {
-  display: none;
+  display: flex;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+  transform: translateX(0.75rem);
 }
 
 .right-inspector.is-owner-mail-rail.is-rail-thread {
   border-left: 1px solid var(--line);
   background: rgba(12, 14, 18, 0.55);
   padding: 0.65rem 0.75rem;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .right-inspector.is-owner-mail-rail .inspector-title.is-owner-compact {
@@ -6609,21 +6623,85 @@ body {
   font-size: 0.78rem;
 }
 
-.mail-owner-data-source {
+.mail-owner-status {
   display: grid;
-  gap: 0.45rem;
-  padding: 0.55rem 0.6rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-left: 3px solid rgba(120, 170, 210, 0.35);
+  gap: 0.35rem;
+  padding: 0 0 0.65rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--divider-subtle, rgba(255, 255, 255, 0.06));
 }
 
-.mail-owner-data-source.is-preview {
-  border-left-color: rgba(210, 170, 90, 0.55);
+.mail-owner-status-headline {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.mail-owner-data-source.is-connected {
-  border-left-color: rgba(90, 190, 140, 0.55);
+.mail-owner-status-lines {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.mail-owner-status-lines li + li {
+  margin-top: 0.15rem;
+}
+
+.mail-owner-status-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mail-owner-status-details {
+  margin-top: 0.15rem;
+}
+
+.mail-owner-status-details summary {
+  font-size: 0.76rem;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.mail-owner-status-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.mail-owner-diagnostic-grid {
+  display: grid;
+  gap: 0.25rem 0.5rem;
+  margin: 0.45rem 0 0;
+  padding: 0;
+}
+
+.mail-owner-diagnostic-grid div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.mail-owner-diagnostic-grid dt {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.mail-owner-diagnostic-grid dd {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.mail-owner-data-source {
+  display: none;
 }
 
 .mail-owner-data-source-headline {
@@ -6767,4 +6845,170 @@ body {
 .mail-source-badge.is-sync-status {
   border-color: rgba(124, 217, 255, 0.35);
   color: #bdefff;
+}
+
+/* BRAND-001 — official logo shell lock (do not revert to text mark without owner decision) */
+:root {
+  --brand-logo-bg: #020e28;
+}
+
+.topbar-leading {
+  background: var(--brand-logo-bg);
+  border-radius: var(--radius-chrome);
+  padding: 0.25rem 0.85rem 0.25rem 0.55rem;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.brand-logo {
+  display: block;
+  flex: 0 1 auto;
+  height: 4rem;
+  width: auto;
+  max-width: min(22rem, 52vw);
+  object-fit: contain;
+}
+
+.env-status-badge {
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* BTN-UNDERLINE-001 — text actions: hover underline only; no bordered/gradient chrome (locked) */
+.inbox-action-btn,
+.inbox-link-btn,
+.inbox-action-btn.is-primary,
+.inbox-action-btn.is-danger,
+.product-nav-item,
+.ibal-concierge-btn,
+.help-control-trigger,
+.account-status-trigger,
+.mail-owner-account-btn {
+  min-height: auto;
+  padding: 0.35rem 0.45rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-weight: 650;
+  text-decoration: none;
+  text-align: inherit;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.14s ease, color 0.14s ease;
+  transform: none;
+  filter: none;
+}
+
+.inbox-action-btn:hover:not(:disabled):not(.is-blocked),
+.inbox-link-btn:hover,
+.product-nav-item:hover,
+.ibal-concierge-btn:hover,
+.help-control-trigger:hover,
+.account-status-trigger:hover,
+.mail-owner-account-btn:hover {
+  background: transparent;
+  border-bottom-color: var(--lane-accent, var(--accent));
+  color: var(--text);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.inbox-action-btn.is-primary,
+.product-nav-item.is-active {
+  color: color-mix(in srgb, var(--lane-accent, var(--accent)) 82%, var(--text));
+  font-weight: 700;
+}
+
+.inbox-action-btn.is-primary:hover:not(:disabled):not(.is-blocked),
+.product-nav-item.is-active:hover {
+  border-bottom-color: var(--lane-accent, var(--accent));
+}
+
+.product-nav-item.is-active {
+  border-bottom-color: var(--lane-accent, var(--accent));
+}
+
+.product-nav-item::after {
+  display: none;
+}
+
+.inbox-action-btn.is-danger {
+  color: color-mix(in srgb, var(--status-danger) 78%, var(--text));
+}
+
+.inbox-action-btn.is-danger:hover:not(:disabled):not(.is-blocked) {
+  border-bottom-color: var(--status-danger);
+}
+
+.ibal-concierge-btn.is-open,
+.account-status-trigger.is-open,
+.mail-owner-account-btn.is-active {
+  border-bottom-color: var(--lane-accent, var(--accent));
+  background: transparent;
+}
+
+.inbox-action-btn.is-blocked,
+.inbox-action-btn:disabled {
+  opacity: var(--disabled-opacity, 0.72);
+  border-bottom-color: transparent;
+  cursor: not-allowed;
+}
+
+.inbox-action-btn.is-blocked:hover,
+.inbox-action-btn:disabled:hover {
+  border-bottom-color: transparent;
+  background: transparent;
+}
+
+.inbox-action-btn:focus-visible,
+.inbox-link-btn:focus-visible,
+.product-nav-item:focus-visible,
+.ibal-concierge-btn:focus-visible,
+.help-control-trigger:focus-visible,
+.account-status-trigger:focus-visible,
+.mail-owner-account-btn:focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, rgba(105, 210, 255, 0.8));
+  outline-offset: var(--focus-offset, 2px);
+}
+
+.account-status-trigger {
+  display: grid;
+  gap: 0.1rem;
+  max-width: 12rem;
+}
+
+.topbar-leading .brand-block,
+.topbar-leading .env-status-badge {
+  border: none;
+  box-shadow: none;
+}
+
+.app-topbar {
+  align-items: center;
+  background:
+    linear-gradient(90deg, var(--brand-logo-bg) 0%, var(--brand-logo-bg) max(18rem, 22%), transparent max(18rem, 22%)),
+    linear-gradient(135deg, rgba(17, 23, 41, 0.92), rgba(11, 15, 27, 0.78));
 }

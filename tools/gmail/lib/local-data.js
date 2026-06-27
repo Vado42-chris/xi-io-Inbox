@@ -3,10 +3,22 @@ import path from 'path';
 import { wipeToken, tokenPath } from './token-store.js';
 import { resolveDataDir, resolveReceiptsDir } from './runtime-paths.js';
 
-const DATA_DIR = resolveDataDir();
-const RECEIPTS_DIR = resolveReceiptsDir();
-export const SNAPSHOT_PATH = path.join(DATA_DIR, 'metadata-snapshot.json');
-export const BODY_SNAPSHOT_PATH = path.join(DATA_DIR, 'readonly-body-snapshot.json');
+export function snapshotPath() {
+  return path.join(resolveDataDir(), 'metadata-snapshot.json');
+}
+
+export function bodySnapshotPath() {
+  return path.join(resolveDataDir(), 'readonly-body-snapshot.json');
+}
+
+/** @deprecated Use snapshotPath() — kept for CLI imports that load after env setup. */
+export const SNAPSHOT_PATH = snapshotPath();
+/** @deprecated Use bodySnapshotPath() — kept for CLI imports that load after env setup. */
+export const BODY_SNAPSHOT_PATH = bodySnapshotPath();
+
+function receiptsDir() {
+  return resolveReceiptsDir();
+}
 
 async function listFiles(dir) {
   try {
@@ -20,15 +32,15 @@ async function listFiles(dir) {
 export async function wipeLocalAdapterData({ dryRun = false } = {}) {
   const targets = [
     { path: tokenPath(), kind: 'token' },
-    { path: SNAPSHOT_PATH, kind: 'metadata_snapshot' },
-    { path: BODY_SNAPSHOT_PATH, kind: 'readonly_body_snapshot' },
+    { path: snapshotPath(), kind: 'metadata_snapshot' },
+    { path: bodySnapshotPath(), kind: 'readonly_body_snapshot' },
   ];
 
-  for (const filePath of await listFiles(RECEIPTS_DIR)) {
+  for (const filePath of await listFiles(receiptsDir())) {
     targets.push({ path: filePath, kind: 'receipt' });
   }
 
-  for (const filePath of await listFiles(DATA_DIR)) {
+  for (const filePath of await listFiles(resolveDataDir())) {
     if (!targets.some((target) => target.path === filePath)) {
       targets.push({ path: filePath, kind: 'data' });
     }
