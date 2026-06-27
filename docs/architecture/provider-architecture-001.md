@@ -1,18 +1,19 @@
 # PROVIDER-ARCHITECTURE-001 — cross-provider account/sync/egress model
 
-**Status:** Capture only — do not implement until `LOCAL-WEB-RUNTIME-001H` passes and runtime commit is atomic.  
-**Purpose:** Map current Gmail work into a provider-neutral model so Microsoft mail, GitHub, Dropbox, Slack, and later social providers can be added without retrofitting the app.
+**Status:** Capture only — `LOCAL-WEB-RUNTIME-001H` read-only runtime landed (`ab7ff45`). Implementation of additional providers blocked until downstream slices.  
+**Supersedes nothing** — extends with operational detail in `docs/architecture/provider-control-plane-001.md`.
 
 ## Ordering
 
-1. Finish `LOCAL-WEB-RUNTIME-001H`
-2. Fix stale preview/live copy in UI
-3. Owner proof PASS
-4. Atomic runtime commit
-5. This spec guides Microsoft mail after Gmail stabilizes
-6. GitHub after Microsoft/Gmail provider model stabilizes
-7. Dropbox / Slack later
-8. Socials v2 only
+1. ~~Finish `LOCAL-WEB-RUNTIME-001H`~~ **landed** (read-only runtime only)
+2. `LOCAL-WEB-RUNTIME-001I` — read-only freshness + notification smoke
+3. `GMAIL-DRAFT-EGRESS-001A` / `GMAIL-SEND-EGRESS-001A`
+4. `MAIL-ACCOUNT-IA-001`
+5. `PROVIDER-CONTROL-PLANE-001` guides Contacts/Drive/GitHub/Microsoft implementation
+6. Microsoft mail after Gmail spine stable
+7. GitHub after mail provider model stabilizes
+8. Dropbox / Slack later
+9. Socials v2 only
 
 ## Agent stop lines
 

@@ -117,13 +117,23 @@ Tauri is subordinate — not primary proof path
 ```text
 NAV-POLISH-001 / BRAND-SHELL-POLISH-001 — owner reviewed; see docs/ui/polish/brand-001-shell-lock.md
 MOTION-SYSTEM-001 — tokens + shell wiring (001B); full audit after Gmail PASS; see docs/ui/polish/motion-system-001-design-note.md
-LOCAL-WEB-RUNTIME-001G — live sync + hydration state model (in tree, pending owner proof)
-LOCAL-WEB-RUNTIME-001H — Gmail labels/account metadata + selected body hydration completion (in tree, pending owner proof)
-IBAL-DENOISE-RESPONSE-001 — point-by-point de-noise/response interview (spec only; see docs/product/ibal-denoise-response-001-spec.md)
-GitHub L1 workspace strategy — acknowledged; see docs/product/github-workspace-l1.md (implement after Gmail PASS)
+LOCAL-WEB-RUNTIME-001G — live sync + hydration state model (landed in 001H commit)
+LOCAL-WEB-RUNTIME-001H — read-only Gmail runtime proof (landed ab7ff45; PASS read-only only)
+PROVIDER-CONTROL-PLANE-001 — account linking, capabilities, contacts/files/events (capture only)
+  → docs/architecture/provider-control-plane-001.md
+  → docs/product/account-linking-automation-hub-001.md
+  → docs/architecture/contact-file-identity-bridge-001.md
+  → docs/product/notification-event-feed-001.md (alias EVENT-NOTIFICATIONS-001)
+MAIL-ACCOUNT-IA-001 — multi-account navigation (capture only)
+PROVIDER-ARCHITECTURE-001 — cross-provider sync/egress (capture only)
+DESKTOP-READINESS-001 — local-web-first, Tauri/Flatpak later (capture only)
+IBAL-DENOISE-RESPONSE-001 — Ibal interview/ledger (capture only; blocked until hydrated bodies)
+LOCAL-WEB-RUNTIME-001I — read-only freshness smoke (next implementation candidate)
+GMAIL-DRAFT-EGRESS-001A / GMAIL-SEND-EGRESS-001A — future egress gates
+GitHub L1 workspace strategy — see docs/product/github-workspace-l1.md (after mail spine)
 ```
 
-**Active gate only:** LOCAL-WEB-RUNTIME-001 owner proof at http://127.0.0.1:8788 — do not fork to GitHub scaffold.
+**Active gate:** 001H landed. Next: branch hygiene + 001I planning/implementation — not provider-control-plane code.
 
 ## Decision token
 
