@@ -36,7 +36,7 @@ checked out `ui-002/framework-derived-static-preview`.
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   643aa83 (001H + BRAND-SHELL-POLISH-002 stack + ledger capture; run git rev-parse HEAD after fetch)
+HEAD:   c49e4ed (643aa83 brand+ledger stack + gov alignment; run git rev-parse HEAD after fetch)
 PR:     #12 (open, draft, unmerged, merge conflicts — not merge-ready)
 CI:     Static Preview Check (npm run check) + Tauri Runtime Check @ committed HEAD
 Owner:  docs/operations/owner-gate-chart.md
