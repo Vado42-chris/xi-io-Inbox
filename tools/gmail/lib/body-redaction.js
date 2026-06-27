@@ -75,6 +75,8 @@ function decodeBase64Url(value) {
   return Buffer.from(normalized, 'base64').toString('utf8');
 }
 
+export { decodeBase64Url };
+
 export function redactBodySnapshot(snapshot) {
   const next = structuredClone(snapshot);
   next.redactionStatus = 'applied';

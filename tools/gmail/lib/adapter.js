@@ -33,6 +33,8 @@ import {
   redactBodyContent,
   redactBodySnapshot,
 } from './body-redaction.js';
+import { analyzeMimePayload } from './mime-body-model.js';
+import { buildBodyRenderModel } from './html-sanitize.js';
 import { validateReadonlyBodySnapshot } from './body-snapshot-schema.js';
 import { writeSyncReceipt } from './receipts.js';
 import { buildSyncStatus, writeSyncStatusFile } from './sync-status.js';
@@ -741,8 +743,17 @@ async function requireBodyReadGate() {
 function messageRowWithRedactedBody(message) {
   const headers = headersMap(message.payload);
   const labelIds = message.labelIds || [];
-  const rawBody = extractBodyFromPayload(message.payload);
+  const mimeAnalysis = analyzeMimePayload(message.payload);
+  const renderModel = buildBodyRenderModel(mimeAnalysis, { blockRemoteImages: true });
+  const rawBody = renderModel.sanitizedPlainText
+    || mimeAnalysis.plainText
+    || extractBodyFromPayload(message.payload);
   const redacted = redactBodyContent(rawBody);
+  if (renderModel.sanitizedPlainText && !redacted.sanitizedPlainText) {
+    redacted.sanitizedPlainText = renderModel.sanitizedPlainText;
+    redacted.sanitizedBodyPreview = renderModel.sanitizedPlainText.slice(0, 1200);
+    redacted.bodyAvailable = true;
+  }
   return {
     id: message.id,
     threadId: message.threadId,
@@ -757,6 +768,8 @@ function messageRowWithRedactedBody(message) {
     sanitizedPlainText: redacted.sanitizedPlainText,
     bodyAvailable: redacted.bodyAvailable,
     redactionNotes: redacted.redactionNotes,
+    hasAttachments: renderModel.hasAttachments,
+    renderModel,
     provider: 'gmail-readonly',
   };
 }
