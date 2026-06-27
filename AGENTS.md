@@ -53,9 +53,11 @@ Polish is **blocked** until workspace peer review batches land and owner UI-003E
 | Tauri connected runtime | `npm run tauri:dev` | Interim desktop spine — connect/sync orchestration, capability ACL — **subordinate, not primary live-mail proof** |
 
 ```text
-Live mail proof = http://127.0.0.1:8788 only (when LOCAL-WEB-RUNTIME-001 lands + owner proof PASS).
-Static UI proof = :4488 only.
-No product proof is valid if repo truth, PR truth, and receipt truth disagree.
+Live read-only mail proof = :8788 (001H landed).
+Static scaffold proof = :4488.
+Brand polish stack = owner shell CSS/tokens only — no provider changes.
+Provider egress (draft/send/reply) = blocked until separate gates.
+001I = not started.
 ```
 
 Record which mode was used in receipts. `:4488` is not connected live mail. Tauri is not a substitute for local web runtime v1 proof.
@@ -82,6 +84,8 @@ Bugbot is not the build system. GitHub Actions is. Local checks are the pre-push
 | `npm run peer-review:ollama -- --slice <id> --dry-run` | Baked peer-review bundle (no API call) |
 | `npm run gate:runtime002c -- --write-evidence` | Automated RUNTIME-002C structural gate + evidence |
 | `npm run peer-review:ollama -- --slice <id> --write` | Ollama draft peer review receipt |
+| `npm run check:localwebruntime001` | Local web runtime 001H structural checks |
+| `npm run check:brand002` | Brand stack 002/002B/002C + route audit + a11y checks |
 | `npm run check:route` | Browser smoke (in full check) |
 | `npm run check` | Before slice close / CI (static + structural runtime checks, no cargo) |
 | `npm run check:full` | Local/agent slice close (includes `gate:runtime002c` + cargo test) |
@@ -162,7 +166,10 @@ CI: Static Preview Check (see GitHub Actions on branch)
 | **UI-PEER-REVIEW-FIX-BATCH-004** | landed — Ibal drawer dedupe · owner retest pending |
 | **UI-PEER-REVIEW program** | **active** — Calendar/Tasks/Automations/Activity/Integrations classified · next impl gated |
 | **INBOX-REPO-RECOVERY-001** | **001B governance alignment** — host-mode truth in PR/AGENTS/branch-truth |
-| **LOCAL-WEB-RUNTIME-001** | **uncommitted · proof-pending** — do not commit until owner browser proof PASS |
+| **LOCAL-WEB-RUNTIME-001H** | **landed @ `ab7ff45`** — read-only Gmail runtime; egress blocked |
+| **BRAND-SHELL-POLISH-002 stack** | **landed @ `521d639`–`af0bc61`** — black shell, tokens, route audit; visual only |
+| **Ledger capture @ `643aa83`** | provisioning, renderer, settings matrix, notifications — **capture-only** |
+| **LOCAL-WEB-RUNTIME-001I** | **not started** — do not open until PR/branch-truth/AGENTS aligned post-brand push |
 | **FIX-BATCH-009** | **uncommitted · separate** — static `:4488` Mail state model; not mixed with runtime |
 
 ### UI peer review — review vs implementation
@@ -187,6 +194,7 @@ Decision tokens in flight (see receipts — do not invent new ones):
 - `UI_PEER_REVIEW_FIX_BATCH_002_PASS_READY_FOR_OWNER_ACCOUNT_REVIEW`
 - `UI_PEER_REVIEW_FIX_BATCH_003_PASS_READY_FOR_OWNER_HOME_REVIEW`
 - `UI_PEER_REVIEW_FIX_BATCH_004_PASS_READY_FOR_OWNER_IBAL_REVIEW`
+- `brand.shell.002.pass_pending_owner` → owner visual review accepted; stack pushed @ `643aa83`
 - UI-003E: not passed
 
 Owner session (scaffold): `docs/ui/reviews/ui-003e-owner-session-runbook.md`
@@ -200,7 +208,9 @@ Only the owner may record PASS after a real localhost:4488 review, using the exa
 
 `npm run check:ui003e-packet` enforces this in CI. If local edits revert the packet, run `git checkout -- docs/ui/reviews/ui-003e-owner-visual-proof-packet.md` from branch HEAD.
 
-Runtime live-mail operator proof uses **local web runtime @ 8788** when LOCAL-WEB-RUNTIME-001 lands (owner proof pending). RUNTIME-002C Tauri operator proof is a **separate interim gate** — subordinate, not primary product proof. Agents must not claim live mail proof during UI-003E scaffold review on `:4488`.
+Runtime live-mail operator proof uses **local web runtime @ :8788** (`LOCAL-WEB-RUNTIME-001H` — read-only PASS). RUNTIME-002C Tauri operator proof is a **separate interim gate** — subordinate, not primary product proof. Agents must not claim live mail proof during UI-003E scaffold review on `:4488`.
+
+**Do not open `LOCAL-WEB-RUNTIME-001I`** until owner decides renderer-vs-001I ordering after brand push governance alignment.
 
 Historical slice status (UI-012, ACC-SYNC, framework backfeed, etc.) lives in `TODO.md` — do not treat this file as the full project ledger.
 

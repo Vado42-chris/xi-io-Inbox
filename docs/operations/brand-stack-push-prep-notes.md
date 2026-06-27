@@ -1,29 +1,22 @@
-# Brand stack push prep notes (do not apply until owner approves push)
+# Brand stack push prep notes
 
-**Status:** Prepared only — **not applied** to PR #12 or `branch-truth.md` until `521d639 + 2bf632f + af0bc61` are pushed.
+**Status:** **Applied** — brand + ledger stack pushed @ `643aa83`; governance surfaces updated post-push.
 
-## When brand stack lands (after owner visual review)
+## Pushed stack (2026-06-27)
 
-Update PR #12 body and `docs/operations/branch-truth.md` to state:
-
-- `BRAND-SHELL-POLISH-002` stack landed (002 + 002B + 002C)
-- Visual polish only — logo, black shell, tokens, route audit, accessibility checks
-- **No** runtime/provider/egress/OAuth changes in brand commits
-- `LOCAL-WEB-RUNTIME-001I` still **not started**
-- `DESIGN-SYSTEM-EXTRACTION-001` remains future work (canonical JSON tokens)
-- Product scope expansion captured separately in ledger (provisioning, renderer, settings matrix — capture only)
-
-## GitHub truth before push
-
-| Surface | Current |
+| Commit | Slice |
 | --- | --- |
-| PR #12 | Draft, not merge-ready, head `dcd2a17` |
-| Local only | `521d639`, `2bf632f`, `af0bc61` |
+| `521d639` | BRAND-SHELL-POLISH-002 |
+| `2bf632f` | BRAND-SHELL-POLISH-002B |
+| `af0bc61` | BRAND-SHELL-POLISH-002C |
+| `643aa83` | docs(gov) ledger capture |
 
-## Ledger events (brand — pending owner)
+Owner visual review: **accepted** (bounded polish pass).
 
-- `brand.shell.002.pass_pending_owner`
-- `brand.shell.002b.token_enforcement_recorded`
-- `brand.shell.002c.route_audit_recorded`
+## Governance updated post-push
 
-Do not emit PASS tokens until owner approves push.
+- PR #12 body
+- `docs/operations/branch-truth.md`
+- `AGENTS.md`
+
+PR #12 remains **draft / not merge-ready**. `001I` **not started**.

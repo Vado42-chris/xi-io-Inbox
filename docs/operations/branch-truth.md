@@ -36,13 +36,14 @@ checked out `ui-002/framework-derived-static-preview`.
 
 ```text
 Branch: ui-002/framework-derived-static-preview
-HEAD:   run `git rev-parse HEAD` after fetch (001H read-only runtime + planning captures landed; see PR #12)
+HEAD:   643aa83 (001H + BRAND-SHELL-POLISH-002 stack + ledger capture; run git rev-parse HEAD after fetch)
 PR:     #12 (open, draft, unmerged, merge conflicts — not merge-ready)
 CI:     Static Preview Check (npm run check) + Tauri Runtime Check @ committed HEAD
 Owner:  docs/operations/owner-gate-chart.md
 Peer review: docs/ui/reviews/peer-review/README.md
 Recovery: docs/ui/reviews/inbox-repo-recovery-001-report.md
 001H receipt: docs/ui/reviews/local-web-runtime-001-receipt.md
+Brand receipts: docs/ui/polish/brand-shell-polish-002-receipt.md · 002b · 002c-route-audit
 ```
 
 ### Host-mode truth (owner 2026-06-19)
@@ -67,8 +68,10 @@ No product proof is valid if repo truth, PR truth, and receipt truth disagree.
 | **UI-PEER-REVIEW program** | **active** — workspace receipts in `docs/ui/reviews/peer-review/` |
 | **INBOX-REPO-RECOVERY-001B** | **governance alignment** — PR #12 body, branch-truth host-mode truth |
 | **LOCAL-WEB-RUNTIME-001H** | **landed @ `ab7ff45`** — read-only Gmail runtime; `LOCAL_WEB_RUNTIME_001H_OWNER_PROOF: PASS FOR READ-ONLY RUNTIME ONLY` |
-| **LOCAL-WEB-RUNTIME-001I** | **not started** — read-only freshness + notification smoke (next implementation gate) |
-| **Planning captures** | **docs only @ `64c54d3`, `c5fd46c`** — provider architecture, control plane, IA, desktop, Ibal (no implementation) |
+| **BRAND-SHELL-POLISH-002 stack** | **landed @ `521d639`–`af0bc61`** — visual polish only (002 + 002B + 002C); owner visual review accepted; **no runtime/provider/egress changes** |
+| **Ledger capture (provisioning/renderer/settings)** | **docs @ `643aa83`** — capture-only; no implementation |
+| **LOCAL-WEB-RUNTIME-001I** | **not started** — read-only freshness + notification smoke (next implementation gate; open only after renderer-vs-001I decision) |
+| **Planning captures** | **`64c54d3`, `c5fd46c`, `643aa83`** — provider architecture, control plane, provisioning, renderer, settings matrix, notifications (no implementation) |
 | **UI-003E owner visual proof** (scaffold `:4488`) | **NOT passed — owner eyes required** |
 | MERGE-PREP-001 | blocked until UI-003E PASS |
 
