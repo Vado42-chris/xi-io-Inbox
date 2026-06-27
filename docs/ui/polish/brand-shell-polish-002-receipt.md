@@ -40,10 +40,13 @@ See `public/brand-shell-polish-002.css` — `--color-bg-root`, `--color-bg-shell
 
 ```html
 brand-shell-polish-001.css
-brand-shell-polish-002.css  ← wins for owner shell
+brand-shell-polish-002.css  ← wins for owner shell base
+brand-shell-polish-002b.css ← route token enforcement (required before push)
 ```
 
 Scoped to `.app-shell.is-owner-shell` and `body:has(.app-shell.is-owner-shell)`.
+
+**Owner review (2026-06):** 002 alone is **not push-ready**. See `brand-shell-polish-002b-receipt.md`.
 
 ## Acceptance
 

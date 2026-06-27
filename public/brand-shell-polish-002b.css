@@ -1,0 +1,444 @@
+/**
+ * BRAND-SHELL-POLISH-002B — route-by-route token enforcement
+ * Loads after brand-shell-polish-002. Owner shell only (.is-owner-shell).
+ * Spec: docs/ui/polish/brand-shell-polish-002b-receipt.md
+ *
+ * Rule: color, radius, border, shadow, spacing, and selected state come from tokens.
+ */
+
+/* BRAND-002B-TOKENS-START */
+.app-shell.is-owner-shell {
+  /* Route accent palette — solid only */
+  --route-home-accent: #4ec4e8;
+  --route-mail-accent: #6fcf97;
+  --route-calendar-accent: #e8a86e;
+  --route-tasks-accent: #a896e8;
+  --route-automations-accent: #5eb8e8;
+  --route-activity-accent: #d4b84a;
+  --route-integrations-accent: #6fd4a8;
+
+  /* Active route (inherits from lane class or mail workbench) */
+  --route-accent: var(--route-home-accent);
+  --route-accent-soft: color-mix(in srgb, var(--route-accent) 14%, var(--color-bg-panel-raised));
+  --route-accent-border: color-mix(in srgb, var(--route-accent) 24%, var(--color-border-subtle));
+  --route-accent-bg: color-mix(in srgb, var(--route-accent) 8%, var(--color-bg-panel));
+  --route-accent-text: var(--color-text-primary);
+
+  /* Radius scale */
+  --radius-none: 0;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+  --radius-chrome: var(--radius-md);
+
+  /* Spacing / density */
+  --space-page-gutter: 0.75rem;
+  --space-card-padding: 0.85rem;
+  --space-section-gap: 1rem;
+  --space-row-height: 2.5rem;
+  --space-list-gap: 0.35rem;
+
+  /* Legacy lane bridge */
+  --lane-home: var(--route-home-accent);
+  --lane-mail: var(--route-mail-accent);
+  --lane-calendar: var(--route-calendar-accent);
+  --lane-tasks: var(--route-tasks-accent);
+  --lane-automations: var(--route-automations-accent);
+  --lane-activity: var(--route-activity-accent);
+  --lane-integrations: var(--route-integrations-accent);
+  --lane-github: var(--route-integrations-accent);
+  --lane-accent: var(--route-accent);
+  --lane-glow: transparent;
+
+  /* Selection / focus bridge */
+  --selected-border: var(--route-accent-border);
+  --selected-bg: var(--route-accent-bg);
+  --selected-indicator-width: 3px;
+  --focus-ring-color: color-mix(in srgb, var(--route-accent) 72%, var(--color-accent-blue));
+  --hover-bg: rgba(255, 255, 255, 0.03);
+}
+/* BRAND-002B-TOKENS-END */
+
+/* —— Route context: map lane → active accent tokens —— */
+.app-shell.is-owner-shell .is-home-lane,
+.app-shell.is-owner-shell .app-frame-lane-home {
+  --route-accent: var(--route-home-accent);
+  --lane-accent: var(--route-home-accent);
+}
+
+.app-shell.is-owner-shell .is-inbox-lane,
+.app-shell.is-owner-shell .is-mail-workbench,
+.app-shell.is-owner-shell .app-frame-lane-inbox {
+  --route-accent: var(--route-mail-accent);
+  --lane-accent: var(--route-mail-accent);
+}
+
+.app-shell.is-owner-shell .is-calendar-lane,
+.app-shell.is-owner-shell .app-frame-lane-calendar {
+  --route-accent: var(--route-calendar-accent);
+  --lane-accent: var(--route-calendar-accent);
+}
+
+.app-shell.is-owner-shell .is-tasks-lane,
+.app-shell.is-owner-shell .app-frame-lane-tasks {
+  --route-accent: var(--route-tasks-accent);
+  --lane-accent: var(--route-tasks-accent);
+}
+
+.app-shell.is-owner-shell .is-automations-lane,
+.app-shell.is-owner-shell .app-frame-lane-automations {
+  --route-accent: var(--route-automations-accent);
+  --lane-accent: var(--route-automations-accent);
+}
+
+.app-shell.is-owner-shell .is-receipts-lane,
+.app-shell.is-owner-shell .app-frame-lane-receipts {
+  --route-accent: var(--route-activity-accent);
+  --lane-accent: var(--route-activity-accent);
+}
+
+.app-shell.is-owner-shell .is-extensions-lane,
+.app-shell.is-owner-shell .app-frame-lane-extensions {
+  --route-accent: var(--route-integrations-accent);
+  --lane-accent: var(--route-integrations-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="home"] {
+  --lane-accent: var(--route-home-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="mail"] {
+  --lane-accent: var(--route-mail-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="calendar"] {
+  --lane-accent: var(--route-calendar-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="tasks"] {
+  --lane-accent: var(--route-tasks-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="automations"] {
+  --lane-accent: var(--route-automations-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="activity"] {
+  --lane-accent: var(--route-activity-accent);
+}
+
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="integrations"] {
+  --lane-accent: var(--route-integrations-accent);
+}
+
+/* —— Global shell: kill UI-013 gradient washes —— */
+body:has(.app-shell.is-owner-shell) {
+  background: var(--color-bg-root);
+  background-image: none;
+}
+
+.app-shell.is-owner-shell {
+  background: var(--color-bg-root);
+  background-image: none;
+}
+
+.app-shell.is-owner-shell .app-topbar,
+.app-shell.is-owner-shell .topbar-leading,
+.app-shell.is-owner-shell .brand-mark {
+  background: var(--color-bg-shell);
+  background-image: none;
+  backdrop-filter: none;
+  border-radius: var(--radius-lg);
+}
+
+.app-shell.is-owner-shell .app-frame {
+  padding: 0 var(--space-page-gutter) var(--space-page-gutter);
+  gap: var(--space-section-gap);
+}
+
+/* —— Structural panels: flat surfaces, one border —— */
+.app-shell.is-owner-shell .lane-nav,
+.app-shell.is-owner-shell .context-panel,
+.app-shell.is-owner-shell .right-inspector,
+.app-shell.is-owner-shell .lane-surface,
+.app-shell.is-owner-shell .thread-list-panel.mail-list-pane,
+.app-shell.is-owner-shell .inbox-reading-pane,
+.app-shell.is-owner-shell .lane-reading-pane,
+.app-shell.is-owner-shell .calendar-month-shell,
+.app-shell.is-owner-shell .calendar-day-agenda,
+.app-shell.is-owner-shell .calendar-conflict-preview,
+.app-shell.is-owner-shell .calendar-activity-panel,
+.app-shell.is-owner-shell .tasks-epic-panel,
+.app-shell.is-owner-shell .tasks-story-panel,
+.app-shell.is-owner-shell .tasks-detail-panel,
+.app-shell.is-owner-shell .tasks-story-detail,
+.app-shell.is-owner-shell .tasks-bug-detail,
+.app-shell.is-owner-shell .tasks-evidence-panel,
+.app-shell.is-owner-shell .tasks-ac-panel,
+.app-shell.is-owner-shell .tasks-bugs-panel,
+.app-shell.is-owner-shell .tasks-activity-panel,
+.app-shell.is-owner-shell .inbox-workspace-grid,
+.app-shell.is-owner-shell .mail-workbench-center {
+  background: var(--color-bg-panel);
+  background-image: none;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+}
+
+.app-shell.is-owner-shell .lane-surface::before {
+  display: none;
+}
+
+/* —— Primary nav: solid underline selected state, no gradient fill —— */
+.app-shell.is-owner-shell .product-nav-item {
+  transform: none;
+}
+
+.app-shell.is-owner-shell .product-nav-item:hover:not(.is-active) {
+  transform: none;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .product-nav-item.is-active {
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  border-color: transparent;
+  color: var(--lane-accent, var(--route-accent));
+}
+
+.app-shell.is-owner-shell .product-nav-item.is-active::after {
+  background: var(--lane-accent, var(--route-accent));
+}
+
+/* —— Unified selected / active pattern —— */
+.app-shell.is-owner-shell .thread-row.is-selected,
+.app-shell.is-owner-shell .context-nav-item.is-active,
+.app-shell.is-owner-shell .mail-owner-account-btn.is-active,
+.app-shell.is-owner-shell .activity-entry-card.is-selected,
+.app-shell.is-owner-shell .lane-item.is-selected,
+.app-shell.is-owner-shell .tasks-epic-row.is-selected,
+.app-shell.is-owner-shell .tasks-story-row.is-selected,
+.app-shell.is-owner-shell .scope-lens-option.is-active,
+.app-shell.is-owner-shell .calendar-day-cell.is-selected,
+.app-shell.is-owner-shell .calendar-week-day.is-selected {
+  background: var(--route-accent-bg);
+  background-image: none;
+  border-color: var(--route-accent-border);
+  box-shadow: inset var(--selected-indicator-width) 0 0 var(--route-accent);
+  color: var(--route-accent-text);
+}
+
+.app-shell.is-owner-shell .thread-row:hover:not(.is-selected),
+.app-shell.is-owner-shell .lane-item:hover:not(.is-selected),
+.app-shell.is-owner-shell .activity-entry-card:hover:not(.is-selected) {
+  background: var(--hover-bg);
+  background-image: none;
+}
+
+/* —— Cards / lists: spacing over border stacking —— */
+.app-shell.is-owner-shell .metric-card,
+.app-shell.is-owner-shell .lane-item,
+.app-shell.is-owner-shell .home-panel,
+.app-shell.is-owner-shell .home-card,
+.app-shell.is-owner-shell .activity-entry-card,
+.app-shell.is-owner-shell .thread-row,
+.app-shell.is-owner-shell .home-stat-card,
+.app-shell.is-owner-shell .home-priority-card,
+.app-shell.is-owner-shell .home-priority-panel,
+.app-shell.is-owner-shell .related-suite-card,
+.app-shell.is-owner-shell .scope-lens,
+.app-shell.is-owner-shell .tasks-epic-row,
+.app-shell.is-owner-shell .tasks-story-row,
+.app-shell.is-owner-shell .tasks-kanban-card,
+.app-shell.is-owner-shell .acceptance-criterion,
+.app-shell.is-owner-shell .owner-home-status-card,
+.app-shell.is-owner-shell .owner-home-status-grid div,
+.app-shell.is-owner-shell .owner-calendar-workspace,
+.app-shell.is-owner-shell .owner-tasks-workspace,
+.app-shell.is-owner-shell .owner-automations-workspace,
+.app-shell.is-owner-shell .trust-affordance,
+.app-shell.is-owner-shell .gmail-sync-status-panel {
+  background: var(--color-bg-panel-raised);
+  background-image: none;
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-card-padding);
+}
+
+.app-shell.is-owner-shell .related-suite-zone {
+  background: var(--color-bg-panel);
+  background-image: none;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-card-padding);
+}
+
+.app-shell.is-owner-shell .related-suite-card {
+  border-left: var(--selected-indicator-width) solid var(--route-accent);
+  padding-left: calc(var(--space-card-padding) - 0.15rem);
+}
+
+.app-shell.is-owner-shell .scope-lens {
+  border: 1px solid var(--color-border-subtle);
+}
+
+.app-shell.is-owner-shell .scope-lens-option {
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-panel);
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .scope-lens-option.is-active {
+  box-shadow: inset var(--selected-indicator-width) 0 0 var(--route-accent);
+}
+
+/* —— Route-specific lane overrides (flat, accent via tokens only) —— */
+.app-shell.is-owner-shell .is-calendar-lane .calendar-month-shell,
+.app-shell.is-owner-shell .is-calendar-lane .lane-reading-pane,
+.app-shell.is-owner-shell .is-tasks-lane .tasks-planning-grid,
+.app-shell.is-owner-shell .is-tasks-lane .lane-reading-pane {
+  background: var(--color-bg-panel);
+  background-image: none;
+}
+
+.app-shell.is-owner-shell .calendar-day-cell,
+.app-shell.is-owner-shell .calendar-week-day {
+  background: var(--color-bg-panel-raised);
+  background-image: none;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.app-shell.is-owner-shell .calendar-day-cell.is-selected,
+.app-shell.is-owner-shell .calendar-week-day.is-selected {
+  box-shadow: inset 0 0 0 2px var(--route-accent);
+}
+
+.app-shell.is-owner-shell .calendar-provider-banner,
+.app-shell.is-owner-shell .tasks-provider-banner {
+  background: color-mix(in srgb, var(--color-accent-danger) 10%, var(--color-bg-panel-raised));
+  background-image: none;
+  border: 1px solid color-mix(in srgb, var(--color-accent-danger) 28%, var(--color-border-subtle));
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .trust-affordance-warn {
+  background: color-mix(in srgb, var(--color-accent-warn) 10%, var(--color-bg-panel-raised));
+  background-image: none;
+  border: 1px solid color-mix(in srgb, var(--color-accent-warn) 28%, var(--color-border-subtle));
+}
+
+/* —— Buttons / inputs —— */
+.app-shell.is-owner-shell .inbox-action-btn.is-primary {
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  color: var(--route-accent);
+  border-radius: var(--radius-none);
+}
+
+.app-shell.is-owner-shell .inbox-action-btn.is-primary:hover:not(:disabled):not(.is-blocked) {
+  filter: none;
+  border-bottom-color: var(--route-accent);
+}
+
+.app-shell.is-owner-shell .command-box,
+.app-shell.is-owner-shell .mail-owner-status {
+  border-radius: var(--radius-sm);
+}
+
+.app-shell.is-owner-shell .command-box input,
+.app-shell.is-owner-shell input[type="search"],
+.app-shell.is-owner-shell select,
+.app-shell.is-owner-shell textarea {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-panel-raised);
+}
+
+.app-shell.is-owner-shell .inbox-action-btn,
+.app-shell.is-owner-shell .inbox-link-btn,
+.app-shell.is-owner-shell .scope-lens-option {
+  border-radius: var(--radius-none);
+}
+
+/* —— Typography hierarchy (Stack A roles) —— */
+.app-shell.is-owner-shell .lane-header h1,
+.app-shell.is-owner-shell .lane-header h2,
+.app-shell.is-owner-shell .workspace-hero h1,
+.app-shell.is-owner-shell .workspace-hero h2 {
+  font-family: var(--font-display);
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--letter-display);
+}
+
+.app-shell.is-owner-shell .lane-header h3,
+.app-shell.is-owner-shell .home-priority-panel h3,
+.app-shell.is-owner-shell .related-suite-zone h3,
+.app-shell.is-owner-shell .owner-home-status-card h3,
+.app-shell.is-owner-shell .calendar-month-head h3,
+.app-shell.is-owner-shell .calendar-day-agenda-head h4 {
+  font-family: var(--font-ui);
+  font-weight: var(--font-ui-weight);
+  letter-spacing: var(--letter-nav);
+}
+
+.app-shell.is-owner-shell .context-nav-label,
+.app-shell.is-owner-shell .lane-nav-label,
+.app-shell.is-owner-shell .eyebrow,
+.app-shell.is-owner-shell .owner-home-eyebrow,
+.app-shell.is-owner-shell .scope-lens-label,
+.app-shell.is-owner-shell .related-suite-type {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--route-accent) 68%, var(--color-text-muted));
+}
+
+.app-shell.is-owner-shell .related-suite-card strong,
+.app-shell.is-owner-shell .home-stat-card strong,
+.app-shell.is-owner-shell .metric-card strong {
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+
+/* —— Owner-mode overlays: token-backed surfaces —— */
+.app-shell.is-owner-shell .owner-home-priority-card {
+  background: var(--route-accent-bg);
+}
+
+.app-shell.is-owner-shell .owner-home-status-grid div {
+  padding: 0.65rem;
+}
+
+.app-shell.is-owner-shell .unread-dot,
+.app-shell.is-owner-shell .thread-row.is-unread::before {
+  background: var(--route-accent);
+}
+
+.app-shell.is-owner-shell .thread-row.is-unread::before {
+  border-radius: var(--radius-pill);
+}
+
+@media (max-width: 980px) {
+  .app-shell.is-owner-shell .app-topbar {
+    margin: 0.5rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .app-shell.is-owner-shell .app-frame {
+    padding: 0 0.5rem 0.5rem;
+  }
+}
