@@ -1,7 +1,31 @@
 # BRAND-SHELL-POLISH-002 — black-shell visual system refresh
 
-**Status:** Visual-system slice — **not** runtime, provider, or egress work.  
-**Blocks:** `LOCAL-WEB-RUNTIME-001I` (intentionally — reduces owner review friction first).
+**Status:** Local commit `521d639` — **not pushed**. Owner visual review **pending**.  
+**Ledger event:** `brand.shell.002.pass_pending_owner`  
+**Stack role:** **002 = base visual refresh** (logo, black shell, Stack A typography, surface tokens).  
+**Visual-system slice only** — not runtime, provider, or egress work.  
+**Blocks:** `LOCAL-WEB-RUNTIME-001I` until brand stack approved and pushed.
+
+## Stack (local only)
+
+| Slice | Commit | Role |
+| --- | --- | --- |
+| 002 | `521d639` | Base visual refresh |
+| 002B | `2bf632f` | Route token enforcement — `brand.shell.002b.token_enforcement_recorded` |
+| 002C | `af0bc61` | Route audit + accessibility — `brand.shell.002c.route_audit_recorded` |
+
+**Push blocked** until owner approves full stack. See `docs/operations/brand-stack-push-prep-notes.md`.
+
+## GitHub / PR truth (2026-06)
+
+| Surface | State |
+| --- | --- |
+| PR #12 | Open, draft, **not merge-ready**, head **`dcd2a17`** (pre-brand) |
+| Local brand commits | **Not on remote** |
+| 001I | **Not started** |
+| Runtime/provider/egress | **Unchanged** by brand stack |
+
+PR #12 correctly states read-only Gmail runtime only; egress, 001I, UI-003E, Microsoft/GitHub/Drive/Contacts, multi-account IA **not complete**.
 
 ## Goal
 

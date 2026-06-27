@@ -1,6 +1,7 @@
 # NOTIFICATION-EVENT-FEED-001 — event inbox, toasts, actionable notifications
 
 **Status:** Capture only — no notification UI/backend implementation now.  
+**Ledger event:** `notification.feed.spec_updated` (alias: `EVENT-NOTIFICATIONS-001`)  
 **Parent:** `docs/architecture/provider-control-plane-001.md`  
 **Queue alias:** `EVENT-NOTIFICATIONS-001` (same slice)
 
@@ -8,10 +9,12 @@
 
 Define the unified **notification and event feed** for provider ingress, sync outcomes, risk signals, and user-actionable cards — without enabling provider writes until capability gates approve.
 
+**Notifications are not just toasts.** They are **provider/control-plane events** surfaced to the user with durable state, comfort controls, and ledger linkage.
+
 Layers:
 
 ```text
-ProviderEvent → NotificationEvent → toast (ephemeral) + event inbox (durable)
+ProviderEvent → NotificationEvent → toast (ephemeral) + notification feed (durable) + actionable card
 ```
 
 ---
@@ -37,6 +40,10 @@ ProviderEvent → NotificationEvent → toast (ephemeral) + event inbox (durable
 | `dismissedAt` | User dismissed |
 | `resolvedAt` | Action completed or expired |
 | `ibalEligible` | Whether Ibal de-noise/draft propose is allowed |
+| `comfortLevel` | User/policy comfort tier affecting action visibility |
+| `blockedActions[]` | Provider actions hidden or shown as blocked with reason |
+| `readAt` | User read state |
+| `snoozedUntil` | Snooze/defer |
 
 ---
 
@@ -48,15 +55,16 @@ ProviderEvent → NotificationEvent → toast (ephemeral) + event inbox (durable
 - Auto-dismiss except errors
 - Never toast provider write success until egress slice exists
 
-### Event inbox
+### Event inbox (notification feed)
 
-- Durable list: all notifications with read/dismiss/snooze/defer
-- Filter by provider, account, severity, lane
+- Durable list: all notifications with **read / dismiss / snooze / defer**
+- Filter by provider, account, severity, lane, comfort level
 - Link to receipt and source item
+- **Not equivalent to toast layer** — feed survives toast dismissal
 
 ### Actionable notification cards
 
-Each card shows: title, summary, provider badge, account, time, action chips, receipt link.
+Each card shows: title, summary, **event source**, provider badge, account, **provider/account/item refs**, time, **action chips** (enabled + blocked variants), **Ibal eligibility**, **route target**, **receipt link**, comfort-level explanation for blocked provider actions.
 
 ---
 
@@ -64,23 +72,28 @@ Each card shows: title, summary, provider badge, account, time, action chips, re
 
 | Action | Mutates provider | Gate |
 | --- | --- | --- |
-| View item | no | `read_metadata` |
+| View | no | `read_metadata` |
 | Ask Ibal | no (local) | Ibal slice + hydrated body when needed |
-| Create task | no (local) | tasks lane |
+| Create local task | no (local) | tasks lane |
 | Dismiss | no (local state) | — |
 | Snooze | no (local state) | — |
 | Mark for review | no (local flag) | — |
 
+Comfort-level controls (from settings matrix) may hide non-essential actions without removing audit trail in feed.
+
 ---
 
-## Provider-write actions (disabled until gate approved)
+## Provider-write actions (disabled until egress gates)
 
 Must render as **blocked with capability explanation**, not silent no-ops:
 
-- Send · Reply · Archive · Delete · Apply label  
-- Upload · Post comment · Modify remote item  
+| Blocked until gate | Examples |
+| --- | --- |
+| Mail egress | Reply · Send · Archive · Delete · Apply label |
+| File egress | Upload file · Modify remote file |
+| Other | Post comment · Modify remote state |
 
-Each requires explicit capability from `PROVIDER-CONTROL-PLANE-001` + owner approval policy.
+Each requires explicit capability from `PROVIDER-CONTROL-PLANE-001` + owner approval policy + settings matrix entry.
 
 ---
 

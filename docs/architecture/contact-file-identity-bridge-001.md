@@ -132,6 +132,22 @@ When enabled (future owner flag):
 - No provider contact/file writes
 - No new OAuth scopes on current branch
 
+## Account settings and provisioning dependency
+
+**Ledger event:** `contact_file_identity_bridge.spec_updated`
+
+Contacts, files, and identity bridges **depend on** provisioning and settings truth (`PROVISIONING-ACCOUNT-SETTINGS-001`, `PROVIDER-SETTINGS-MATRIX-001`):
+
+| Rule | Capture |
+| --- | --- |
+| Contact import | **Not blind** — requires source provider, confidence tier, merge policy, owner review queue |
+| Contact display | Threshold from settings matrix; unknown senders labeled honestly |
+| Drive / file library | Retention, archive, attachment threshold, backup, legal/evidence mode per settings |
+| Identity merge | **Reversible or owner-confirmed** — no silent cross-provider unify |
+| Writeback | **Separate capability gate** — no contact/file provider mutation without explicit egress slice + setting |
+
+Settings keys (examples): `contacts.importEnabled`, `contacts.mergePolicy`, `files.libraryArchiveMode`, `files.retentionDays` — see `docs/architecture/provider-settings-matrix-001.md`.
+
 ## Ordering
 
 After `LOCAL-WEB-RUNTIME-001I` and mail IA planning — implement read contacts metadata before write paths.

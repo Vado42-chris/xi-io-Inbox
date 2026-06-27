@@ -1,8 +1,9 @@
 # BRAND-SHELL-POLISH-002C — route audit and accessibility enforcement
 
-**Status:** Final brand-stack gate before push — **not pushed**.  
-**Stack:** `521d639` (002) + `2bf632f` (002B) + **002C** (local).  
-**Blocks:** `LOCAL-WEB-RUNTIME-001I` until owner approves full stack push.
+**Status:** Local commit `af0bc61` — **not pushed**. Owner visual review **pending**.  
+**Ledger event:** `brand.shell.002c.route_audit_recorded`  
+**Stack role:** **002C = route audit + accessibility enforcement** (composite tokens, WCAG static checks, focus/disabled/selected affordances, route audit matrix).  
+**Final brand-stack gate before push.**
 
 ## Owner question: did we miss anything?
 

@@ -1,7 +1,9 @@
 # BRAND-SHELL-POLISH-002B — route-by-route token enforcement
 
-**Status:** Follow-up to `BRAND-SHELL-POLISH-002` — **not pushed** until owner approves `521d639 + 002B` together.  
-**Blocks:** `LOCAL-WEB-RUNTIME-001I` (intentionally).
+**Status:** Local commit `2bf632f` — **not pushed**. Owner review **pending**.  
+**Ledger event:** `brand.shell.002b.token_enforcement_recorded`  
+**Stack role:** **002B = route token enforcement** (route accents, radius scale, gradient/border policy overrides).  
+**Follow-up to:** `521d639` (002). Requires **002C** before push.
 
 ## Why 002B exists
 
