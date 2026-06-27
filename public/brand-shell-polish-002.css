@@ -1,0 +1,240 @@
+/**
+ * BRAND-SHELL-POLISH-002 — black-shell visual system refresh
+ * Loads after brand-shell-polish-001. Owner shell only (.is-owner-shell).
+ * Spec: docs/ui/polish/brand-shell-polish-002-receipt.md
+ */
+
+/* —— Typography (Stack A, self-hosted — route smoke blocks external CDN) —— */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('./assets/fonts/jetbrains-mono-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('./assets/fonts/oswald-light-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+.app-shell.is-owner-shell {
+  --font-display: 'Oswald', 'Roboto Condensed', 'Arial Narrow', sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Noto Sans Mono', ui-monospace, monospace;
+
+  --font-display-weight: 300;
+  --font-ui-weight: 600;
+  --font-body-weight: 400;
+  --letter-display: 0.04em;
+  --letter-nav: 0.02em;
+
+  /* Logo-derived accent (#026bfa sampled from xi-io_inbox_logo_v2.png) */
+  --color-accent-blue: #026bfa;
+  --color-accent-blue-soft: #3d8efc;
+  --color-accent-cyan: #4ec4e8;
+
+  /* Black-shell surfaces */
+  --color-bg-root: #050506;
+  --color-bg-shell: #08090b;
+  --color-bg-panel: #101217;
+  --color-bg-panel-raised: #151923;
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-text-primary: rgba(255, 255, 255, 0.92);
+  --color-text-secondary: rgba(255, 255, 255, 0.68);
+  --color-text-muted: rgba(255, 255, 255, 0.48);
+  --color-accent-warn: #d4a017;
+  --color-accent-danger: #e85d6a;
+  --shadow-shell: 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  /* Map legacy tokens used across owner surfaces */
+  --brand-logo-bg: var(--color-bg-shell);
+  --bg: var(--color-bg-root);
+  --surface-canvas: var(--color-bg-root);
+  --surface: var(--color-bg-panel);
+  --surface-strong: var(--color-bg-panel-raised);
+  --surface-soft: #1a1f2a;
+  --surface-elevated: var(--color-bg-panel-raised);
+  --surface-overlay: rgba(5, 5, 6, 0.88);
+  --line: var(--color-border-subtle);
+  --line-strong: var(--color-border-strong);
+  --text: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --muted: var(--color-text-muted);
+  --accent: var(--color-accent-blue);
+  --cyan: var(--color-accent-cyan);
+  --green: #6fcf97;
+  --amber: var(--color-accent-warn);
+  --red: var(--color-accent-danger);
+  --lane-glow: transparent;
+  --shadow-sm: var(--shadow-panel);
+  --shadow-md: var(--shadow-shell);
+
+  font-family: var(--font-body);
+  font-weight: var(--font-body-weight);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body:has(.app-shell.is-owner-shell) {
+  background: var(--color-bg-root);
+}
+
+.app-shell.is-owner-shell {
+  background: var(--color-bg-root);
+  box-shadow: none;
+}
+
+/* —— Header: black, no blue gradient wash —— */
+.app-shell.is-owner-shell .app-topbar {
+  margin: 0.65rem 0.75rem 0.5rem;
+  background: var(--color-bg-shell);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--shadow-shell);
+  backdrop-filter: none;
+}
+
+.app-shell.is-owner-shell .topbar-leading {
+  background: transparent;
+}
+
+.app-shell.is-owner-shell .brand-logo {
+  height: 4.25rem;
+  width: auto;
+  max-width: min(22rem, 52vw);
+  filter: none;
+}
+
+/* —— Typography roles —— */
+.app-shell.is-owner-shell h1,
+.app-shell.is-owner-shell .mail-reading-head h3,
+.app-shell.is-owner-shell .inspector-title,
+.app-shell.is-owner-shell .workspace-hero h2 {
+  font-family: var(--font-display);
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--letter-display);
+  line-height: 1.15;
+}
+
+.app-shell.is-owner-shell .product-nav-item,
+.app-shell.is-owner-shell .inbox-action-btn,
+.app-shell.is-owner-shell .inbox-link-btn,
+.app-shell.is-owner-shell .ibal-concierge-btn,
+.app-shell.is-owner-shell .help-control-trigger,
+.app-shell.is-owner-shell .account-status-trigger,
+.app-shell.is-owner-shell .context-nav-item,
+.app-shell.is-owner-shell .mail-owner-account-btn,
+.app-shell.is-owner-shell .mail-owner-status-headline {
+  font-family: var(--font-ui);
+  font-weight: var(--font-ui-weight);
+  letter-spacing: var(--letter-nav);
+}
+
+.app-shell.is-owner-shell .mail-message-body,
+.app-shell.is-owner-shell .thread-row,
+.app-shell.is-owner-shell .form-hint,
+.app-shell.is-owner-shell .mail-owner-status-lines,
+.app-shell.is-owner-shell p,
+.app-shell.is-owner-shell li,
+.app-shell.is-owner-shell dd {
+  font-family: var(--font-body);
+  font-weight: var(--font-body-weight);
+}
+
+.app-shell.is-owner-shell code,
+.app-shell.is-owner-shell .env-status-badge,
+.app-shell.is-owner-shell .mail-source-badge,
+.app-shell.is-owner-shell .thread-metadata-grid dt,
+.app-shell.is-owner-shell .command-box input {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* —— Panels: flat charcoal, subtle border —— */
+.app-shell.is-owner-shell .app-frame,
+.app-shell.is-owner-shell .context-panel,
+.app-shell.is-owner-shell .inbox-workspace-grid,
+.app-shell.is-owner-shell .mail-workbench-center,
+.app-shell.is-owner-shell .inbox-reading-pane,
+.app-shell.is-owner-shell .right-inspector.is-owner-mail-rail.is-rail-thread {
+  background: var(--color-bg-panel);
+  border-color: var(--color-border-subtle);
+  box-shadow: var(--shadow-panel);
+  background-image: none;
+}
+
+.app-shell.is-owner-shell .thread-row.is-selected,
+.app-shell.is-owner-shell .context-nav-item.is-active {
+  background: color-mix(in srgb, var(--color-accent-blue) 8%, var(--color-bg-panel-raised));
+  box-shadow: inset 3px 0 0 var(--color-accent-blue);
+}
+
+.app-shell.is-owner-shell .thread-row:hover:not(.is-selected) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* —— Remove gradient washes on lane/workspace shells —— */
+.app-shell.is-owner-shell [class*="workspace-"],
+.app-shell.is-owner-shell .metric-card,
+.app-shell.is-owner-shell .trust-affordance,
+.app-shell.is-owner-shell .gmail-sync-status-panel {
+  background-image: none;
+  background-color: var(--color-bg-panel);
+  border-color: var(--color-border-subtle);
+}
+
+.app-shell.is-owner-shell .product-nav-item.is-active {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.app-shell.is-owner-shell .inbox-action-btn.is-primary {
+  color: var(--color-accent-blue-soft);
+}
+
+.app-shell.is-owner-shell .command-box {
+  background: var(--color-bg-panel-raised);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .command-box input {
+  color: var(--color-text-primary);
+}
+
+.app-shell.is-owner-shell .command-box input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.app-shell.is-owner-shell .mail-owner-status {
+  background: var(--color-bg-panel-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+
+.app-shell.is-owner-shell .unread-dot,
+.app-shell.is-owner-shell .thread-row.is-unread::before {
+  background: var(--color-accent-blue);
+}

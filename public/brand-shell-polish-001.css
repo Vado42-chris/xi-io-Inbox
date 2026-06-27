@@ -1,0 +1,205 @@
+/**
+ * BRAND-SHELL-POLISH-001 — owner-approved shell polish (loads last; wins cascade)
+ * Spec: docs/ui/polish/brand-001-shell-lock.md · layout-ibal-rail-001-lock.md
+ */
+
+:root {
+  --brand-logo-bg: #020e28;
+  --polish-underline-width: 2px;
+  --polish-layout-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --polish-layout-duration: 0.35s;
+}
+
+/* —— Header / logo —— */
+.app-shell.is-owner-shell .app-topbar {
+  background: var(--brand-logo-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .topbar-leading {
+  background: transparent;
+  padding: 0.15rem 0.75rem 0.15rem 0.45rem;
+}
+
+.app-shell.is-owner-shell .brand-block,
+.app-shell.is-owner-shell .brand-logo {
+  background: transparent;
+}
+
+.app-shell.is-owner-shell .brand-logo {
+  height: 5rem;
+  width: auto;
+  max-width: min(26rem, 58vw);
+  object-fit: contain;
+}
+
+.app-shell.is-owner-shell .account-status-trigger .account-status-state {
+  display: none;
+}
+
+/* —— L1 product nav: hover = accent text only; underline when selected (NAV-POLISH-001) —— */
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="home"] { --lane-accent: var(--lane-home); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="mail"] { --lane-accent: var(--lane-mail); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="calendar"] { --lane-accent: var(--lane-calendar); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="tasks"] { --lane-accent: var(--lane-tasks); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="automations"] { --lane-accent: var(--lane-automations); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="activity"] { --lane-accent: var(--lane-activity); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="integrations"] { --lane-accent: var(--lane-integrations); }
+.app-shell.is-owner-shell .product-nav-item[data-product-workspace="github"] { --lane-accent: var(--lane-github); }
+
+.app-shell.is-owner-shell .product-nav-item {
+  color: rgba(255, 255, 255, 0.86);
+  border-bottom: var(--polish-underline-width) solid transparent;
+  transition:
+    color var(--motion-nav-hover) var(--ease-standard),
+    border-color var(--motion-nav-selected) var(--ease-standard);
+}
+
+.app-shell.is-owner-shell .product-nav-item:hover:not(.is-active) {
+  color: var(--lane-accent);
+  border-bottom-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .product-nav-item.is-active {
+  color: var(--lane-accent);
+  font-weight: 700;
+  border-bottom-color: var(--lane-accent);
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell.is-owner-shell .product-nav-item::after {
+  display: none;
+}
+
+/* —— Action controls: underline on hover (BTN-UNDERLINE-001) —— */
+.app-shell.is-owner-shell .inbox-action-btn,
+.app-shell.is-owner-shell .inbox-link-btn,
+.app-shell.is-owner-shell .inbox-action-btn.is-primary,
+.app-shell.is-owner-shell .inbox-action-btn.is-danger,
+.app-shell.is-owner-shell .ibal-concierge-btn,
+.app-shell.is-owner-shell .help-control-trigger,
+.app-shell.is-owner-shell .account-status-trigger,
+.app-shell.is-owner-shell .context-nav-item,
+.app-shell.is-owner-shell .mail-owner-account-btn,
+.app-shell.is-owner-shell .mail-owner-settings-link {
+  min-height: auto;
+  padding: 0.35rem 0.45rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-decoration: none;
+  border-bottom: var(--polish-underline-width) solid transparent;
+  transition:
+    color var(--motion-nav-hover) var(--ease-standard),
+    border-color var(--motion-nav-selected) var(--ease-standard);
+  transform: none;
+  filter: none;
+}
+
+.app-shell.is-owner-shell .inbox-action-btn:hover:not(:disabled):not(.is-blocked),
+.app-shell.is-owner-shell .inbox-link-btn:hover,
+.app-shell.is-owner-shell .ibal-concierge-btn:hover,
+.app-shell.is-owner-shell .help-control-trigger:hover,
+.app-shell.is-owner-shell .account-status-trigger:hover,
+.app-shell.is-owner-shell .context-nav-item:hover:not(.is-active),
+.app-shell.is-owner-shell .mail-owner-account-btn:hover:not(.is-active),
+.app-shell.is-owner-shell .mail-owner-settings-link:hover {
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  border-bottom-color: var(--lane-accent, var(--accent));
+}
+
+.app-shell.is-owner-shell .context-nav-item[data-context-sub-nav],
+.app-shell.is-owner-shell .context-nav-item.mail-nav-mailbox,
+.app-shell.is-owner-shell .context-nav-item.mail-nav-label {
+  --lane-accent: var(--lane-mail);
+}
+
+.app-shell.is-owner-shell .context-nav-item {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.app-shell.is-owner-shell .context-nav-item:hover:not(.is-active) {
+  color: var(--lane-accent, var(--lane-mail));
+  border-bottom-color: transparent;
+}
+
+.app-shell.is-owner-shell .inbox-action-btn.is-primary,
+.app-shell.is-owner-shell .context-nav-item.is-active,
+.app-shell.is-owner-shell .mail-owner-account-btn.is-active {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  color: color-mix(in srgb, var(--lane-accent, var(--accent)) 82%, var(--text));
+  font-weight: 700;
+}
+
+.app-shell.is-owner-shell .context-nav-item.is-active,
+.app-shell.is-owner-shell .mail-owner-account-btn.is-active,
+.app-shell.is-owner-shell .ibal-concierge-btn.is-open,
+.app-shell.is-owner-shell .account-status-trigger.is-open {
+  border-bottom-color: var(--lane-accent, var(--lane-mail));
+}
+
+.app-shell.is-owner-shell .ibal-concierge-btn.is-open,
+.app-shell.is-owner-shell .account-status-trigger.is-open {
+  color: var(--accent);
+}
+
+.app-shell.is-owner-shell .inbox-action-btn.is-danger {
+  color: color-mix(in srgb, var(--status-danger) 78%, var(--text));
+}
+
+.app-shell.is-owner-shell .inbox-action-btn.is-danger:hover:not(:disabled):not(.is-blocked) {
+  border-bottom-color: var(--status-danger);
+}
+
+.app-shell.is-owner-shell .context-nav-item.is-active {
+  border-color: transparent;
+}
+
+/* —— Mail rail width (full center when collapsed) —— */
+.app-shell.is-owner-shell.is-mail-workbench .app-frame {
+  transition: grid-template-columns var(--motion-rail-layout) var(--ease-standard);
+}
+
+.app-shell.is-owner-shell.is-mail-workbench .app-frame.is-mail-rail-collapsed {
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) 0fr;
+}
+
+.app-shell.is-owner-shell.is-mail-workbench .app-frame.is-mail-rail-open {
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(10rem, 12rem);
+}
+
+.app-shell.is-owner-shell .right-inspector.is-owner-mail-rail.is-rail-idle {
+  display: flex;
+  opacity: 0;
+  overflow: hidden;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+
+.app-shell.is-owner-shell .right-inspector.is-owner-mail-rail.is-rail-thread {
+  opacity: 1;
+  min-width: 0;
+  transition:
+    opacity var(--motion-rail-layout) var(--ease-standard),
+    transform var(--motion-rail-layout) var(--ease-standard),
+    padding var(--motion-rail-layout) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.is-owner-shell.is-mail-workbench .app-frame,
+  .app-shell.is-owner-shell .right-inspector.is-owner-mail-rail.is-rail-thread {
+    transition: none;
+  }
+}

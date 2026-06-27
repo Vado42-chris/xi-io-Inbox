@@ -23,6 +23,7 @@ run('check:mail', 'npm', ['run', 'check:mail', '--silent']);
 run('check:ui012d', 'npm', ['run', 'check:ui012d', '--silent']);
 run('check:ui012e', 'npm', ['run', 'check:ui012e', '--silent']);
 run('check:ui013c', 'npm', ['run', 'check:ui013c', '--silent']);
+run('check:brand002', 'npm', ['run', 'check:brand002', '--silent']);
 run('check:components', 'npm', ['run', 'check:components', '--silent']);
 
 console.log('check:quick: pass (gmail deferred — run npm run check before slice close)');
