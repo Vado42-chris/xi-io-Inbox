@@ -14,8 +14,12 @@ function deriveBodyMetadata(message) {
     date: message.date || null,
     subject: message.subject || null,
     snippet: message.snippet || message.sanitizedBodyPreview || null,
-    bodyTextAvailable: Boolean(message.bodyAvailable && message.sanitizedPlainText),
-    attachmentPresence: Boolean(message.hasAttachments),
+    bodyTextAvailable: Boolean(
+      message.bodyAvailable
+      && (message.sanitizedPlainText || message.renderModel?.sanitizedPlainText || message.renderModel?.sanitizedHtml),
+    ),
+    attachmentPresence: Boolean(message.hasAttachments || message.renderModel?.hasAttachments),
+    renderModel: message.renderModel || null,
     labels: labelIds,
     replyNeededCandidate: labelIds.map((id) => id.toUpperCase()).includes('UNREAD'),
     provider: message.provider || 'gmail-readonly',

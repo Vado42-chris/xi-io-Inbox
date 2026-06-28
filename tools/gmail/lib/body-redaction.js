@@ -1,17 +1,22 @@
 const REMOTE_RESOURCE_PATTERN = /\b(?:https?|cid|data|javascript|vbscript):[^\s"'<>]+/gi;
 const REMOTE_RESOURCE_TEST_PATTERN = /\b(?:https?|cid|data|javascript|vbscript):/i;
 const HTML_TAG_PATTERN = /<[^>]+>/g;
+const DANGEROUS_URL_PATTERN = /\b(?:javascript|vbscript|data):[^\s"'<>]+/gi;
 
 export const DEFAULT_BODY_PREVIEW_MAX = 1200;
 
+/** Strip HTML to readable plain text without inline redaction token spam (001B). */
 export function stripHtmlToText(html) {
   return String(html || '')
-    .replace(REMOTE_RESOURCE_PATTERN, '[redacted-resource]')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(DANGEROUS_URL_PATTERN, '')
     .replace(HTML_TAG_PATTERN, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
+/** Legacy snapshot redaction — removes dangerous URLs silently; no inline redaction tokens. */
 export function redactBodyContent(input, { maxLength = DEFAULT_BODY_PREVIEW_MAX } = {}) {
   const notes = [];
   let raw = String(input || '');
@@ -32,7 +37,7 @@ export function redactBodyContent(input, { maxLength = DEFAULT_BODY_PREVIEW_MAX 
 
   if (REMOTE_RESOURCE_TEST_PATTERN.test(raw)) {
     notes.push('remote_resources_removed');
-    raw = raw.replace(REMOTE_RESOURCE_PATTERN, '[redacted-resource]');
+    raw = raw.replace(REMOTE_RESOURCE_PATTERN, ' ').replace(/\s+/g, ' ').trim();
   }
 
   if (raw.length > maxLength) {
@@ -74,6 +79,8 @@ function decodeBase64Url(value) {
   const normalized = String(value).replace(/-/g, '+').replace(/_/g, '/');
   return Buffer.from(normalized, 'base64').toString('utf8');
 }
+
+export { decodeBase64Url };
 
 export function redactBodySnapshot(snapshot) {
   const next = structuredClone(snapshot);

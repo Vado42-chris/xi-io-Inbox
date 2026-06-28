@@ -29,10 +29,13 @@ import {
   READONLY_SCOPE,
 } from './body-gate.js';
 import {
+  DEFAULT_BODY_PREVIEW_MAX,
   extractBodyFromPayload,
   redactBodyContent,
   redactBodySnapshot,
 } from './body-redaction.js';
+import { analyzeMimePayload } from './mime-body-model.js';
+import { buildBodyRenderModel } from './html-sanitize.js';
 import { validateReadonlyBodySnapshot } from './body-snapshot-schema.js';
 import { writeSyncReceipt } from './receipts.js';
 import { buildSyncStatus, writeSyncStatusFile } from './sync-status.js';
@@ -741,8 +744,11 @@ async function requireBodyReadGate() {
 function messageRowWithRedactedBody(message) {
   const headers = headersMap(message.payload);
   const labelIds = message.labelIds || [];
-  const rawBody = extractBodyFromPayload(message.payload);
-  const redacted = redactBodyContent(rawBody);
+  const mimeAnalysis = analyzeMimePayload(message.payload);
+  const renderModel = buildBodyRenderModel(mimeAnalysis, { blockRemoteImages: true });
+  const plain = String(renderModel.sanitizedPlainText || mimeAnalysis.plainText || '').trim();
+  const previewMax = DEFAULT_BODY_PREVIEW_MAX;
+  const preview = plain.length > previewMax ? `${plain.slice(0, previewMax).trim()}…` : plain;
   return {
     id: message.id,
     threadId: message.threadId,
@@ -753,10 +759,12 @@ function messageRowWithRedactedBody(message) {
     date: headers.Date || (message.internalDate ? new Date(Number(message.internalDate)).toISOString() : ''),
     unread: labelIds.includes('UNREAD'),
     snippet: message.snippet || '',
-    sanitizedBodyPreview: redacted.sanitizedBodyPreview,
-    sanitizedPlainText: redacted.sanitizedPlainText,
-    bodyAvailable: redacted.bodyAvailable,
-    redactionNotes: redacted.redactionNotes,
+    sanitizedBodyPreview: preview,
+    sanitizedPlainText: plain,
+    bodyAvailable: Boolean(plain || renderModel.sanitizedHtml),
+    redactionNotes: renderModel.renderWarnings || [],
+    hasAttachments: renderModel.hasAttachments,
+    renderModel,
     provider: 'gmail-readonly',
   };
 }

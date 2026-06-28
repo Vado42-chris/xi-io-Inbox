@@ -166,8 +166,9 @@ function applyLocalWebBodyMetadata(thread, message, derivedMetadata) {
     date: message.date || null,
     subject: message.subject || null,
     snippet: message.snippet || message.sanitizedBodyPreview || null,
-    bodyTextAvailable: Boolean(message.bodyAvailable && message.sanitizedPlainText),
-    attachmentPresence: false,
+    bodyTextAvailable: Boolean(message.bodyAvailable && (message.sanitizedPlainText || message.renderModel?.sanitizedPlainText)),
+    attachmentPresence: Boolean(message.hasAttachments || message.renderModel?.hasAttachments),
+    renderModel: message.renderModel || null,
     labels: (message.labelIds || []).map((id) => String(id)),
     replyNeededCandidate: (message.labelIds || []).map((id) => String(id).toUpperCase()).includes('UNREAD'),
     provider: message.provider || 'gmail-readonly',
@@ -235,7 +236,12 @@ async function fetchLocalWebThreadBody(thread) {
     }
     const message = data.messages?.[0] || null;
     const bodyText = message?.sanitizedPlainText || message?.sanitizedBodyPreview || '';
-    if (!message || !bodyText) {
+    const hasContent = Boolean(
+      bodyText.trim()
+      || message?.renderModel?.sanitizedHtml
+      || message?.renderModel?.sanitizedPlainText,
+    );
+    if (!message || !hasContent) {
       const state = {
         status: 'error',
         error: data.error || 'Body read returned empty content for this message.',
@@ -8050,6 +8056,60 @@ function renderMailWorkspaceHeader() {
   `;
 }
 
+function localWebBodyHasContent(message) {
+  const plain = message?.sanitizedPlainText || message?.sanitizedBodyPreview || '';
+  const renderModel = message?.renderModel;
+  return Boolean(plain.trim() || renderModel?.sanitizedHtml || renderModel?.sanitizedPlainText);
+}
+
+function renderMailBodyRenderBadges(renderModel) {
+  if (!renderModel) return '';
+  const badges = [];
+  if (renderModel.bodyRenderMode === 'sanitized_html') badges.push('Sanitized HTML');
+  if (renderModel.bodyRenderMode === 'plain_fallback' || renderModel.usedPlainTextFallback) badges.push('Plain text fallback');
+  if (renderModel.bodyRenderMode === 'plain_text') badges.push('Plain text');
+  if (renderModel.remoteImageBlockedCount > 0 || renderModel.remoteImagesBlocked) badges.push('Remote images blocked');
+  if (renderModel.trackingPixelBlockedCount > 0) badges.push('Tracking resources blocked');
+  if (renderModel.inlineImageResolvedCount > 0) badges.push('Inline images rendered');
+  if ((renderModel.inlineImageCount || 0) > (renderModel.inlineImageResolvedCount || 0)) badges.push('Inline images unavailable');
+  if (renderModel.hasAttachments) badges.push('Attachments detected');
+  if (renderModel.unsafeHtmlStripped || renderModel.unsafeElementStrippedCount > 0) badges.push('Unsafe HTML stripped');
+  if (renderModel.styleElementStrippedCount > 0) badges.push('Style content stripped');
+  if (renderModel.fallbackReason === 'css_noise_stripped' || renderModel.fallbackReason === 'html_display_polluted') {
+    badges.push('Plain text preferred');
+  }
+  if (!badges.length) return '';
+  return `<div class="mail-body-render-badges">${badges.map((label) => `<span class="mail-body-render-badge">${escapeHtml(label)}</span>`).join('')}</div>`;
+}
+
+function renderMailBodyResourceSummary(renderModel) {
+  if (!renderModel?.resourcePolicySummary) return '';
+  return `<p class="mail-body-resource-summary" role="status">${escapeHtml(renderModel.resourcePolicySummary)}</p>`;
+}
+
+function renderMailBodyRenderChrome(renderModel) {
+  return `${renderMailBodyResourceSummary(renderModel)}${renderMailBodyRenderBadges(renderModel)}`;
+}
+
+function renderLocalWebHydratedBody(message, bodyText) {
+  const renderModel = message?.renderModel;
+  if (renderModel?.bodyRenderMode === 'sanitized_html' && renderModel.sanitizedHtml) {
+    return `
+      ${renderMailBodyRenderChrome(renderModel)}
+      <div class="mail-body-sandbox" data-mail-body-sandbox>
+        <div class="mail-body-sandbox-inner">${renderModel.sanitizedHtml}</div>
+      </div>
+      ${renderModel.hasPlainText && bodyText ? '<p class="mail-body-plain-fallback-note">Plain text fallback available.</p>' : ''}
+      <p class="mail-message-preview-note">${escapeHtml(localWebRuntimeModeCopy('body_hydrated'))}</p>
+    `;
+  }
+  return `
+    ${renderMailBodyRenderChrome(renderModel)}
+    <div class="mail-message-body is-readable">${escapeHtml(demoteMailDisplayText(bodyText))}</div>
+    <p class="mail-message-preview-note">${escapeHtml(localWebRuntimeModeCopy('body_hydrated'))}</p>
+  `;
+}
+
 function renderOwnerLocalWebReadingPane(thread, bodyState = {}) {
   const threadId = thread?.id || '';
   const status = bodyState.status || 'idle';
@@ -8067,12 +8127,9 @@ function renderOwnerLocalWebReadingPane(thread, bodyState = {}) {
     `;
   } else if (status === 'loading') {
     bodySection = '<p class="mail-message-preview-note">Hydrating read-only body…</p>';
-  } else if (status === 'ready' && bodyText) {
-    bodySection = `
-      <div class="mail-message-body is-readable">${escapeHtml(demoteMailDisplayText(bodyText))}</div>
-      <p class="mail-message-preview-note">${escapeHtml(localWebRuntimeModeCopy('body_hydrated'))}</p>
-    `;
-  } else if (status === 'ready' && !bodyText) {
+  } else if (status === 'ready' && localWebBodyHasContent(message)) {
+    bodySection = renderLocalWebHydratedBody(message, bodyText);
+  } else if (status === 'ready' && !localWebBodyHasContent(message)) {
     bodySection = `
       <p class="mail-message-body is-snippet">${escapeHtml(demoteMailDisplayText(threadSnippetText(thread)))}</p>
       <p class="mail-message-preview-note is-blocked">Body read returned empty content for this message.</p>
@@ -8103,9 +8160,17 @@ function renderOwnerLocalWebReadingPane(thread, bodyState = {}) {
   const metaFrom = derived?.sender || message?.from || thread.sender || '';
   const metaDate = derived?.date || message?.date || thread.receivedAt;
   const hydrationLabel = bodyState.hydrationState
-    || (status === 'ready' && bodyText ? 'body_hydrated' : status === 'error' ? 'body_hydration_error' : status === 'blocked' ? 'body_hydration_blocked' : status === 'loading' ? 'body_hydration_loading' : 'body_pending');
-  const bodyMetaLabel = status === 'ready' && bodyText
-    ? 'hydrated read-only'
+    || (status === 'ready' && localWebBodyHasContent(message)
+      ? 'body_hydrated'
+      : status === 'error'
+        ? 'body_hydration_error'
+        : status === 'blocked'
+          ? 'body_hydration_blocked'
+          : status === 'loading'
+            ? 'body_hydration_loading'
+            : 'body_pending');
+  const bodyMetaLabel = status === 'ready' && localWebBodyHasContent(message)
+    ? (message?.renderModel?.bodyRenderMode || 'hydrated read-only')
     : hydrationLabel.replace(/_/g, ' ');
   return `
     <section class="inbox-reading-pane mail-reading-pane is-owner-message-view is-local-web-runtime ${runtimeOrchestration.connectionState === 'cached_offline' ? 'is-cached-offline' : ''}" aria-label="Message preview">
@@ -8128,8 +8193,9 @@ function renderOwnerLocalWebReadingPane(thread, bodyState = {}) {
         <dl class="thread-metadata-grid mail-metadata-grid">
           <div><dt>From</dt><dd>${escapeHtml(demoteMailDisplayText(message?.from || thread.sender || ''))}</dd></div>
           <div><dt>Date</dt><dd>${escapeHtml(formatMailDate(message?.date || thread.receivedAt))}</dd></div>
-          <div><dt>Body</dt><dd>${bodyMetaLabel}</dd></div>
-          ${derived?.attachmentPresence ? '<div><dt>Attachments</dt><dd>present</dd></div>' : ''}
+          <div><dt>Body</dt><dd>${escapeHtml(bodyMetaLabel)}</dd></div>
+          ${message?.renderModel?.mimeStructure ? `<div><dt>MIME</dt><dd>${escapeHtml(message.renderModel.mimeStructure)}</dd></div>` : ''}
+          ${derived?.attachmentPresence || message?.renderModel?.hasAttachments ? '<div><dt>Attachments</dt><dd>present (open blocked)</dd></div>' : ''}
           ${derived?.replyNeededCandidate ? '<div><dt>Reply</dt><dd>candidate (unread)</dd></div>' : ''}
         </dl>
         <div class="mail-reading-actions is-owner-advanced" role="toolbar" aria-label="Blocked message actions">

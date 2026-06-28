@@ -37,13 +37,15 @@
     "check:runtime002c": "node scripts/runtime-002c-model-check.mjs",
     "check:localwebruntime001": "node scripts/local-web-runtime-001-model-check.mjs",
     "check:brand002": "node scripts/brand-002-model-check.mjs && node scripts/brand-002c-route-audit.mjs",
+    "check:mailbody001a": "node scripts/mail-body-renderer-001a-model-check.mjs",
+    "check:mailbody001b": "node scripts/mail-body-renderer-001b-model-check.mjs",
     "check:ollama-peer-review": "node scripts/ollama-peer-review-model-check.mjs",
     "peer-review:ollama": "node scripts/ollama-peer-review.mjs",
     "gate:runtime002c": "node scripts/gate-runtime-002c.mjs",
     "tauri:dev": "cargo tauri dev",
     "tauri:build": "cargo tauri build",
     "check:full": "npm run check && npm run gate:runtime002c -- --write-evidence",
-    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:mail && npm run check:ui012d && npm run check:ui012e && npm run check:ui013c && npm run check:ext003 && npm run check:ext004 && npm run check:acc-sync-ui && npm run check:ui003e-packet && npm run check:gcal001 && npm run check:runtime001 && npm run check:runtime002a && npm run check:runtime002b && npm run check:runtime002c && npm run check:localwebruntime001 && npm run check:brand002 && npm run check:ollama-peer-review && npm run check:route-table && npm run check:components && npm run check:route && npm run check:gmail && npm run check:gcal"
+    "check": "npm run check:files && npm run check:json && npm run check:js && npm run check:acc && npm run check:mail && npm run check:ui012d && npm run check:ui012e && npm run check:ui013c && npm run check:ext003 && npm run check:ext004 && npm run check:acc-sync-ui && npm run check:ui003e-packet && npm run check:gcal001 && npm run check:runtime001 && npm run check:runtime002a && npm run check:runtime002b && npm run check:runtime002c && npm run check:localwebruntime001 && npm run check:mailbody001a && npm run check:mailbody001b && npm run check:brand002 && npm run check:ollama-peer-review && npm run check:route-table && npm run check:components && npm run check:route && npm run check:gmail && npm run check:gcal"
   },
   "devDependencies": {
     "playwright": "^1.49.1"

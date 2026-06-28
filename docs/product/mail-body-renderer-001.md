@@ -1,6 +1,6 @@
 # MAIL-BODY-RENDERER-001 — safe HTML/MIME email rendering
 
-**Status:** Capture only — **implementation not started**.  
+**Status:** **001A implementation landed locally** — see `docs/ui/reviews/mail-body-renderer-001a-receipt.md`. Full `MAIL-BODY-RENDERER-001` (inline CID resolve, attachment fetch gates, nested RFC822) remains future work.
 **Ledger event:** `mail.body_renderer.spec_captured`  
 **Parent:** `docs/architecture/provider-control-plane-001.md` · `LOCAL-WEB-RUNTIME-001H` (metadata + body hydrate)
 

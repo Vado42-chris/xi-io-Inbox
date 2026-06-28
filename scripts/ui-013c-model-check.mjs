@@ -13,7 +13,8 @@ const requiredCss = [
   'calendar-workspace-grid',
 ];
 const requiredJs = [
-  'brand-mark',
+  'brand-logo',
+  'BRAND_LOGO_ASSET',
   'trust-affordance',
   'app-frame-lane-',
   'Calendar writes locked until you connect a provider',

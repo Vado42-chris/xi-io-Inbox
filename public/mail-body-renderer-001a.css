@@ -1,0 +1,83 @@
+/**
+ * MAIL-BODY-RENDERER-001A — isolated reading-pane body host
+ */
+
+.mail-body-render-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.65rem;
+}
+
+.mail-body-render-badge {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.76));
+  background: var(--color-bg-panel-raised, #151923);
+}
+
+.mail-body-sandbox {
+  contain: content;
+  isolation: isolate;
+  max-width: 100%;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-bg-panel-raised, #151923);
+  overflow-x: auto;
+}
+
+.mail-body-sandbox-inner {
+  all: revert;
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.92));
+  overflow-wrap: anywhere;
+}
+
+.mail-body-sandbox-inner a {
+  color: var(--color-accent-blue-soft, #3d8efc);
+  pointer-events: none;
+  text-decoration: underline;
+}
+
+.mail-body-sandbox-inner table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.mail-body-blocked-image,
+.mail-body-blocked-pixel {
+  display: inline-block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.62));
+}
+
+.mail-body-plain-fallback-note {
+  margin-top: 0.55rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.62));
+  font-size: 0.78rem;
+}
+
+.mail-body-resource-summary {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-bg-panel, #101217);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.76));
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.mail-body-sandbox-inner img {
+  max-width: 100%;
+  height: auto;
+}
